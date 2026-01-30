@@ -71,7 +71,7 @@ export default function LandingPage() {
 
           {/* Spasi: mb-14 memberikan jarak jauh sebelum tombol aksi */}
           <p className="max-w-3xl text-gray-500 text-lg md:text-xl mb-10 leading-relaxed font-semibold">
-            Sistem Informasi Pemetaan Tingkat Elektrifikasi Desa Provinsi Aceh
+            Sistem Informasi Pemetaan Elektrifikasi Desa Provinsi Aceh
           </p>
 
           <div>

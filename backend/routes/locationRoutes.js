@@ -26,9 +26,6 @@ router.get('/up3/stats', locationController.getUp3Stats);
 // Get UP3 detail (kecamatan list)
 router.get('/up3/detail/:name', locationController.getUp3Detail);
 
-// Get single location by ID
-router.get('/:id', locationController.getLocationById);
-
 // Search location by name (for RegionDetailPage)
 router.get('/search/:name', locationController.getLocationByName);
 
@@ -37,6 +34,13 @@ router.get('/search', locationController.globalSearch);
 
 // Map Data
 router.get('/map/geojson', locationController.getGeoJSON);
+router.get('/map/kecamatan-points', locationController.getKecamatanPoints);
 router.get('/map/boundaries', locationController.getBoundaries);
+
+// Get single location by ID
+router.get('/:id', locationController.getLocationById);
+
+// Update Dusun Status
+router.put('/dusun/update-status', locationController.updateDusunStatus);
 
 module.exports = router;

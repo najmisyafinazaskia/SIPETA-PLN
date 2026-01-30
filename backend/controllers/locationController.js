@@ -559,7 +559,7 @@ exports.getLocationById = async (req, res) => {
 // Get locations as GeoJSON
 exports.getGeoJSON = async (req, res) => {
     try {
-        const locations = await Location.find({}); // Fetch everything first
+        const locations = await Location.find({}).lean(); // Fetch everything first
 
         const features = locations.filter(l => {
             // Validasi keberadaan koordinat
@@ -604,6 +604,10 @@ exports.getGeoJSON = async (req, res) => {
                     name: l.desa,
                     status: (l.dusun_detail && l.dusun_detail.filter(d => d.status !== 'REFF!').some(d => d.status.toUpperCase().includes('PLN'))) ? "Berlistrik PLN" : "Belum Berlistrik PLN",
                     dusun_count: l.dusun_detail ? l.dusun_detail.filter(d => d.status !== 'REFF!').length : 0,
+                    dusuns: l.dusun_detail ? l.dusun_detail.filter(d => d.status !== 'REFF!').map(d => ({
+                        name: d.nama,
+                        status: (d.status && d.status.toUpperCase().includes('PLN')) ? "Berlistrik PLN" : (d.status || "-")
+                    })) : [],
                     up3: KABUPATEN_TO_UP3[(l.kabupaten || "").toUpperCase()] || ""
                 },
                 geometry: geometry
@@ -620,6 +624,56 @@ exports.getGeoJSON = async (req, res) => {
     }
 };
 
+// Get Kecamatan points for map (Aggregated from Desa)
+exports.getKecamatanPoints = async (req, res) => {
+    try {
+        const dataKec = await Location.aggregate([
+            {
+                $group: {
+                    _id: "$kecamatan",
+                    kabupaten: { $first: "$kabupaten" },
+                    nama_kecamatan: { $first: "$kecamatan" },
+                    koordinat: { $first: "$location" },
+                    // Fallback to X/Y
+                    X: { $first: "$X" },
+                    Y: { $first: "$Y" }
+                }
+            },
+            { $sort: { nama_kecamatan: 1 } }
+        ]);
+
+        const formatted = dataKec.map(k => {
+            let coords = null;
+            if (k.koordinat && k.koordinat.coordinates) {
+                coords = k.koordinat;
+            } else if (k.X && k.Y) {
+                const x = parseFloat(k.X);
+                const y = parseFloat(k.Y);
+                if (!isNaN(x) && !isNaN(y)) {
+                    coords = { type: "Point", coordinates: [x, y] };
+                }
+            }
+            return {
+                type: "Feature",
+                properties: {
+                    name: k.nama_kecamatan,
+                    kabupaten: k.kabupaten,
+                    kecamatan: k.nama_kecamatan,
+                    status: "Berlistrik PLN" // Default status as per user request/mini-project
+                },
+                geometry: coords
+            };
+        }).filter(k => k.geometry);
+
+        res.json({
+            type: "FeatureCollection",
+            features: formatted
+        });
+    } catch (err) {
+        res.status(500).json({ message: "Gagal ambil data kecamatan" });
+    }
+};
+
 // Get Boundary GeoJSON
 exports.getBoundaries = async (req, res) => {
     try {
@@ -628,6 +682,30 @@ exports.getBoundaries = async (req, res) => {
         const filePath = path.join(__dirname, '../data/geojson/aceh_kabupaten.geojson');
         const data = fs.readFileSync(filePath, 'utf8');
         res.json(JSON.parse(data));
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+// Update Dusun Status (Manual Override)
+exports.updateDusunStatus = async (req, res) => {
+    try {
+        const { desaId, dusunName, newStatus } = req.body;
+
+        if (!desaId || !dusunName || !newStatus) {
+            return res.status(400).json({ success: false, message: "Data tidak lengkap (desaId, dusunName, newStatus diperlukan)" });
+        }
+
+        const location = await Location.findOneAndUpdate(
+            { _id: desaId, "dusun_detail.nama": dusunName },
+            { $set: { "dusun_detail.$.status": newStatus } },
+            { new: true }
+        );
+
+        if (!location) {
+            return res.status(404).json({ success: false, message: "Dusun atau Desa tidak ditemukan" });
+        }
+
+        res.json({ success: true, message: "Status dusun berhasil diperbarui", data: location });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

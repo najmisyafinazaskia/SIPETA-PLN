@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Up3Map from "./Up3Map";
+import MapFilter from "../../components/ui/MapFilter";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -19,21 +20,38 @@ export default function Up3Page() {
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
 
+    // Filter State
+    const [showStable, setShowStable] = useState(true);
+    const [showWarning, setShowWarning] = useState(true);
+    const [allKabLocations, setAllKabLocations] = useState<any[]>([]);
+    const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+    const [locationsInitialized, setLocationsInitialized] = useState(false);
+
     useEffect(() => {
         const fetchUp3Data = async () => {
             try {
                 setLoading(true);
+                // Fetch UP3 List
                 const response = await fetch(`${API_URL}/api/locations/up3/stats`);
                 const json = await response.json();
                 if (json.success) {
                     const mapped = json.data.map((u: any) => ({
                         ...u,
-                        type: "stable" // Default stable at UP3 level
+                        type: "stable"
                     }));
                     setUp3List(mapped);
                 }
+
+                // Fetch Kab/Kota List for Filter
+                const kabRes = await fetch(`${API_URL}/api/locations/stats`);
+                const kabJson = await kabRes.json();
+                if (kabJson.success) {
+                    const kabs = kabJson.data.details.map((k: any) => ({ name: k.kabupaten }));
+                    setAllKabLocations(kabs);
+                }
+
             } catch (error) {
-                console.error("Error fetching UP3 data:", error);
+                console.error("Error fetching data:", error);
             } finally {
                 setLoading(false);
             }
@@ -42,30 +60,33 @@ export default function Up3Page() {
     }, []);
 
     useEffect(() => {
-        const timer = setTimeout(async () => {
-            if (searchTerm.trim().length > 2) {
-                try {
-                    setIsSearching(true);
-                    const res = await fetch(`${API_URL}/api/locations/search?q=${encodeURIComponent(searchTerm)}`);
-                    const json = await res.json();
-                    if (json.success) {
-                        setSearchResults(json.data);
-                    }
-                } catch (err) {
-                    console.error("Search error:", err);
-                } finally {
-                    setIsSearching(false);
-                }
-            } else {
-                setSearchResults([]);
-            }
-        }, 500);
-        return () => clearTimeout(timer);
-    }, [searchTerm]);
+        if (allKabLocations.length > 0 && !locationsInitialized) {
+            setSelectedLocations(allKabLocations.map(k => k.name));
+            setLocationsInitialized(true);
+        }
+    }, [allKabLocations, locationsInitialized]);
+
+    const toggleAllLocations = () => {
+        if (selectedLocations.length === allKabLocations.length) {
+            setSelectedLocations([]);
+        } else {
+            setSelectedLocations(allKabLocations.map(k => k.name));
+        }
+    };
+
+    const toggleLocation = (name: string) => {
+        if (selectedLocations.includes(name)) {
+            setSelectedLocations(selectedLocations.filter(L => L !== name));
+        } else {
+            setSelectedLocations([...selectedLocations, name]);
+        }
+    };
+
+    // ... (searchTerm useEffect) ...
 
     const filteredUp3List = useMemo(() => {
+        // ... (existing logic) ...
         if (searchTerm.trim().length > 2) {
-            // Find UP3s that match directly or have children that match
             const matchingUp3Names = new Set(
                 searchResults.map(r => r.up3).filter(Boolean)
             );
@@ -95,12 +116,22 @@ export default function Up3Page() {
         <div className="rounded-3xl border border-gray-200 bg-white overflow-hidden shadow-sm dark:border-gray-800 dark:bg-white/[0.03] font-outfit relative">
             <div className="p-8 pb-4">
                 <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 font-outfit uppercase tracking-tight">
-                    Demografi Pasokan Listrik Berdasarkan UP3
+                    Distribusi Elektrifikasi Berdasarkan UP3
                 </h1>
             </div>
 
             <div className="relative w-full h-[700px] border-y border-gray-100 dark:border-gray-800 bg-gray-50/30">
-                <Up3Map filters={{ stable: true, warning: true, locations: up3List.map(u => u.name) }} disableWarning={true} />
+                <MapFilter
+                    showStable={showStable}
+                    setShowStable={setShowStable}
+                    showWarning={showWarning}
+                    setShowWarning={setShowWarning}
+                    selectedLocations={selectedLocations}
+                    toggleLocation={toggleLocation}
+                    toggleAllLocations={toggleAllLocations}
+                    uniqueLocations={allKabLocations}
+                />
+                <Up3Map filters={{ stable: showStable, warning: showWarning, locations: selectedLocations }} disableWarning={true} />
             </div>
 
             <div className="p-8 bg-gray-50/20">

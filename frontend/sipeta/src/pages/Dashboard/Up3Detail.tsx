@@ -116,7 +116,7 @@ export default function Up3Detail() {
                 <div>
                     <h1 className="text-3xl font-bold text-[#1C2434] dark:text-white uppercase tracking-tight font-outfit">
                         {decodedName}
-                        <span className="ml-2 px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-800 font-bold uppercase tracking-wider">UP3</span>
+
                     </h1>
                     <p className="text-lg text-gray-500 font-medium mt-1 font-outfit">Detail Wilayah & Statistik</p>
                 </div>

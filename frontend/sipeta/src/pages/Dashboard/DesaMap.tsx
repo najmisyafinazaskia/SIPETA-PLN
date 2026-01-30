@@ -4,6 +4,7 @@ import RegionMap from "./RegionMap";
 interface DesaMapProps {
   activeFilters: { stable: boolean; warning: boolean };
   disableWarning?: boolean;
+  filterLocations?: string[];
 }
 
 const DesaMap: React.FC<DesaMapProps> = (props) => {

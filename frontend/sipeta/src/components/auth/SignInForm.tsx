@@ -37,7 +37,7 @@ export default function SignInForm({ onLogin }: SignInFormProps) {
           const dummyUser = { id: "dummy", name: username, username };
           login("dummy_token_login", dummyUser);
           if (onLogin) onLogin();
-          navigate("/dashboard");
+          navigate("/dashboard/region");
         } else {
           setError("Username dan Password wajib diisi");
         }
@@ -56,7 +56,7 @@ export default function SignInForm({ onLogin }: SignInFormProps) {
       if (res.ok) {
         login(data.token, data.user);
         if (onLogin) onLogin();
-        navigate("/dashboard");
+        navigate("/dashboard/region");
       } else {
         setError(data.message || "Login failed");
       }
@@ -100,6 +100,7 @@ export default function SignInForm({ onLogin }: SignInFormProps) {
                     placeholder="Masukkan username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
                   />
                 </div>
                 <div>
@@ -112,6 +113,7 @@ export default function SignInForm({ onLogin }: SignInFormProps) {
                       placeholder="Masukkan password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}

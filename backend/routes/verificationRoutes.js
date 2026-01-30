@@ -51,5 +51,6 @@ const upload = multer({
 router.get('/', verificationController.getAllVerifications);
 router.get('/:dusunId', verificationController.getVerification);
 router.post('/upload/:dusunId', verifyToken, upload.single('document'), verificationController.uploadFile);
+router.delete('/:dusunId', verifyToken, verificationController.deleteVerification);
 
 module.exports = router;

@@ -2,8 +2,10 @@ const Notification = require('../models/Notification');
 
 exports.getNotifications = async (req, res) => {
     try {
-        // Fetch last 10-20 notifications
-        const notifications = await Notification.find()
+        // Fetch last 20 notifications that haven't been deleted by this user
+        const notifications = await Notification.find({
+            deletedBy: { $ne: req.userId }
+        })
             .sort({ createdAt: -1 })
             .limit(20);
         res.json(notifications);
@@ -63,8 +65,12 @@ exports.updateLastReadAt = async (req, res) => {
 
 exports.clearAll = async (req, res) => {
     try {
-        await Notification.deleteMany({});
-        res.json({ message: "All notifications cleared" });
+        // Soft delete for the current user only
+        await Notification.updateMany(
+            {},
+            { $addToSet: { deletedBy: req.userId } }
+        );
+        res.json({ message: "All notifications cleared for this user" });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

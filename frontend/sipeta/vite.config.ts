@@ -15,4 +15,11 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    host: true, // Listen on all local IPs
+    port: 5173,
+    watch: {
+      usePolling: true, // Fix for Windows Docker hot reload
+    }
+  }
 });

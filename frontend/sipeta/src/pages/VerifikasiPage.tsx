@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, EyeIcon } from "lucide-react";
+import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, TrashIcon } from "lucide-react";
 
 // --- TIPE DATA ---
 interface Dusun {
@@ -30,34 +30,94 @@ interface Kabupaten {
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // --- COMPONENTS ---
-// (DusunItem and Accordion remain same, using API_URL)
 
-// 1. DUSUN ITEM (LEAF NODE)
-const DusunItem = ({ dusun }: { dusun: Dusun }) => {
-  const [file, setFile] = useState<string | null>(dusun.file);
+const DeleteConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  isLoading
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 mb-2">
+            <TrashIcon size={32} />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Hapus Dokumen?</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Apakah Anda yakin ingin menghapus dokumen ini? Tindakan ini tidak dapat dibatalkan.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full mt-4">
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/30 transition-all flex items-center justify-center gap-2"
+            >
+              {isLoading ? <Loader2 size={18} className="animate-spin" /> : "Ya, Hapus"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 1.5 DESA VERIFICATION PANEL (Moved from DusunItem)
+const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string, desaName: string, onUpdate: () => void }) => {
+  const [file, setFile] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
-  const [lastUpload, setLastUpload] = useState<string | null>(dusun.uploadTime);
+  const [lastUpload, setLastUpload] = useState<string | null>(null);
+  const [uploader, setUploader] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const API_URL = import.meta.env.VITE_API_URL || "";
 
-  // Fetch initial state for this specific dusun if available
+  // Defined outside useEffect to be reusable
+  const fetchStatus = React.useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/verification/${desaId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setFile(data.fileName);
+        setFilePath(data.filePath);
+        setLastUpload(new Date(data.updatedAt).toLocaleString());
+        setUploader(data.uploadedBy ? data.uploadedBy.name : null);
+      } else {
+        // Reset if no data found
+        setFile(null);
+        setFilePath(null);
+        setLastUpload(null);
+        setUploader(null);
+      }
+    } catch (err) { console.error(err); }
+  }, [desaId, API_URL]);
+
+  // Fetch initial state
   React.useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/verification/${dusun.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setFile(data.fileName);
-          setFilePath(data.filePath);
-          setLastUpload(new Date(data.updatedAt).toLocaleString());
-        }
-      } catch (err) { console.error(err); }
-    };
     fetchStatus();
-  }, [dusun.id]);
+  }, [fetchStatus]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -69,11 +129,11 @@ const DusunItem = ({ dusun }: { dusun: Dusun }) => {
 
     setIsLoading(true);
     const formData = new FormData();
-    formData.append("dusunName", dusun.name);
+    formData.append("dusunName", desaName);
     formData.append("document", selectedFile);
 
     try {
-      const res = await fetch(`${API_URL}/api/verification/upload/${dusun.id}`, {
+      const res = await fetch(`${API_URL}/api/verification/upload/${desaId}`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("token")}`
@@ -83,13 +143,46 @@ const DusunItem = ({ dusun }: { dusun: Dusun }) => {
 
       const data = await res.json();
       if (res.ok) {
-        setFile(data.data.fileName);
-        setFilePath(data.data.filePath);
-        setLastUpload(new Date(data.data.updatedAt).toLocaleString());
+        // Refresh data to get the populated uploader name properly
+        await fetchStatus();
         setIsEditing(false);
-        alert("Dokumen berhasil diunggah!");
+        alert("Dokumen Desa berhasil diunggah!");
+        onUpdate();
       } else {
         alert(data.message || "Gagal mengunggah dokumen");
+      }
+    } catch (err) {
+      alert("Gagal menghubungi server");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const executeDelete = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/verification/${desaId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+
+      if (res.ok) {
+        setFile(null);
+        setFilePath(null);
+        setLastUpload(null);
+        setUploader(null);
+        setShowDeleteModal(false);
+        alert("Dokumen berhasil dihapus");
+        onUpdate();
+      } else {
+        const data = await res.json();
+        alert(data.message || "Gagal menghapus dokumen");
       }
     } catch (err) {
       alert("Gagal menghubungi server");
@@ -102,109 +195,129 @@ const DusunItem = ({ dusun }: { dusun: Dusun }) => {
     fileInputRef.current?.click();
   };
 
-  const handlePreview = () => {
-    if (filePath) {
-      window.open(`${API_URL}/${filePath}`, "_blank");
-    }
-  };
-
   return (
-    <div className="group relative ml-4 md:ml-8 mt-4 p-5 bg-white border border-gray-100 dark:border-gray-800 dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        className="hidden"
-        accept="application/pdf"
+    <>
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={executeDelete}
+        isLoading={isLoading}
       />
 
-      {/* Connector Line */}
-      <div className="absolute -left-6 top-6 w-6 h-[2px] bg-gray-200 dark:bg-gray-700"></div>
-      <div className="absolute -left-6 top-0 bottom-6 w-[2px] bg-gray-200 dark:bg-gray-700"></div>
+      <div className="mb-6 p-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl">
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept="application/pdf"
+        />
 
-      <div className="flex flex-col gap-4">
-        {/* Header Dusun */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
-              <MapPinIcon size={14} />
-            </div>
-            <h4 className="font-bold text-gray-800 dark:text-white text-base tracking-tight">{dusun.name}</h4>
-          </div>
-          {file && (
-            <span className="px-2 py-1 rounded-md bg-green-50 text-green-600 text-[10px] font-bold uppercase tracking-wider border border-green-100">
-              Terverifikasi
-            </span>
-          )}
-        </div>
-
-        {/* Section Berita Acara */}
-        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 border border-gray-100 dark:border-gray-800">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-
-            {/* File Info */}
-            <div className="flex items-center gap-4 w-full sm:w-auto">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${file ? "bg-blue-100 text-blue-600 dark:bg-blue-600/20 dark:text-blue-400" : "bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500"}`}>
-                {isLoading ? <Loader2 size={24} className="animate-spin" /> : <FileTextIcon size={24} />}
+        <div className="flex flex-col gap-4">
+          {/* Header Section */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                <FileTextIcon size={20} />
               </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-gray-900 dark:text-white">
-                  {file ? file : "Belum ada dokumen"}
-                </span>
-                {lastUpload ? (
-                  <span className="text-sm flex items-center gap-1.5 text-gray-500 dark:text-gray-400 mt-1.5">
-                    <ClockIcon size={14} /> Perubahan terakhir: {lastUpload}
+              <div>
+                <h4 className="font-bold text-gray-900 dark:text-white text-lg">Dokumen Verifikasi Desa</h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Upload Berita Acara untuk Desa {desaName}</p>
+              </div>
+            </div>
+            {file && (
+              <span className="px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold uppercase tracking-wider border border-green-200 dark:border-green-800">
+                Terverifikasi
+              </span>
+            )}
+          </div>
+
+          {/* File Info & Actions same as before but styled for main panel */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+
+              {/* File Info */}
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${file ? "bg-blue-100 text-blue-600 dark:bg-blue-600/20 dark:text-blue-400" : "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500"}`}>
+                  {isLoading ? <Loader2 size={24} className="animate-spin" /> : <FileTextIcon size={24} />}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                    {file ? file : "Belum ada dokumen"}
                   </span>
+                  {lastUpload ? (
+                    <div className="flex flex-col gap-0.5 mt-1.5">
+                      <span className="text-xs flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                        <ClockIcon size={12} /> Terakhir diubah: {lastUpload}
+                      </span>
+                      {uploader && (
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 ml-4">
+                          Oleh: {uploader}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400 italic mt-1">Silahkan unggah berita acara desa</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                {file && !isEditing ? (
+                  <>
+                    <button
+                      onClick={handleDeleteClick}
+                      disabled={isLoading}
+                      className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-5 py-2.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm font-bold rounded-xl hover:bg-red-100 transition-all disabled:opacity-50"
+                    >
+                      <TrashIcon size={16} /> Hapus
+                    </button>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      disabled={isLoading}
+                      className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all disabled:opacity-50"
+                    >
+                      <EditIcon size={16} /> Ganti
+                    </button>
+                  </>
                 ) : (
-                  <span className="text-xs text-gray-400 italic mt-1">Silahkan unggah berita acara</span>
+                  <button
+                    onClick={triggerUpload}
+                    disabled={isLoading}
+                    className="w-full sm:w-auto flex justify-center items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" /> Sedang Mengunggah...
+                      </>
+                    ) : isEditing ? (
+                      <>
+                        <UploadCloudIcon size={18} /> Unggah File Baru
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloudIcon size={18} /> Unggah Dokumen
+                      </>
+                    )}
+                  </button>
                 )}
               </div>
             </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              {file && !isEditing ? (
-                <>
-                  <button
-                    onClick={handlePreview}
-                    className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl hover:bg-blue-100 transition-all"
-                  >
-                    <EyeIcon size={14} /> Lihat Dokumen
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    disabled={isLoading}
-                    className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all disabled:opacity-50"
-                  >
-                    <EditIcon size={14} /> Ganti File
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={triggerUpload}
-                  disabled={isLoading}
-                  className="w-full sm:w-auto flex justify-center items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" /> Sedang Mengunggah...
-                    </>
-                  ) : isEditing ? (
-                    <>
-                      <UploadCloudIcon size={16} /> Unggah File Baru
-                    </>
-                  ) : (
-                    <>
-                      <UploadCloudIcon size={16} /> Unggah Dokumen
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
           </div>
+          {/* PDF Preview */}
+          {filePath && (
+            <div className="mt-4 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-500 animate-in fade-in slide-in-from-bottom-4">
+              <iframe
+                src={`${API_URL}/${filePath}`}
+                className="w-full h-[1500px] bg-gray-50 dark:bg-gray-900"
+                title="Preview Dokumen"
+              />
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -214,13 +327,15 @@ const Accordion = ({
   children,
   level = 0,
   defaultOpen = false,
-  onClick
+  onClick,
+  isVerified
 }: {
   title: string,
   children: React.ReactNode,
   level?: number,
   defaultOpen?: boolean,
-  onClick?: () => void
+  onClick?: () => void,
+  isVerified?: boolean
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -261,9 +376,19 @@ const Accordion = ({
             </span>
           </div>
         </div>
-        {onClick && level === 2 && (
-          <span className="text-[10px] font-black uppercase text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">Buka Detail</span>
-        )}
+
+        <div className="flex items-center gap-2">
+          {level === 2 && (
+            isVerified ? (
+              <span className="text-[10px] font-black uppercase text-green-600 bg-green-50 px-2 py-1 rounded-md border border-green-100">Sudah Verifikasi</span>
+            ) : (
+              <span className="text-[10px] font-black uppercase text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">Belum Verifikasi</span>
+            )
+          )}
+          {onClick && level === 2 && (
+            <span className="text-[10px] font-black uppercase text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">Buka Detail</span>
+          )}
+        </div>
       </button>
 
       {!onClick && (
@@ -281,6 +406,19 @@ export default function VerifikasiPage() {
   const [allData, setAllData] = useState<Kabupaten[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDesa, setSelectedDesa] = useState<{ kab: string, kec: string, desa: Desa } | null>(null);
+  const [verifiedDesaIds, setVerifiedDesaIds] = useState<Set<string>>(new Set());
+
+  // Function to fetch all verified IDs
+  const fetchVerifications = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/verification`);
+      if (res.ok) {
+        const data = await res.json();
+        const ids = new Set(data.map((v: any) => v.dusunId));
+        setVerifiedDesaIds(ids);
+      }
+    } catch (err) { console.error(err); }
+  };
 
   useEffect(() => {
     const fetchHierarchy = async () => {
@@ -298,6 +436,7 @@ export default function VerifikasiPage() {
       }
     };
     fetchHierarchy();
+    fetchVerifications();
   }, []);
 
   // Recursively filter data
@@ -359,7 +498,7 @@ export default function VerifikasiPage() {
                 <span>{selectedDesa.kec}</span>
               </div>
               <h1 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tight">
-                Daftar Dusun Desa {selectedDesa.desa.name}
+                Verifikasi Desa {selectedDesa.desa.name}
               </h1>
             </div>
           </div>
@@ -403,6 +542,7 @@ export default function VerifikasiPage() {
                             title={`Desa ${desa.name}`}
                             level={2}
                             onClick={() => setSelectedDesa({ kab: kab.name, kec: kec.name, desa })}
+                            isVerified={verifiedDesaIds.has(desa.id)}
                           >
                             <div />
                           </Accordion>
@@ -425,18 +565,7 @@ export default function VerifikasiPage() {
         ) : (
           /* DESA DETAIL VIEW */
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="grid grid-cols-1 gap-2">
-              {selectedDesa.desa.dusun.length > 0 ? (
-                selectedDesa.desa.dusun.map((dusun) => (
-                  <DusunItem key={dusun.id} dusun={dusun} />
-                ))
-              ) : (
-                <div className="py-20 text-center flex flex-col items-center gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 border-dashed border-gray-100 dark:border-gray-700">
-                  <MapPinIcon size={40} className="text-gray-300" />
-                  <span className="text-gray-400 font-bold uppercase text-xs tracking-widest">Tidak ada data dusun di desa ini</span>
-                </div>
-              )}
-            </div>
+            <DesaVerificationPanel desaId={selectedDesa.desa.id} desaName={selectedDesa.desa.name} onUpdate={fetchVerifications} />
           </div>
         )}
       </div>

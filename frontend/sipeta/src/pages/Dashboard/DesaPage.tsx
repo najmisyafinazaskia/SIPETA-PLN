@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DesaMap from "./DesaMap";
+import MapFilter from "../../components/ui/MapFilter";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -22,6 +23,41 @@ export default function DesaPage() {
   const [activeTab, setActiveTab] = useState<"stable" | "warning">("stable");
   const [showStable, setShowStable] = useState(true);
   const [showWarning, setShowWarning] = useState(true);
+
+  // Filter Logic
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [locationsInitialized, setLocationsInitialized] = useState(false);
+
+  // Compute unique locations for filter (Kabupaten)
+  const uniqueLocations = useMemo(() => {
+    const kabs = new Set(allDesa.map(k => k.kab));
+    return Array.from(kabs).sort().map(name => ({ name }));
+  }, [allDesa]);
+
+  useEffect(() => {
+    if (uniqueLocations.length > 0 && !locationsInitialized) {
+      setSelectedLocations(uniqueLocations.map(k => k.name));
+      setLocationsInitialized(true);
+    }
+  }, [uniqueLocations, locationsInitialized]);
+
+  const toggleAllLocations = () => {
+    if (selectedLocations.length === uniqueLocations.length) {
+      setSelectedLocations([]);
+    } else {
+      setSelectedLocations(uniqueLocations.map(k => k.name));
+    }
+  };
+
+  const toggleLocation = (name: string) => {
+    if (selectedLocations.includes(name)) {
+      setSelectedLocations(selectedLocations.filter(L => L !== name));
+    } else {
+      setSelectedLocations([...selectedLocations, name]);
+    }
+  };
+
+  // ... (existing effects remain the same) ...
 
   useEffect(() => {
     let isMounted = true;
@@ -129,59 +165,23 @@ export default function DesaPage() {
     <div className="rounded-3xl border border-gray-200 bg-white overflow-hidden shadow-sm dark:border-gray-800 dark:bg-white/[0.03] font-outfit">
       <div className="p-8 pb-4">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 font-outfit uppercase tracking-tight">
-          Demografi Pasokan Listrik Tingkat Desa
+          Distribusi Elektrifikasi Tingkat Desa
         </h1>
       </div>
 
       <div className="relative w-full h-[700px] border-y border-gray-100 dark:border-gray-800 bg-gray-50/30 group">
-        <div className="absolute top-6 right-6 z-[1001] bg-white/95 dark:bg-gray-800/95 p-5 rounded-2xl shadow-2xl backdrop-blur-md border border-gray-100 dark:border-gray-700 min-w-[220px]">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1.5 h-4 bg-[#465FFF] rounded-full"></div>
-            <span className="text-[11px] font-black uppercase text-gray-400 tracking-widest">Filter Monitoring</span>
-          </div>
-          <div className="space-y-4">
-            <label className="flex items-center justify-between cursor-pointer group">
-              <div className="flex items-center gap-3">
-                <div className="relative flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={showStable}
-                    onChange={() => setShowStable(!showStable)}
-                    className="peer w-5 h-5 opacity-0 absolute cursor-pointer"
-                  />
-                  <div className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${showStable ? 'bg-[#14B8A6] border-[#14B8A6]' : 'border-gray-300 dark:border-gray-600'}`}>
-                    {showStable && (
-                      <svg className="w-3.5 h-3.5 text-white fill-current" viewBox="0 0 20 20"><path d="M0 11l2-2 5 5L18 3l2 2L7 18z" /></svg>
-                    )}
-                  </div>
-                </div>
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Terjangkau Listrik</span>
-              </div>
-              <div className="w-2.5 h-2.5 rounded-full bg-[#14B8A6] shadow-sm"></div>
-            </label>
-            <label className="flex items-center justify-between cursor-pointer group">
-              <div className="flex items-center gap-3">
-                <div className="relative flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={showWarning}
-                    onChange={() => setShowWarning(!showWarning)}
-                    className="peer w-5 h-5 opacity-0 absolute cursor-pointer"
-                  />
-                  <div className={`w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center ${showWarning ? 'bg-[#F2C94C] border-[#F2C94C]' : 'border-gray-300 dark:border-gray-600'}`}>
-                    {showWarning && (
-                      <svg className="w-3.5 h-3.5 text-white fill-current" viewBox="0 0 20 20"><path d="M0 11l2-2 5 5L18 3l2 2L7 18z" /></svg>
-                    )}
-                  </div>
-                </div>
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Belum Terjangkau</span>
-              </div>
-              <div className="w-2.5 h-2.5 rounded-full bg-[#F2C94C] shadow-sm shadow-yellow-500/50"></div>
-            </label>
-          </div>
-        </div>
+        <MapFilter
+          showStable={showStable}
+          setShowStable={setShowStable}
+          showWarning={showWarning}
+          setShowWarning={setShowWarning}
+          selectedLocations={selectedLocations}
+          toggleLocation={toggleLocation}
+          toggleAllLocations={toggleAllLocations}
+          uniqueLocations={uniqueLocations}
+        />
         <div className="w-full h-full">
-          <DesaMap activeFilters={{ stable: showStable, warning: showWarning }} />
+          <DesaMap activeFilters={{ stable: showStable, warning: showWarning }} filterLocations={selectedLocations} />
         </div>
       </div>
 
@@ -215,11 +215,11 @@ export default function DesaPage() {
         <div className="flex gap-4 mb-6">
           <button
             onClick={() => setActiveTab("stable")}
-            className={`flex-1 flex justify-between items-center p-4 rounded-2xl border-2 transition-all ${activeTab === "stable" ? "border-teal-500 bg-teal-50 dark:bg-teal-500/10" : "border-transparent bg-gray-50 dark:bg-gray-800"
+            className={`flex-1 flex justify-between items-center p-4 rounded-2xl border-2 transition-all ${activeTab === "stable" ? "border-green-500 bg-green-50 dark:bg-green-500/10" : "border-transparent bg-gray-50 dark:bg-gray-800"
               }`}
           >
-            <span className={`font-bold ${activeTab === "stable" ? "text-teal-700 dark:text-teal-400" : "text-gray-500"}`}>Terjangkau Listrik</span>
-            <span className="text-xs font-bold bg-[#14B8A6] text-white px-2 py-1 rounded-lg">
+            <span className={`font-bold ${activeTab === "stable" ? "text-green-700 dark:text-green-400" : "text-gray-500"}`}>Terjangkau Listrik</span>
+            <span className="text-xs font-bold bg-[#22c55e] text-white px-2 py-1 rounded-lg">
               {allDesa.filter(l => l.type === "stable").length}
             </span>
           </button>
@@ -262,7 +262,7 @@ export default function DesaPage() {
                   </button>
                 </div>
               </div>
-              <div className={`w-2.5 h-2.5 rounded-full ${item.type === "stable" ? "bg-[#14B8A6]" : "bg-[#F2C94C] shadow-[0_0_10px_#F2C94C]"}`}></div>
+              <div className={`w-2.5 h-2.5 rounded-full ${item.type === "stable" ? "bg-[#22c55e]" : "bg-[#F2C94C] shadow-[0_0_10px_#F2C94C]"}`}></div>
             </div>
           ))}
           {filteredList.length === 0 && (

@@ -68,7 +68,7 @@ exports.uploadFile = async (req, res) => {
 exports.getVerification = async (req, res) => {
     try {
         const { dusunId } = req.params;
-        const verification = await Verification.findOne({ dusunId });
+        const verification = await Verification.findOne({ dusunId }).populate('uploadedBy', 'name');
 
         if (!verification) {
             return res.status(404).json({ message: "Data tidak ditemukan" });
@@ -82,9 +82,34 @@ exports.getVerification = async (req, res) => {
 
 exports.getAllVerifications = async (req, res) => {
     try {
-        const verifications = await Verification.find();
+        const verifications = await Verification.find().populate('uploadedBy', 'name');
         res.json(verifications);
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+};
+
+exports.deleteVerification = async (req, res) => {
+    try {
+        const { dusunId } = req.params;
+        const verification = await Verification.findOne({ dusunId });
+
+        if (!verification) {
+            return res.status(404).json({ message: "Data tidak ditemukan" });
+        }
+
+        // Hapus file fisik
+        const filePath = path.join(__dirname, '..', verification.filePath);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        // Hapus data dari DB
+        await Verification.deleteOne({ _id: verification._id });
+
+        res.status(200).json({ message: "Verifikasi berhasil dihapus" });
+    } catch (error) {
+        console.error("Delete Error:", error);
+        res.status(500).json({ message: "Gagal menghapus verifikasi", error: error.message });
     }
 };

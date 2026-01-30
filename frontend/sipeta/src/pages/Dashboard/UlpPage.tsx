@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import UlpMap from "./UlpMap";
+import MapFilter from "../../components/ui/MapFilter";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -18,6 +19,37 @@ export default function UlpPage() {
     const [selectedCategory, setSelectedCategory] = useState("Tampilkan Semua");
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+
+    // Filter Logic
+    const [showStable, setShowStable] = useState(true);
+    const [showWarning, setShowWarning] = useState(true);
+    const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+    const [locationsInitialized, setLocationsInitialized] = useState(false);
+
+    useEffect(() => {
+        if (allRegions.length > 0 && !locationsInitialized) {
+            setSelectedLocations(allRegions.map(k => k.name));
+            setLocationsInitialized(true);
+        }
+    }, [allRegions, locationsInitialized]);
+
+    const toggleAllLocations = () => {
+        if (selectedLocations.length === allRegions.length) {
+            setSelectedLocations([]);
+        } else {
+            setSelectedLocations(allRegions.map(k => k.name));
+        }
+    };
+
+    const toggleLocation = (name: string) => {
+        if (selectedLocations.includes(name)) {
+            setSelectedLocations(selectedLocations.filter(L => L !== name));
+        } else {
+            setSelectedLocations([...selectedLocations, name]);
+        }
+    };
+
+    // ... (existing fetchRegions useEffect) ...
 
     useEffect(() => {
         const fetchRegions = async () => {
@@ -42,6 +74,8 @@ export default function UlpPage() {
         fetchRegions();
     }, []);
 
+    // ... (existing search useEffect) ...
+
     useEffect(() => {
         const timer = setTimeout(async () => {
             if (searchTerm.trim().length > 2) {
@@ -65,6 +99,7 @@ export default function UlpPage() {
     }, [searchTerm]);
 
     const filteredList = useMemo(() => {
+        // ... (existing logic) ...
         if (searchTerm.trim().length > 2) {
             const matchingKabNames = new Set(
                 searchResults.map(r => r.kab || r.name).filter(Boolean)
@@ -98,12 +133,22 @@ export default function UlpPage() {
         <div className="rounded-3xl border border-gray-200 bg-white overflow-hidden shadow-sm dark:border-gray-800 dark:bg-white/[0.03] font-outfit relative">
             <div className="p-8 pb-4">
                 <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 font-outfit uppercase tracking-tight">
-                    Demografi Pasokan Listrik Berdasarkan ULP
+                    Distribusi Elektrifikasi Berdasarkan ULP
                 </h1>
             </div>
 
             <div className="relative w-full h-[700px] border-y border-gray-100 dark:border-gray-800 bg-gray-50/30">
-                <UlpMap filters={{ stable: true, warning: true, locations: allRegions.map(r => r.name) }} disableWarning={true} />
+                <MapFilter
+                    showStable={showStable}
+                    setShowStable={setShowStable}
+                    showWarning={showWarning}
+                    setShowWarning={setShowWarning}
+                    selectedLocations={selectedLocations}
+                    toggleLocation={toggleLocation}
+                    toggleAllLocations={toggleAllLocations}
+                    uniqueLocations={allRegions}
+                />
+                <UlpMap filters={{ stable: showStable, warning: showWarning, locations: selectedLocations }} disableWarning={true} />
             </div>
 
             <div className="p-8 bg-gray-50/20">

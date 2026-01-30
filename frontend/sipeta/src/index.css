@@ -669,6 +669,11 @@ span.flatpickr-weekday,
   @apply opacity-100;
 }
 
+/* Remove Leaflet Focus Outline */
+.leaflet-interactive {
+  outline: none !important;
+}
+
 /* Leaflet Custom Styles */
 .leaflet-container {
   @apply font-outfit;

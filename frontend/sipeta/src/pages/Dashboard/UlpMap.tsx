@@ -16,6 +16,7 @@ const UlpMap: React.FC<UlpMapProps> = ({ filters, disableWarning }) => {
             <RegionMap
                 activeFilters={{ stable: filters.stable, warning: filters.warning }}
                 disableWarning={disableWarning}
+                filterLocations={filters.locations}
             />
         </div>
     );
