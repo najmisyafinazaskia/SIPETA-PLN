@@ -18,6 +18,17 @@ export default defineConfig({
   server: {
     host: true, // Listen on all local IPs
     port: 5173,
+    allowedHosts: [
+      "delmer-globelike-tetanically.ngrok-free.dev",
+      ".trycloudflare.com"
+    ],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+        secure: false,
+      }
+    },
     watch: {
       usePolling: true, // Fix for Windows Docker hot reload
     }

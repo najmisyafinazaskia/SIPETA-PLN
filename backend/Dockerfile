@@ -2,17 +2,17 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files first for caching
+# Copy package files first (for cache)
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install only production dependencies
+RUN npm install --omit=dev
 
-# Copy the rest of the code
+# Copy source code
 COPY . .
 
-# Expose port (must match your server.js port)
+# Railway will inject PORT automatically
 EXPOSE 5000
 
-# Start command (using dev for hot-reload with nodemon)
-CMD ["npm", "run", "dev"]
+# Start in production mode
+CMD ["npm", "start"]

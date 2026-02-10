@@ -17,19 +17,18 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Serve static files (untuk akses PDF)
+// Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Database
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/sipeta_db', {
-    maxPoolSize: 50, // Mengizinkan 50 koneksi sekaligus
-    serverSelectionTimeoutMS: 5000
+// Database (WAJIB pakai Atlas / external)
+mongoose.connect(process.env.MONGO_URI, {
+  maxPoolSize: 50,
+  serverSelectionTimeoutMS: 5000
 })
-    .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => {
-        console.error('❌ MongoDB Connection Error:', err.message);
-        console.error('👉 Pastikan layanan MongoDB (mongod) sudah berjalan di sistem Anda.');
-    });
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => {
+    console.error('❌ MongoDB Connection Error:', err.message);
+  });
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -39,6 +38,11 @@ app.use('/api/locations', locationRoutes);
 
 app.get('/', (req, res) => res.send('SIPETA Backend API Running'));
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// Modifikasi untuk Vercel
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;

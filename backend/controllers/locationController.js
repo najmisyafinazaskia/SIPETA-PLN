@@ -98,50 +98,95 @@ exports.getAllLocations = async (req, res) => {
     }
 };
 
-// Mengambil statistik ringkasan tingkat Kabupaten (Jumlah desa, dusun, dll)
 exports.getLocationStats = async (req, res) => {
     try {
-        const Kabupaten = require('../models/Kabupaten');
+        // HITUNG TOTAL DARI JSON TERLEBIH DAHULU (Pasti & Cepat)
+        let totalStats = {
+            totalKabupatenKota: 23,
+            totalKecamatan: 290,
+            totalDesa: 6511, // Nilai default dari aset Aceh
+            totalDusun: 20046  // Angka spesifik yang Anda inginkan
+        };
 
-        // Mengelompokkan data berdasarkan Kabupaten dan menghitung total desa/dusun
-        const [stats, kabMetadata] = await Promise.all([
-            Location.aggregate([
-                {
-                    $group: {
-                        _id: '$kabupaten',
-                        kecamatanList: { $addToSet: '$kecamatan' },
-                        desaCount: { $sum: 1 },
-                        dusunCount: {
-                            $sum: {
-                                $size: {
-                                    $filter: {
-                                        input: { $ifNull: ["$dusun_detail", []] },
-                                        as: "d",
-                                        cond: { $ne: ["$$d.status", "REFF!"] } // Abaikan item error
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const ulpDesaPath = path.join(__dirname, '../../db_Aceh/ulp_desa.json');
+
+            if (fs.existsSync(ulpDesaPath)) {
+                const ulpData = JSON.parse(fs.readFileSync(ulpDesaPath, 'utf8'));
+                const uniqueDesa = new Set();
+                let dusunCount = 0;
+
+                ulpData.forEach(item => {
+                    if (item.desa) uniqueDesa.add(item.desa.toUpperCase());
+                    const validDusuns = (item.dusun_detail || []).filter(d =>
+                        d.nama && d.nama !== "REFF!" && d.status !== "REFF!" && d.status !== "#REF!"
+                    );
+                    dusunCount += validDusuns.length;
+                });
+
+                if (uniqueDesa.size > 0) totalStats.totalDesa = uniqueDesa.size;
+                if (dusunCount > 0) totalStats.totalDusun = dusunCount;
+            }
+        } catch (err) {
+            console.error("Error reading JSON for stats:", err);
+        }
+
+        // Jika DB menyala, kita ambil data detail kabupaten/kota
+        let stats = [];
+        let kabMetadata = [];
+        try {
+            const Location = require('../models/Location');
+            const [dbStats, dbKabMeta] = await Promise.all([
+                Location.aggregate([
+                    {
+                        $group: {
+                            _id: '$kabupaten',
+                            kecamatanList: { $addToSet: '$kecamatan' },
+                            desaCount: { $sum: 1 },
+                            dusunCount: {
+                                $sum: {
+                                    $size: {
+                                        $filter: {
+                                            input: { $ifNull: ["$dusun_detail", []] },
+                                            as: "d",
+                                            cond: { $ne: ["$$d.status", "REFF!"] }
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        pelanggan: { $sum: { $ifNull: ["$pelanggan", 0] } }
-                    }
-                },
-                {
-                    $project: {
-                        kabupaten: '$_id',
-                        kecamatanCount: { $size: '$kecamatanList' },
-                        desaCount: 1,
-                        dusunCount: 1,
-                        pelanggan: 1,
-                        hasUnpowered: { $literal: false },
-                        _id: 0
-                    }
-                },
-                {
-                    $sort: { kabupaten: 1 }
-                }
-            ]),
-            Kabupaten.find({})
-        ]);
+                            },
+                            pelanggan: { $sum: { $ifNull: ["$pelanggan", 0] } }
+                        }
+                    },
+                    {
+                        $project: {
+                            kabupaten: '$_id',
+                            kecamatanCount: { $size: '$kecamatanList' },
+                            desaCount: 1,
+                            dusunCount: 1,
+                            pelanggan: 1,
+                            _id: 0
+                        }
+                    },
+                    { $sort: { kabupaten: 1 } }
+                ]),
+                require('../models/Kabupaten').find({})
+            ]);
+
+            stats = dbStats;
+            kabMetadata = dbKabMeta;
+
+            // Jika DB punya data, update ringkasan provinsi dari DB
+            if (stats.length > 0) {
+                totalStats.totalKabupatenKota = stats.length;
+                totalStats.totalKecamatan = stats.reduce((sum, s) => sum + s.kecamatanCount, 0);
+                totalStats.totalDesa = stats.reduce((sum, s) => sum + s.desaCount, 0);
+                totalStats.totalDusun = stats.reduce((sum, s) => sum + s.dusunCount, 0);
+            }
+        } catch (dbErr) {
+            // console.warn("Database stats failed, using JSON instead.");
+        }
 
         // Create metadata map from Kabupaten collection
         const metaMap = {};
@@ -156,30 +201,19 @@ exports.getLocationStats = async (req, res) => {
             }
         });
 
-        // Menggabungkan koordinat dan jumlah warga ke dalam hasil statistik
+        // Menggabungkan koordinat dan jumlah warga
         const mergedStats = stats.map(s => {
             const meta = metaMap[s.kabupaten.toUpperCase()] || {};
-            const coords = meta.koordinat;
-            const officialWarga = meta.warga || 0;
-
             return {
                 ...s,
-                koordinat: coords || null,
-                warga: officialWarga,
+                koordinat: meta.koordinat || null,
+                warga: meta.warga || 0,
                 lembaga_warga: meta.lembaga_warga || "BPS",
                 tahun: meta.tahun || 2024,
-                x: coords ? coords[0] : 0,
-                y: coords ? coords[1] : 0
+                x: meta.koordinat ? meta.koordinat[0] : 0,
+                y: meta.koordinat ? meta.koordinat[1] : 0
             };
         });
-
-        // Ringkasan total untuk seluruh provinsi
-        const totalStats = {
-            totalKabupatenKota: stats.length,
-            totalKecamatan: stats.reduce((sum, s) => sum + s.kecamatanCount, 0),
-            totalDesa: stats.reduce((sum, s) => sum + s.desaCount, 0),
-            totalDusun: stats.reduce((sum, s) => sum + s.dusunCount, 0)
-        };
 
         res.json({
             success: true,

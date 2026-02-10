@@ -14,14 +14,15 @@ export default function LandingPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/locations/stats`);
+        // Menggunakan relative path agar melewati Proxy Vite
+        const res = await fetch('/api/locations/stats');
         const json = await res.json();
         if (json.success) {
           setStats({
             kab: json.data.summary.totalKabupatenKota.toString(),
             kec: json.data.summary.totalKecamatan.toString(),
-            desa: json.data.summary.totalDesa.toLocaleString(),
-            dusun: json.data.summary.totalDusun.toLocaleString()
+            desa: json.data.summary.totalDesa.toLocaleString('id-ID'),
+            dusun: json.data.summary.totalDusun.toLocaleString('id-ID')
           });
         }
       } catch (err) {
