@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface Notification {
     _id: string;
@@ -18,6 +19,7 @@ export default function NotificationDropdown() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [showMore, setShowMore] = useState(false);
     const { user, updateUser } = useAuth();
+    const navigate = useNavigate();
 
     const fetchNotifications = async () => {
         try {
@@ -96,6 +98,40 @@ export default function NotificationDropdown() {
         }
     };
 
+    const handleNotificationClick = (notif: Notification) => {
+        // Logic to navigate based on notification content
+        const isVerificationUpdate = notif.title === "Pembaruan Verifikasi" || notif.message.includes("mengunggah dokumen baru");
+        const isStatusUpdate = notif.title === "Pembaruan Status Dusun";
+
+        if (isVerificationUpdate) {
+            // Attempt to extract location name from "untuk [LocationName]"
+            const match = notif.message.match(/untuk\s+(.+)$/i);
+            if (match && match[1]) {
+                const locationName = match[1].trim();
+                // Assuming it's a Desa level verification
+                navigate(`/dashboard/verifikasi?desa=${encodeURIComponent(locationName)}`);
+                setIsOpen(false);
+            }
+        } else if (isStatusUpdate) {
+            // Message format: Status Dusun [DusunName] di Desa [DesaName] telah diubah menjadi [NewStatus]
+            // We need to parse dusun name and new status to determine tab
+            // Regex to capture: Status Dusun (.*?) di Desa (.*?) telah diubah menjadi (.*)
+            const match = notif.message.match(/Status Dusun (.+?) di Desa (.+?) telah diubah menjadi (.+)/i);
+
+            if (match && match[2]) {
+                const dusunName = match[1].trim();
+                const newStatus = match[3].trim();
+
+                const isWarning = newStatus === 'Belum Berlistrik' || newStatus.includes('BELUM') || newStatus === '0';
+                const tab = isWarning ? 'warning' : 'stable';
+
+                // Navigate to Dusun Page with params to auto-filter
+                navigate(`/dashboard/dusun?tab=${tab}&highlight=${encodeURIComponent(dusunName)}`);
+                setIsOpen(false);
+            }
+        }
+    };
+
     return (
         <div className="relative">
             <button
@@ -152,12 +188,15 @@ export default function NotificationDropdown() {
                                     ? new Date(notif.createdAt).getTime() > new Date(user.lastReadNotificationsAt).getTime()
                                     : true;
 
+                                const isClickable = notif.title === "Pembaruan Verifikasi" || notif.message.includes("mengunggah dokumen baru") || notif.title === "Pembaruan Status Dusun";
+
                                 return (
                                     <div
                                         key={notif._id}
+                                        onClick={() => handleNotificationClick(notif)}
                                         className={`p-4 rounded-xl transition-all border ${!isUnread
                                             ? "bg-gray-50/50 border-gray-100 dark:bg-gray-800/50 dark:border-gray-800"
-                                            : "bg-white border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 shadow-md ring-1 ring-blue-500/5"}`}
+                                            : "bg-white border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 shadow-md ring-1 ring-blue-500/5"} ${isClickable ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800" : ""}`}
                                     >
                                         <div className="flex justify-between items-start mb-1.5">
                                             <div className="flex items-center gap-2 overflow-hidden">

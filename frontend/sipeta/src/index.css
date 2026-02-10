@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap");
 
@@ -695,6 +695,36 @@ span.flatpickr-weekday,
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
+.up3-label-text {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  font-weight: 950 !important;
+  font-size: 13px !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), -1px -1px 2px rgba(0, 0, 0, 1) !important;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .leaflet-tooltip-pane .text-shadow {
   @apply !bg-transparent !border-none !shadow-none !text-white !font-bold;
+}
+
+/* Dynamic Map Label Scaling */
+.zoom-low .dynamic-tooltip-text {
+  font-size: 7px !important;
+  text-shadow: -0.5px -0.5px 0 #fff, 0.5px -0.5px 0 #fff, -0.5px 0.5px 0 #fff, 0.5px 0.5px 0 #fff !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+  margin-top: 2px !important;
+}
+
+.zoom-medium .dynamic-tooltip-text {
+  font-size: 10px !important;
+  text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff !important;
+}
+
+.zoom-high .dynamic-tooltip-text {
+  font-size: 13px !important;
 }

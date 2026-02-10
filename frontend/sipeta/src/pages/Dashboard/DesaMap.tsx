@@ -5,6 +5,7 @@ interface DesaMapProps {
   activeFilters: { stable: boolean; warning: boolean };
   disableWarning?: boolean;
   filterLocations?: string[];
+  dataSourceUrl?: string;
 }
 
 const DesaMap: React.FC<DesaMapProps> = (props) => {

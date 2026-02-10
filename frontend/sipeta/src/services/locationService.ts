@@ -1,6 +1,7 @@
 const API_URL = 'http://localhost:5000/api/locations';
 
 export interface LocationData {
+    _id?: string;
     desa: string;
     x: number;
     y: number;
@@ -13,7 +14,7 @@ export interface LocationStats {
         totalDesa: number;
     };
     details: Array<{
-        kabupatenKota: string;
+        kabupaten: string;
         kecamatanCount: number;
         desaCount: number;
     }>;

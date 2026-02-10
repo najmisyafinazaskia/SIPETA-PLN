@@ -1,19 +1,24 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeftIcon, GridIcon, BoxCubeIcon, GroupIcon, BoltIcon } from "../../icons";
+import { ChevronLeftIcon, BoxCubeIcon, GroupIcon, BoltIcon, PencilIcon } from "../../icons";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 interface Up3Stats {
     name: string;
-    kecamatanList: string[];
+    kecamatanList: (string | { nama: string; lembaga_warga?: string; tahun?: string | number })[];
     kecamatanCount: number;
     desaCount: number;
     dusunCount: number;
     desaList: string[];
     dusuns: { nama: string; status: string }[];
-    warga: number;
     pelanggan: number;
+    warga?: number;
+    lembaga_warga?: string;
+    tahun?: string | number;
+    ulpCount?: number;
+    ulpList?: string[];
+    update_pelanggan?: string;
 }
 
 export default function Up3Detail() {
@@ -22,10 +27,13 @@ export default function Up3Detail() {
     const decodedName = decodeURIComponent(name || "");
     const [stats, setStats] = useState<Up3Stats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isInputModalOpen, setIsInputModalOpen] = useState(false);
+    const [newPelanggan, setNewPelanggan] = useState("");
+    const [isUpdating, setIsUpdating] = useState(false);
     const [modal, setModal] = useState<{
         isOpen: boolean;
         title: string;
-        list: (string | { nama: string; status: string })[];
+        list: any[];
         type: string
     }>({
         isOpen: false,
@@ -34,6 +42,35 @@ export default function Up3Detail() {
         type: ""
     });
     const [activeModalTab, setActiveModalTab] = useState<"stable" | "warning">("stable");
+    const [modalSearchTerm, setModalSearchTerm] = useState("");
+
+    const handleUpdatePelanggan = async () => {
+        try {
+            setIsUpdating(true);
+            const response = await fetch(`${API_URL}/api/locations/up3/update-pelanggan`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: decodedName,
+                    pelanggan: newPelanggan
+                })
+            });
+            const json = await response.json();
+            if (json.success) {
+                // Refresh data
+                const responseDetail = await fetch(`${API_URL}/api/locations/up3/detail/${encodeURIComponent(decodedName)}`);
+                const jsonDetail = await responseDetail.json();
+                if (jsonDetail.success) {
+                    setStats(jsonDetail.data);
+                }
+                setIsInputModalOpen(false);
+            }
+        } catch (error) {
+            console.error("Error updating pelanggan:", error);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     useEffect(() => {
         const fetchUp3Detail = async () => {
@@ -50,10 +87,11 @@ export default function Up3Detail() {
                 setLoading(false);
             }
         };
+
         fetchUp3Detail();
     }, [decodedName]);
 
-    const openModal = (title: string, list: (string | { nama: string; status: string })[] | undefined, type: string) => {
+    const openModal = (title: string, list: any[] | undefined, type: string) => {
         const safeList = Array.isArray(list) && list.length > 0 ? list : ["Data tidak tersedia"];
         setModal({
             isOpen: true,
@@ -62,6 +100,7 @@ export default function Up3Detail() {
             type
         });
         setActiveModalTab("stable");
+        setModalSearchTerm("");
     };
 
     const handleListItemClick = (itemName: string) => {
@@ -73,6 +112,8 @@ export default function Up3Detail() {
             navigate(`/dashboard/up3/kecamatan/${encodeURIComponent(itemName)}`);
         } else if (modal.type === "Desa") {
             navigate(`/dashboard/up3/desa/${encodeURIComponent(itemName)}`);
+        } else if (modal.type === "ULP") {
+            navigate(`/dashboard/ulp/unit/${encodeURIComponent(itemName)}`);
         }
     };
 
@@ -85,6 +126,12 @@ export default function Up3Detail() {
             status === "Dusun tidak diketahui" ||
             safeStatus.includes("belum");
         return isProblematic ? "warning" : "stable";
+    };
+
+    // Helper to get item name from string or object
+    const getItemName = (item: any): string => {
+        if (typeof item === "string") return item;
+        return item.nama || item.name || "";
     };
 
     if (loading) {
@@ -132,7 +179,7 @@ export default function Up3Detail() {
                         className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all cursor-pointer group"
                     >
                         <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-blue-600">
-                            <GridIcon className="w-7 h-7" />
+                            <BoxCubeIcon className="w-7 h-7" />
                         </div>
                         <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Kecamatan</p>
                         <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">
@@ -177,31 +224,60 @@ export default function Up3Detail() {
                         </p>
                     </div>
 
-                    {/* Card 4: Warga */}
-                    <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-default">
+                    {/* Card 4: ULP */}
+                    <div
+                        onClick={() => openModal("Daftar ULP", stats.ulpList, "ULP")}
+                        className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all cursor-pointer group"
+                    >
                         <div className="w-14 h-14 rounded-2xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-green-600">
-                            <GroupIcon className="w-7 h-7" />
+                            <BoxCubeIcon className="w-7 h-7" />
                         </div>
-                        <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Warga</p>
+                        <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Unit Layanan (ULP)</p>
                         <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">
-                            -
+                            {(stats.ulpCount || 0).toLocaleString()}
                         </h3>
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
-                            Jiwa Terdata
+                            Unit Pelayanan • Lihat Detail
                         </p>
                     </div>
-
                     {/* Card 5: Pelanggan */}
-                    <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-default">
-                        <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-orange-600">
+                    <div
+                        onClick={() => {
+                            setNewPelanggan(stats.pelanggan?.toString() || "");
+                            setIsInputModalOpen(true);
+                        }}
+                        className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-pointer relative"
+                    >
+                        <div className="absolute top-6 right-6 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white">
+                            <PencilIcon className="w-5 h-5" />
+                        </div>
+                        <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center mb-6 text-orange-600 transition-transform group-hover:scale-105">
                             <BoltIcon className="w-7 h-7" />
                         </div>
                         <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Pelanggan Aktif</p>
                         <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">
-                            -
+                            {stats.pelanggan || stats.pelanggan === 0 ? stats.pelanggan.toLocaleString() : "-"}
                         </h3>
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
-                            Koneksi Terdaftar
+                            Titik Sambungan • PLN
+                        </p>
+                    </div>
+
+                    {/* Card 6: Warga */}
+                    <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-default">
+                        <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center mb-6 text-pink-600 transition-transform group-hover:scale-105">
+                            <GroupIcon className="w-7 h-7" />
+                        </div>
+                        <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Warga ( Desa )</p>
+                        <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">
+                            {(stats.warga || 0).toLocaleString()}
+                        </h3>
+                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
+                            {stats.lembaga_warga && stats.tahun && stats.lembaga_warga !== "-" ? (
+                                `Update: ${stats.lembaga_warga}, ${stats.tahun}`
+                            ) : (
+                                "Jiwa • Agregasi Kecamatan"
+                            )}
                         </p>
                     </div>
                 </div>
@@ -225,6 +301,19 @@ export default function Up3Detail() {
                             </button>
                         </div>
                         <div className="p-6 max-h-[60vh] overflow-y-auto font-outfit">
+                            <div className="mb-4 relative">
+                                <input
+                                    type="text"
+                                    placeholder="Cari data..."
+                                    value={modalSearchTerm}
+                                    onChange={(e) => setModalSearchTerm(e.target.value)}
+                                    className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-white/5 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-outfit"
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                </div>
+                            </div>
+
                             {/* Tabs for Dusun Filter */}
                             {modal.type === "Dusun" && modal.list.length > 0 && typeof modal.list[0] !== "string" && (
                                 <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -253,22 +342,26 @@ export default function Up3Detail() {
 
                             <div className="grid grid-cols-1 gap-2">
                                 {modal.list
-                                    .filter((item) => {
+                                    .filter((item: any) => {
+                                        const itemName = typeof item === "string" ? item : item.nama;
+                                        if (modalSearchTerm && !itemName.toLowerCase().includes(modalSearchTerm.toLowerCase())) {
+                                            return false;
+                                        }
                                         if (modal.type === "Dusun" && typeof item !== "string") {
                                             return getDusunStatus(item.status) === activeModalTab;
                                         }
                                         return true;
                                     })
-                                    .map((item, idx) => {
+                                    .map((item: any, idx: number) => {
                                         const isClickable = item !== "Data tidak tersedia" && modal.type !== "Dusun";
-                                        const itemName = typeof item === "string" ? item : item.nama;
+                                        const itemName = getItemName(item);
                                         return (
                                             <div
                                                 key={idx}
                                                 onClick={() => handleListItemClick(itemName)}
                                                 className={`p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3 transition-colors group ${isClickable ? "cursor-pointer hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-900/10" : ""}`}
                                             >
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-3 flex-1">
                                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black transition-colors ${isClickable ? "bg-white dark:bg-gray-800 text-gray-400 group-hover:text-blue-500 group-hover:scale-110" : "bg-gray-200 dark:bg-gray-800 text-gray-400"}`}>
                                                         {idx + 1}
                                                     </div>
@@ -288,6 +381,60 @@ export default function Up3Detail() {
                             >
                                 Tutup
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Input Pelanggan */}
+            {isInputModalOpen && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-10">
+                            <div className="flex flex-col items-center text-center mb-10">
+                                <div className="w-20 h-20 rounded-3xl bg-blue-50 dark:bg-blue-900/10 flex items-center justify-center text-blue-600 mb-8">
+                                    <BoltIcon className="w-10 h-10" />
+                                </div>
+                                <h2 className="text-[1.5rem] font-black text-[#1C2434] dark:text-white uppercase tracking-tight font-outfit mb-3">
+                                    Update Data Pelanggan
+                                </h2>
+                                <p className="text-[14px] font-medium text-gray-400 font-outfit max-w-[90%]">
+                                    Masukkan jumlah pelanggan baru untuk <span className="text-blue-600 font-bold">{decodedName}</span>
+                                </p>
+                            </div>
+
+                            <div className="space-y-8">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1 font-outfit opacity-70">
+                                        Jumlah Pelanggan (Koneksi)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={newPelanggan}
+                                        onChange={(e) => setNewPelanggan(e.target.value)}
+                                        className="w-full px-8 py-5 rounded-[2rem] border-none bg-gray-50 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-xl font-black text-[#1C2434] dark:text-white text-center"
+                                        autoFocus
+                                    />
+                                </div>
+
+
+
+                                <div className="flex flex-col gap-4 pt-4">
+                                    <button
+                                        onClick={handleUpdatePelanggan}
+                                        disabled={isUpdating}
+                                        className="w-full bg-[#22AD5C] hover:bg-[#1C8C4A] text-white py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-green-500/20 transition-all hover:scale-[1.02] flex items-center justify-center font-outfit disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isUpdating ? 'Menyimpan...' : 'Simpan Perubahan'}
+                                    </button>
+                                    <button
+                                        onClick={() => setIsInputModalOpen(false)}
+                                        className="w-full bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 dark:text-gray-500 py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs transition-all font-outfit"
+                                    >
+                                        Batalkan
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

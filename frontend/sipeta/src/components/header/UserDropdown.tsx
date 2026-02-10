@@ -2,11 +2,17 @@ import { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
+
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+
 
   // User info from Context
   const userInfo = {
@@ -35,11 +41,20 @@ export default function UserDropdown() {
         onClick={toggleDropdown}
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
-        <span className="mr-3 overflow-hidden rounded-full h-11 w-11 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-          <svg className="w-6 h-6 text-gray-500 dark:text-gray-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path opacity="0.4" d="M12.1207 12.78C12.0507 12.77 11.9607 12.77 11.8807 12.78C10.1207 12.72 8.7207 11.28 8.7207 9.50998C8.7207 7.72998 10.1607 6.28998 11.9407 6.28998C13.7207 6.28998 15.1607 7.72998 15.1607 9.50998C15.1607 11.28 13.7507 12.72 12.1207 12.78Z" fill="currentColor" />
-            <path d="M18.7407 19.3801C18.2807 21.0101 16.6907 22.2501 14.8207 22.2501H9.1807C7.3107 22.2501 5.7207 21.0101 5.2607 19.3801C4.7807 17.6801 5.7907 16.0201 7.6407 14.8801C8.9407 14.0701 10.5207 13.6201 12.0007 13.6201C13.4807 13.6201 15.0607 14.0701 16.3607 14.8801C18.2107 16.0201 19.2207 17.6801 18.7407 19.3801Z" fill="currentColor" />
-          </svg>
+        <span className="mr-3 overflow-hidden rounded-full h-9 w-9 flex items-center justify-center border border-gray-100 dark:border-gray-700">
+          {userInfo.photo && !userInfo.photo.includes("owner.jpg") ? (
+            <img
+              src={`${API_URL}${userInfo.photo}`}
+              alt={userInfo.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <img
+              src="/images/user/default_profile_v2.png"
+              alt="Default User"
+              className="w-full h-full object-cover"
+            />
+          )}
         </span>
 
         <span className="block mr-1 font-medium text-theme-sm">{userInfo.name}</span>
@@ -75,6 +90,25 @@ export default function UserDropdown() {
             {userInfo.email}
           </span>
         </div>
+
+        {/* Theme Toggle Switch */}
+        <div className="flex items-center justify-between px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm dark:text-gray-400">
+          <span className="flex items-center gap-3">
+
+            {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+          </span>
+          <button
+            onClick={toggleTheme}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${theme === 'dark' ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+          >
+            <span
+              className={`${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+            />
+          </button>
+        </div>
+
         <button
           onClick={handleLogout}
           className="flex w-full items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300 transition"
@@ -94,7 +128,7 @@ export default function UserDropdown() {
               fill=""
             />
           </svg>
-          Sign out
+          Keluar
         </button>
       </Dropdown>
     </div>

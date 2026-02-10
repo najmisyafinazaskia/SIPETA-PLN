@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeftIcon, GroupIcon, GridIcon, BoxCubeIcon, BoltIcon } from "../../icons";
+import { ChevronLeftIcon, BoxCubeIcon, BoltIcon, GroupIcon } from "../../icons";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -10,12 +10,14 @@ interface RegionData {
     kecamatan: number;
     desa: number;
     dusun: number;
-    kecamatanList?: string[];
+    kecamatanList?: (string | { nama: string; lembaga_warga?: string; tahun?: string | number })[];
     desaList?: string[];
     dusunList?: string[];
     dusuns?: { nama: string; status: string }[];
-    warga: number | string;
     pelanggan: number | string;
+    warga: number;
+    lembaga_warga?: string;
+    tahun?: string | number;
 }
 
 export default function RegionDetailPage() {
@@ -28,13 +30,15 @@ export default function RegionDetailPage() {
     const kab = queryParams.get('kab') || '';
     const kec = queryParams.get('kec') || '';
     const id = queryParams.get('id') || '';
+    const highlight = queryParams.get('highlight') || ''; // Name to search/highlight
+    const tabParam = queryParams.get('tab') || ''; // 'stable' or 'warning'
 
     const [data, setData] = useState<RegionData | null>(null);
     const [loading, setLoading] = useState(true);
     const [modal, setModal] = useState<{
         isOpen: boolean;
         title: string;
-        list: (string | { nama: string; status: string })[];
+        list: any[];
         type: string
     }>({
         isOpen: false,
@@ -43,6 +47,7 @@ export default function RegionDetailPage() {
         type: ""
     });
     const [activeModalTab, setActiveModalTab] = useState<"stable" | "warning">("stable");
+    const [modalSearchTerm, setModalSearchTerm] = useState("");
 
     useEffect(() => {
         const fetchData = async () => {
@@ -68,6 +73,23 @@ export default function RegionDetailPage() {
         fetchData();
     }, [name, category, id, kab, kec]);
 
+    // Effect to handle auto-opening modal based on query params (e.g. from notification)
+    useEffect(() => {
+        if (data && tabParam && (data.category === 'Desa' || data.category === 'Kabupaten' || data.category === 'Kecamatan')) {
+            // Only applicable if we have dusun list to show
+            if (data.category === 'Desa' && data.dusuns) {
+                setModal({
+                    isOpen: true,
+                    title: "Daftar Dusun",
+                    list: data.dusuns,
+                    type: "Dusun"
+                });
+                setActiveModalTab(tabParam as "stable" | "warning");
+                if (highlight) setModalSearchTerm(highlight);
+            }
+        }
+    }, [data, tabParam, highlight]);
+
     if (loading) {
         return (
             <div className="flex h-96 items-center justify-center">
@@ -87,7 +109,7 @@ export default function RegionDetailPage() {
         );
     }
 
-    const openModal = (title: string, list: (string | { nama: string; status: string })[] | undefined, type: string) => {
+    const openModal = (title: string, list: any[] | undefined, type: string) => {
         const safeList = Array.isArray(list) && list.length > 0 ? list : ["Data tidak tersedia"];
         setModal({
             isOpen: true,
@@ -96,6 +118,7 @@ export default function RegionDetailPage() {
             type
         });
         setActiveModalTab("stable");
+        setModalSearchTerm("");
     };
 
     const handleListItemClick = (itemName: string) => {
@@ -111,6 +134,12 @@ export default function RegionDetailPage() {
             // Untuk Dusun, kita tidak punya detail page per dusun selain di level Desa
             // Jadi hanya alert atau stay
         }
+    };
+
+    // Helper to get item name from string or object
+    const getItemName = (item: any): string => {
+        if (typeof item === "string") return item;
+        return item.nama || item.name || "";
     };
 
     // Helper to determine status
@@ -138,7 +167,12 @@ export default function RegionDetailPage() {
                     <h1 className="text-3xl font-bold text-[#1C2434] dark:text-white uppercase tracking-tight font-outfit">
                         {data.category} {data.name}
                     </h1>
-                    <p className="text-lg text-gray-500 font-medium mt-1 font-outfit">Provinsi Aceh • Informasi Detail Wilayah</p>
+                    <p className="text-lg text-gray-500 font-medium mt-1 font-outfit">
+                        Provinsi Aceh
+                        {(data as any).kab ? ` • ${(data as any).kab}` : ""}
+                        {(data as any).kec ? ` • Kec. ${(data as any).kec}` : ""}
+                        • Informasi Detail Wilayah
+                    </p>
                 </div>
             </div>
 
@@ -162,18 +196,18 @@ export default function RegionDetailPage() {
                         className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all cursor-pointer group"
                     >
                         <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-blue-600">
-                            {data.category === "Desa" ? <BoltIcon className="w-7 h-7" /> : <GridIcon className="w-7 h-7" />}
+                            {data.category === "Desa" ? <BoltIcon className="w-7 h-7" /> : <BoxCubeIcon className="w-7 h-7" />}
                         </div>
                         <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">
                             {data.category === "Kecamatan" ? "Desa / Gampong" :
-                                data.category === "Desa" ? "Status Per Dusun" : "Kecamatan"}
+                                data.category === "Desa" ? "Total Dusun" : "Kecamatan"}
                         </p>
                         <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">
                             {data.category === "Kecamatan" ? (data.desa || 0).toLocaleString() :
                                 data.category === "Desa" ? (data.dusun || 0).toLocaleString() : (data.kecamatan || 0).toLocaleString()}
                         </h3>
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
-                            {data.category === "Desa" ? "Data Dusun • Klik untuk Detail" : "Wilayah Administrasi • Klik untuk Detail"}
+                            {data.category === "Desa" ? "Status Listrik Dusun • Klik untuk Detail" : "Wilayah Administrasi • Klik untuk Detail"}
                         </p>
                     </div>
 
@@ -223,24 +257,26 @@ export default function RegionDetailPage() {
                         </div>
                     )}
 
+
+
+
+
                     {/* Warga */}
                     <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all group cursor-default">
-                        <div className="w-14 h-14 rounded-2xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center mb-6 text-green-600 transition-transform group-hover:scale-105">
+                        <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center mb-6 text-pink-600 transition-transform group-hover:scale-105">
                             <GroupIcon className="w-7 h-7" />
                         </div>
                         <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Warga</p>
-                        <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">-</h3>
-                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">Jiwa Terdata</p>
-                    </div>
-
-                    {/* Pelanggan */}
-                    <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all group cursor-default">
-                        <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center mb-6 text-orange-600 transition-transform group-hover:scale-105">
-                            <BoltIcon className="w-7 h-7" />
-                        </div>
-                        <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Pelanggan Aktif</p>
-                        <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">-</h3>
-                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">Koneksi Terdaftar</p>
+                        <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">
+                            {(data.warga || 0).toLocaleString()}
+                        </h3>
+                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
+                            {data.lembaga_warga && data.tahun && data.lembaga_warga !== "-" ? (
+                                `Update: ${data.lembaga_warga}, ${data.tahun}`
+                            ) : (
+                                "Jiwa • Berdasarkan Database Terbaru"
+                            )}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -262,6 +298,19 @@ export default function RegionDetailPage() {
                             </button>
                         </div>
                         <div className="p-6 max-h-[60vh] overflow-y-auto font-outfit">
+                            <div className="mb-4 relative">
+                                <input
+                                    type="text"
+                                    placeholder="Cari data..."
+                                    value={modalSearchTerm}
+                                    onChange={(e) => setModalSearchTerm(e.target.value)}
+                                    className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-white/5 outline-none focus:ring-2 focus:ring-blue-500 transition-all font-outfit"
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                </div>
+                            </div>
+
                             {/* Tabs for Dusun Filter */}
                             {modal.type === "Dusun" && modal.list.length > 0 && typeof modal.list[0] !== "string" && (
                                 <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -290,22 +339,26 @@ export default function RegionDetailPage() {
 
                             <div className="grid grid-cols-1 gap-2">
                                 {modal.list
-                                    .filter((item) => {
+                                    .filter((item: any) => {
+                                        const itemName = typeof item === "string" ? item : item.nama;
+                                        if (modalSearchTerm && !itemName.toLowerCase().includes(modalSearchTerm.toLowerCase())) {
+                                            return false;
+                                        }
                                         if (modal.type === "Dusun" && typeof item !== "string") {
                                             return getDusunStatus(item.status) === activeModalTab;
                                         }
                                         return true;
                                     })
-                                    .map((item, idx) => {
+                                    .map((item: any, idx: number) => {
                                         const isClickable = item !== "Data tidak tersedia" && modal.type !== "Dusun";
-                                        const itemName = typeof item === "string" ? item : item.nama;
+                                        const itemName = getItemName(item);
                                         return (
                                             <div
                                                 key={idx}
                                                 onClick={() => handleListItemClick(itemName)}
                                                 className={`p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3 transition-colors group ${isClickable ? "cursor-pointer hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-900/10" : ""}`}
                                             >
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-3 flex-1">
                                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black transition-colors ${isClickable ? "bg-white dark:bg-gray-800 text-gray-400 group-hover:text-blue-500 group-hover:scale-110" : "bg-gray-200 dark:bg-gray-800 text-gray-400"}`}>
                                                         {idx + 1}
                                                     </div>

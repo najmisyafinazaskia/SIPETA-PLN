@@ -27,6 +27,7 @@ exports.uploadFile = async (req, res) => {
             verification.fileName = file.originalname;
             verification.filePath = file.path.replace(/\\/g, '/'); // Normalize path
             verification.uploadedBy = req.userId;
+            verification.status = 'Menunggu Verifikasi'; // Reset status on re-upload
             await verification.save();
         } else {
             // Jika belum ada, buat baru
@@ -34,7 +35,8 @@ exports.uploadFile = async (req, res) => {
                 dusunId,
                 fileName: file.originalname,
                 filePath: file.path.replace(/\\/g, '/'),
-                uploadedBy: req.userId
+                uploadedBy: req.userId,
+                status: 'Menunggu Verifikasi'
             });
             await verification.save();
         }
@@ -111,5 +113,70 @@ exports.deleteVerification = async (req, res) => {
     } catch (error) {
         console.error("Delete Error:", error);
         res.status(500).json({ message: "Gagal menghapus verifikasi", error: error.message });
+    }
+};
+
+exports.updateStatus = async (req, res) => {
+    try {
+        const { dusunId } = req.params;
+        const { status } = req.body;
+
+        const validStatuses = ['Menunggu Verifikasi', 'Terverifikasi', 'Tidak Sesuai', 'Sesuai (Perlu Perbaikan)'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: "Status tidak valid" });
+        }
+
+        const verification = await Verification.findOne({ dusunId });
+        if (!verification) {
+            return res.status(404).json({ message: "Data verifikasi tidak ditemukan" });
+        }
+
+        verification.status = status;
+        await verification.save();
+
+        // Create Notification
+        const User = require('../models/User');
+        const Notification = require('../models/Notification');
+        const user = await User.findById(req.userId);
+
+        const newNotif = new Notification({
+            title: "Pembaruan Status Verifikasi",
+            message: `Status dokumen verifikasi untuk ${dusunId} telah diubah menjadi "${status}" oleh ${user ? user.name : 'Admin'}`,
+            type: "update",
+            user: req.userId,
+            userName: user ? user.name : "Admin"
+        });
+        await newNotif.save();
+
+        res.status(200).json({
+            message: "Status berhasil diperbarui",
+            data: verification
+        });
+    } catch (error) {
+        console.error("Update Status Error:", error);
+        res.status(500).json({ message: "Gagal memperbarui status", error: error.message });
+    }
+};
+
+exports.downloadFile = async (req, res) => {
+    try {
+        const { dusunId } = req.params;
+        const verification = await Verification.findOne({ dusunId });
+
+        if (!verification) {
+            return res.status(404).json({ message: "Data tidak ditemukan" });
+        }
+
+        const absolutePath = path.join(__dirname, '..', verification.filePath);
+
+        if (!fs.existsSync(absolutePath)) {
+            return res.status(404).json({ message: "File fisik tidak ditemukan di server" });
+        }
+
+        // Set attachment header explicitly to force download
+        res.download(absolutePath, verification.fileName);
+    } catch (error) {
+        console.error("Download Error:", error);
+        res.status(500).json({ message: "Gagal mengunduh file", error: error.message });
     }
 };

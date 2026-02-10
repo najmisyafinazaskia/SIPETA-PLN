@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const LOCAL_URI = 'mongodb://localhost:27017/db_aceh';
+const LOCAL_URI = 'mongodb://localhost:27017/sipeta_db';
 // Mengambil URI Atlas dari process.env atau hardcoded sementara utk memastikan jalan
 const CLOUD_URI = 'mongodb+srv://pln-sipeta:punyaUP2KPLN@cluster0.nhwvtny.mongodb.net/db_aceh?appName=Cluster0';
 
@@ -13,7 +13,7 @@ async function migrate() {
         const localConn = await mongoose.createConnection(LOCAL_URI, { serverSelectionTimeoutMS: 5000 }).asPromise();
         console.log('✅ Connected to Local.');
 
-        const localColl = localConn.collection('desas');
+        const localColl = localConn.collection('locations');
         const data = await localColl.find({}).toArray();
         console.log(`📦 Found ${data.length} documents in Local DB.`);
 
@@ -28,7 +28,7 @@ async function migrate() {
         const cloudConn = await mongoose.createConnection(CLOUD_URI, { serverSelectionTimeoutMS: 10000 }).asPromise();
         console.log('✅ Connected to Cloud.');
 
-        const cloudColl = cloudConn.collection('desas');
+        const cloudColl = cloudConn.collection('locations');
 
         const cloudCount = await cloudColl.countDocuments();
         if (cloudCount > 0) {

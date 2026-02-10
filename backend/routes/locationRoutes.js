@@ -23,6 +23,15 @@ router.get('/hierarchy', locationController.getHierarchy);
 // Get summary of all UP3s
 router.get('/up3/stats', locationController.getUp3Stats);
 
+// New UP3 specialized endpoints from migrate
+router.get('/up3/office', locationController.getUp3Offices);
+router.get('/up3/desa-grouped', locationController.getUp3DesaGrouped);
+
+// New ULP specialized endpoints
+router.get('/ulp/office', locationController.getUlpOffices);
+router.get('/ulp/desa-grouped', locationController.getUlpDesaGrouped);
+router.get('/ulp/detail/:name', locationController.getUlpDetail);
+
 // Get UP3 detail (kecamatan list)
 router.get('/up3/detail/:name', locationController.getUp3Detail);
 
@@ -42,5 +51,9 @@ router.get('/:id', locationController.getLocationById);
 
 // Update Dusun Status
 router.put('/dusun/update-status', locationController.updateDusunStatus);
+
+// Update Pelanggan count for UP3/ULP
+router.put('/up3/update-pelanggan', locationController.updateUp3Pelanggan);
+router.put('/ulp/update-pelanggan', locationController.updateUlpPelanggan);
 
 module.exports = router;

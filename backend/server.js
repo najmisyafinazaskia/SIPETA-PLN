@@ -22,6 +22,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/sipeta_db', {
+    maxPoolSize: 50, // Mengizinkan 50 koneksi sekaligus
     serverSelectionTimeoutMS: 5000
 })
     .then(() => console.log('✅ MongoDB Connected'))

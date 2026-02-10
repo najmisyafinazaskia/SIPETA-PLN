@@ -1,6 +1,6 @@
 import { useState, Fragment } from 'react';
 import { Combobox, Transition } from '@headlessui/react';
-import { CheckIcon, ChevronUpDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
+import { ChevronUpDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 
 interface SearchableSelectProps {
     items: { id: string | number; name: string; type?: string; metadata?: any }[]; // Expanded interface

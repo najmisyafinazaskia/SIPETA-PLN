@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import KecamatanMap from "./KecamatanMap";
 import MapFilter from "../../components/ui/MapFilter";
+import SearchableSelect from "../../components/ui/SearchableSelect";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -9,6 +10,7 @@ interface KecamatanItem {
   name: string;
   type: "stable" | "warning";
   kab: string;
+  warga: number;
   desaList: any[];
 }
 
@@ -21,8 +23,6 @@ export default function KecamatanPage() {
   const [activeTab, setActiveTab] = useState<"stable" | "warning">("stable");
   const [showStable, setShowStable] = useState(true);
   const [showWarning, setShowWarning] = useState(true);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
 
   // Filter Logic
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
@@ -75,6 +75,7 @@ export default function KecamatanPage() {
                 name: item.kecamatan,
                 kab: item.kabupaten,
                 type: "stable", // Reverted to hardcoded stable
+                warga: item.kecamatan_warga,
                 desaList: []
               });
             }
@@ -92,28 +93,7 @@ export default function KecamatanPage() {
     fetchData();
   }, []);
 
-  // ... (search effect remains) ...
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (searchTerm.trim().length > 2) {
-        try {
-          setIsSearching(true);
-          const res = await fetch(`${API_URL}/api/locations/search?q=${encodeURIComponent(searchTerm)}`);
-          const json = await res.json();
-          if (json.success) {
-            setSearchResults(json.data);
-          }
-        } catch (err) {
-          console.error("Search error:", err);
-        } finally {
-          setIsSearching(false);
-        }
-      } else {
-        setSearchResults([]);
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
+
 
   const daftarKabupaten = useMemo(() => {
     const kabs = allKecamatan.map((item) => item.kab);
@@ -121,22 +101,13 @@ export default function KecamatanPage() {
   }, [allKecamatan]);
 
   const filteredList = useMemo(() => {
-    if (searchTerm.trim().length > 2) {
-      const matchingKecNames = new Set(
-        searchResults.map(r => r.kec).filter(Boolean)
-      );
-      return allKecamatan.filter(item =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        matchingKecNames.has(item.name)
-      );
-    }
     return allKecamatan.filter((item) => {
       const matchSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchKab = selectedKab === "Tampilkan Semua" || item.kab === selectedKab;
       const matchTab = item.type === activeTab;
       return matchSearch && matchKab && matchTab;
     });
-  }, [searchTerm, selectedKab, allKecamatan, activeTab, searchResults]);
+  }, [searchTerm, selectedKab, allKecamatan, activeTab]);
 
   const handleCardClick = (name: string) => {
     navigate(`/dashboard/region/detail/${encodeURIComponent(name)}?cat=Kecamatan`);
@@ -184,26 +155,20 @@ export default function KecamatanPage() {
             <div className="relative flex-1">
               <input
                 type="text"
-                placeholder="Cari kec, desa, dusun..."
+                placeholder="Cari kecamatan..."
                 className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm outline-none focus:ring-2 focus:ring-[#0052CC] dark:text-white transition-all min-w-[250px]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              {isSearching && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 scale-75">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
-                </div>
-              )}
+
             </div>
-            <select
-              className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold outline-none focus:ring-2 focus:ring-[#0052CC] dark:text-white cursor-pointer"
+            <SearchableSelect
+              options={daftarKabupaten}
               value={selectedKab}
-              onChange={(e) => setSelectedKab(e.target.value)}
-            >
-              {daftarKabupaten.map((kab) => (
-                <option key={kab} value={kab}>{kab}</option>
-              ))}
-            </select>
+              onChange={setSelectedKab}
+              placeholder="Pilih Kabupaten"
+              className="w-full sm:w-auto min-w-[200px]"
+            />
           </div>
         </div>
 
@@ -243,7 +208,7 @@ export default function KecamatanPage() {
                   {item.name}
                 </span>
                 <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest transition-colors group-hover:text-[#0052CC]">
-                  KAB. {item.kab}
+                  KAB. {item.kab} • {item.warga.toLocaleString()} JIWA
                 </span>
               </div>
               <div className={`w-2.5 h-2.5 rounded-full ${item.type === "stable" ? "bg-[#22c55e]" : "bg-[#F2C94C] shadow-[0_0_10px_#F2C94C]"}`}></div>
@@ -257,6 +222,6 @@ export default function KecamatanPage() {
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 }

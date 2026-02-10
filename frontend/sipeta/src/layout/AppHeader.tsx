@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useSidebar } from "../context/SidebarContext";
-import { ThemeToggleButton } from "../components/common/ThemeToggleButton";
 import UserDropdown from "../components/header/UserDropdown";
 import NotificationDropdown from "../components/header/NotificationDropdown";
 
@@ -47,7 +46,6 @@ const AppHeader: React.FC = () => {
         {/* Sisi Kanan: Notification, Theme Toggle & Profil */}
         <div className="flex items-center gap-3 2xsm:gap-7">
           <NotificationDropdown />
-          <ThemeToggleButton />
           <UserDropdown />
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeftIcon } from "../../icons";
+import { ChevronLeftIcon, GroupIcon, BoxCubeIcon } from "../../icons";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -10,6 +10,7 @@ export default function UlpKecamatanDetail() {
     const decodedName = decodeURIComponent(name || "");
     const [searchTerm, setSearchTerm] = useState("");
     const [listDesa, setListDesa] = useState<string[]>([]);
+    const [stats, setStats] = useState<any>({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -18,8 +19,9 @@ export default function UlpKecamatanDetail() {
                 setLoading(true);
                 const response = await fetch(`${API_URL}/api/locations/search/${encodeURIComponent(decodedName)}?category=Kecamatan`);
                 const json = await response.json();
-                if (json.success && json.data.desaList) {
-                    setListDesa(json.data.desaList);
+                if (json.success && json.data) {
+                    setListDesa(json.data.desaList || []);
+                    setStats(json.data);
                 }
             } catch (error) {
                 console.error("Error fetching kecamatan detail:", error);
@@ -61,19 +63,50 @@ export default function UlpKecamatanDetail() {
                 </div>
             </div>
 
-            <div className="p-8 pb-0 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-8 pb-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Card 1: Desa */}
                 <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-default">
                     <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-purple-600">
-                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                        <BoxCubeIcon className="w-7 h-7" />
                     </div>
-                    <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Desa / Gampong</p>
+                    <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Desa</p>
                     <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">
                         {listDesa.length}
                     </h3>
                     <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
-                        Distribusi Wilayah ⚡
+                        Wilayah Desa • Lihat Detail
                     </p>
                 </div>
+
+                {/* Card 2: Dusun */}
+                <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-default">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-amber-600">
+                        <BoxCubeIcon className="w-7 h-7" />
+                    </div>
+                    <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Dusun</p>
+                    <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">
+                        {stats.dusun || "-"}
+                    </h3>
+                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
+                        Titik Distribusi • Lihat Detail
+                    </p>
+                </div>
+
+                {/* Card 3: Warga */}
+                <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-default">
+                    <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-pink-600">
+                        <GroupIcon className="w-7 h-7" />
+                    </div>
+                    <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Warga</p>
+                    <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">
+                        {stats.warga ? stats.warga.toLocaleString() : "-"}
+                    </h3>
+                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
+                        {stats.lembaga_warga ? `Diperbaharui = ${stats.lembaga_warga}, ${stats.tahun}` : "Estimasi Populasi"}
+                    </p>
+                </div>
+
+
             </div>
 
             <div className="p-8">

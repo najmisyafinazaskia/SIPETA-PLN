@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import KabkotMap from "./KabkotMap";
 import MapFilter from "../../components/ui/MapFilter";
+import SearchableSelect from "../../components/ui/SearchableSelect";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -13,6 +14,10 @@ interface LocationItem {
   desaCount: number;
   kecamatanCount: number;
   dusunCount: number;
+  warga?: number;
+  pelanggan?: number;
+  lembaga_warga?: string;
+  tahun?: number | string;
 }
 
 export default function KabKotPage() {
@@ -69,7 +74,11 @@ export default function KabKotPage() {
             region: item.kabupaten.toLowerCase().includes('kota') ? "Kota" : "Kabupaten",
             desaCount: item.desaCount,
             kecamatanCount: item.kecamatanCount,
-            dusunCount: item.dusunCount
+            dusunCount: item.dusunCount,
+            warga: item.warga,
+            pelanggan: item.pelanggan || 0,
+            lembaga_warga: item.lembaga_warga,
+            tahun: item.tahun
           }));
           setAllLocations(mapped);
         }
@@ -136,6 +145,14 @@ export default function KabKotPage() {
     navigate(`/dashboard/region/detail/${encodeURIComponent(name)}?cat=Kabupaten`);
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#0052CC] border-t-transparent"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-3xl border border-gray-200 bg-white overflow-hidden shadow-sm dark:border-gray-800 dark:bg-white/[0.03] font-outfit">
       <div className="p-8 pb-4">
@@ -181,15 +198,13 @@ export default function KabKotPage() {
                 </div>
               )}
             </div>
-            <select
-              className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold outline-none focus:ring-2 focus:ring-[#0052CC] dark:text-white cursor-pointer"
+            <SearchableSelect
+              options={daftarWilayah}
               value={selectedRegion}
-              onChange={(e) => setSelectedRegion(e.target.value)}
-            >
-              {daftarWilayah.map((region) => (
-                <option key={region} value={region}>{region}</option>
-              ))}
-            </select>
+              onChange={setSelectedRegion}
+              placeholder="Pilih Wilayah"
+              className="w-full sm:w-auto min-w-[200px]"
+            />
           </div>
         </div>
 
@@ -229,7 +244,7 @@ export default function KabKotPage() {
                   {item.name}
                 </span>
                 <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest transition-colors group-hover:text-[#0052CC]">
-                  {item.region.toUpperCase()} • {item.kecamatanCount} KEC • {item.desaCount} DESA
+                  {item.region.toUpperCase()} • {(item.warga || 0).toLocaleString()} JIWA
                 </span>
               </div>
               <div className={`w-2.5 h-2.5 rounded-full ${item.type === "stable" ? "bg-[#22AD5C]" : "bg-[#F2C94C] shadow-[0_0_10px_#F2C94C]"}`}></div>

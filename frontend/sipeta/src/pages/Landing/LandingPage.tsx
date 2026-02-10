@@ -7,7 +7,8 @@ export default function LandingPage() {
   const [stats, setStats] = useState({
     kab: "23",
     kec: "290",
-    desa: "6.500+"
+    desa: "6.500+",
+    dusun: "20.000+"
   });
 
   useEffect(() => {
@@ -19,7 +20,8 @@ export default function LandingPage() {
           setStats({
             kab: json.data.summary.totalKabupatenKota.toString(),
             kec: json.data.summary.totalKecamatan.toString(),
-            desa: json.data.summary.totalDesa.toLocaleString()
+            desa: json.data.summary.totalDesa.toLocaleString(),
+            dusun: json.data.summary.totalDusun.toLocaleString()
           });
         }
       } catch (err) {
@@ -63,7 +65,7 @@ export default function LandingPage() {
 
           {/* Spasi: leading-[1.2] dan mb-10 untuk memberi ruang napas antar baris judul */}
           <h2 className="font-sora text-7xl md:text-7xl font-black text-[#1C2434] mb-12 leading-[1.2]  uppercase tracking-tighter">
-            SIPEDA <br />
+            SIPETA <br />
             {/* ( Sistem Informasi Pemetaan  <br />
             Tingkat Elektrifikasi ) <br /> */}
             <span className="text-[#0052CC] not-italic">Provinsi Aceh</span>
@@ -71,7 +73,7 @@ export default function LandingPage() {
 
           {/* Spasi: mb-14 memberikan jarak jauh sebelum tombol aksi */}
           <p className="max-w-3xl text-gray-500 text-lg md:text-xl mb-10 leading-relaxed font-semibold">
-            Sistem Informasi Pemetaan Elektrifikasi Desa Provinsi Aceh
+            Sistem Informasi Pemetaan Elektrifikasi Tingkat Desa Provinsi Aceh
           </p>
 
           <div>
@@ -84,31 +86,141 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* SISI KANAN: Logo Besar dengan Efek Glow */}
-        <div className="hidden md:flex w-2/5 h-full items-center justify-center relative overflow-hidden">
-          {/* Glow Effect di belakang logo agar tidak kosong */}
-          <div className="absolute w-[450px] h-[450px] bg-blue-400/10 rounded-full blur-[100px] animate-pulse"></div>
-          <img
-            src="/images/logo/logo-light.png"
-            alt="SIPETA Main Logo Large"
-            className="relative z-10 w-[85%] h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,82,204,0.15)] transition-transform duration-700 hover:rotate-1"
-          />
+        {/* SISI KANAN: Logo Besar - Minimalist Aura Core (With Dynamic Rings) */}
+        <div className="hidden md:flex w-2/5 h-full items-center justify-center relative overflow-hidden group">
+          <style>
+            {`
+              @keyframes core-pulse {
+                0%, 100% { filter: drop-shadow(0 0 20px rgba(0,82,204,0.25)); transform: scale(1); }
+                50% { filter: drop-shadow(0 0 45px rgba(0,82,204,0.45)); transform: scale(1.03); }
+              }
+              @keyframes orbit-rotate {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+              }
+              @keyframes orbit-rotate-reverse {
+                from { transform: rotate(360deg); }
+                to { transform: rotate(0deg); }
+              }
+              @keyframes surface-glimmer {
+                0% { transform: translateX(-150%) skewX(-20deg); }
+                30%, 100% { transform: translateX(150%) skewX(-20deg); }
+              }
+              @keyframes topo-flow {
+                from { background-position: 0% 0%; }
+                to { background-position: 100% 100%; }
+              }
+              @keyframes coord-float {
+                0%, 100% { opacity: 0; transform: translateY(10px); }
+                50% { opacity: 0.3; transform: translateY(0); }
+              }
+              @keyframes data-flow {
+                0% { transform: translateY(100px); opacity: 0; }
+                50% { opacity: 0.4; }
+                100% { transform: translateY(-100px); opacity: 0; }
+              }
+              .topo-bg {
+                background-image: url("data:image/svg+xml,%3Csvg width='800' height='800' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 100 Q 200 50 400 100 T 800 100' stroke='rgba(0,82,204,0.05)' fill='transparent'/%3E%3Cpath d='M0 200 Q 300 150 500 200 T 800 200' stroke='rgba(0,82,204,0.05)' fill='transparent'/%3E%3Cpath d='M0 300 Q 150 250 400 300 T 800 300' stroke='rgba(0,82,204,0.05)' fill='transparent'/%3E%3Cpath d='M0 400 Q 400 350 600 400 T 800 400' stroke='rgba(0,82,204,0.05)' fill='transparent'/%3E%3C/svg%3E");
+                background-size: 600px 600px;
+                animation: topo-flow 60s linear infinite;
+              }
+              .dot-grid-tech {
+                background-image: radial-gradient(rgba(0, 82, 204, 0.1) 1px, transparent 1px);
+                background-size: 40px 40px;
+              }
+              .glimmer-overlay {
+                position: absolute;
+                top: 0; left: 0; width: 100%; height: 100%;
+                background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.35), transparent);
+                z-index: 10; pointer-events: none;
+                animation: surface-glimmer 8s ease-in-out infinite;
+              }
+              .dynamic-orbit {
+                position: absolute;
+                border: 1px solid transparent;
+                border-radius: 50%;
+                background: linear-gradient(var(--bg-color), var(--bg-color)) padding-box,
+                            conic-gradient(from 0deg, #0052CC, transparent 30%, transparent 70%, #00BFFF) border-box;
+                opacity: 0.2;
+              }
+              .data-node {
+                position: absolute;
+                width: 2px; height: 2px;
+                background: #0052CC;
+                border-radius: 50%;
+                animation: data-flow 10s linear infinite;
+              }
+            `}
+          </style>
+
+          {/* Deep Professional Background Layers */}
+          <div className="absolute inset-0 dot-grid-tech"></div>
+          <div className="absolute inset-0 topo-bg opacity-40"></div>
+
+          {/* Subtle Technical Indicators */}
+          <div className="absolute top-20 left-20 text-[8px] font-mono text-blue-900/20 flex flex-col gap-1" style={{ animation: 'coord-float 8s ease-in-out infinite' }}>
+            <span>LAT: 5.5483° N</span>
+            <span>LNG: 95.3238° E</span>
+          </div>
+          <div className="absolute bottom-20 right-20 text-[8px] font-mono text-blue-900/20 flex flex-col items-end gap-1" style={{ animation: 'coord-float 10s ease-in-out infinite', animationDelay: '2s' }}>
+            <span>DATA SOURCE: PLNA-01</span>
+            <span>SYSTEM: VERIFIED</span>
+          </div>
+
+          {/* Soft Layered Auras */}
+          <div className="absolute w-[550px] h-[550px] bg-blue-500/5 rounded-full blur-[120px]"></div>
+          <div className="absolute w-[350px] h-[350px] bg-indigo-500/5 rounded-full blur-[80px] animate-pulse"></div>
+
+          {/* Dynamic Circular Lines (Ultra-Fine) */}
+          <div className="dynamic-orbit w-[420px] h-[420px]" style={{ animation: 'orbit-rotate 15s linear infinite', opacity: 0.15 }}></div>
+          <div className="absolute w-[360px] h-[360px] border border-blue-500/10 border-dashed rounded-full" style={{ animation: 'orbit-rotate-reverse 25s linear infinite' }}></div>
+
+          <div className="relative z-10 w-[75%] flex items-center justify-center">
+            {/* The Logo Container - Pure & Sharp */}
+            <div className="relative overflow-hidden p-8 transition-all duration-700" style={{ animation: 'core-pulse 5s ease-in-out infinite' }}>
+              <div className="glimmer-overlay"></div>
+
+              <img
+                src="/images/logo/logo-light.png"
+                alt="SIPETA Main Logo Large"
+                className="w-full h-auto object-contain transition-transform duration-700 group-hover:scale-105"
+              />
+            </div>
+          </div>
+
+          {/* Minimalist Data Particles (Nodes) */}
+          {[...Array(12)].map((_, i) => (
+            <div
+              key={i}
+              className="data-node"
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 10}s`,
+                opacity: 0.1
+              }}
+            ></div>
+          ))}
+
+          {/* Super Subtle Digital Framing (Only at edges) */}
+          <div className="absolute top-10 right-10 w-24 h-[1px] bg-gradient-to-l from-blue-500/20 to-transparent"></div>
+          <div className="absolute bottom-10 left-10 w-24 h-[1px] bg-gradient-to-r from-blue-500/20 to-transparent"></div>
         </div>
       </section>
 
       {/* 3. Statistik Wilayah (Panel Data) */}
       <div className="w-full bg-slate-50/50 py-10 border-y border-gray-100 backdrop-blur-sm relative z-10">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-10 font-outfit">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-10 font-outfit">
             <div className="flex flex-col items-center">
               <span className="text-4xl font-black text-[#0052CC] mb-1">{stats.kab}</span>
               <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest text-center leading-tight">Kabupaten / Kota</span>
             </div>
-            {[stats.kec, stats.desa, '6', '34'].map((val, i) => (
+            {[stats.kec, stats.desa, stats.dusun, '6', '38'].map((val, i) => (
               <div key={i} className="flex flex-col items-center border-l border-gray-200">
                 <span className="text-4xl font-black text-[#0052CC] mb-1">{val}</span>
                 <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest text-center leading-tight">
-                  {['Kecamatan', 'Desa', 'UP3', 'ULP PLN'][i]}
+                  {['Kecamatan', 'Desa', 'Dusun', 'UP3 PLN', 'ULP PLN'][i]}
                 </span>
               </div>
             ))}

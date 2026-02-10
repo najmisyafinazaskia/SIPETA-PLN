@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMap, ZoomControl } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, Marker, useMap, ZoomControl } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -61,39 +61,17 @@ const KabkotMap: React.FC<KabkotMapProps> = ({ activeFilters, filterLocations })
         if (json.success) {
           const mapped = json.data.details.map((item: any) => {
             let coords: [number, number] = [0, 0];
-            const name = item.kabupaten.toUpperCase();
 
-            // Manual coordinates for better visual centering
-            const manualCoords: Record<string, [number, number]> = {
-              "PIDIE": [5.00, 96.00],
-              "ACEH SINGKIL": [2.40, 97.90],
-              "KOTA SABANG": [5.89, 95.32],
-              "SIMEULUE": [2.62, 96.05],
-              "BIREUEN": [5.05, 96.60],
-              "ACEH UTARA": [4.90, 97.15],
-              "ACEH TIMUR": [4.62, 97.65],
-              "ACEH TENGAH": [4.60, 96.90],
-              "BENER MERIAH": [4.75, 96.85],
-              "GAYO LUES": [3.95, 97.40],
-              "KOTA LHOKSEUMAWE": [5.18, 97.14],
-              "KOTA LANGSA": [4.47, 97.96],
-              "KOTA BANDA ACEH": [5.55, 95.32],
-              "ACEH BESAR": [5.40, 95.50],
-              "ACEH JAYA": [4.80, 95.60],
-              "PIDIE JAYA": [5.10, 96.25],
-              "ACEH BARAT": [4.45, 96.15],
-              "NAGAN RAYA": [4.15, 96.40],
-              "ACEH BARAT DAYA": [3.80, 96.90],
-              "ACEH SELATAN": [3.25, 97.20],
-              "KOTA SUBULUSSALAM": [2.75, 97.95],
-              "ACEH TAMIANG": [4.25, 98.00],
-              "ACEH TENGGARA": [3.35, 97.70],
 
-            };
-
-            if (manualCoords[name]) {
-              coords = manualCoords[name];
+            if (item.koordinat && Array.isArray(item.koordinat) && item.koordinat.length === 2) {
+              coords = item.koordinat as [number, number];
             } else if (item.x && item.y) {
+              // Fallback to legacy x/y if koordinat is missing (Note: check backend mapping)
+              // My backend now maps result.x = coords[0] (Lat) and result.y = coords[1] (Lng)
+              // But legacy aggregation mapped x=X(Lng), y=Y(Lat).
+              // To be safe, rely on 'koordinat' first. 
+              // If falling back to legacy x/y from 'details' which might be raw stats if no coordMap match:
+              // The legacy code used [y, x]. 
               coords = [item.y, item.x];
             }
 
@@ -163,26 +141,36 @@ const KabkotMap: React.FC<KabkotMapProps> = ({ activeFilters, filterLocations })
             position={kab.coords}
             icon={L.divIcon({
               className: "custom-icon",
-              html: `<div style="display:flex; flex-direction:column; align-items:center;">
-                       <div style="width:14px; height:14px; background:#00C851; border:2px solid white; border-radius:50%; box-shadow:0 0 5px rgba(0,0,0,0.5); display: ${showDot ? 'block' : 'none'};"></div>
-                       <div style="color:#000; font-weight:700; font-size:12px; text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; white-space:nowrap; margin-top:${showDot ? '3px' : '0'}; letter-spacing: 0.5px;">
-                         ${kab.name}
-                       </div>
-                     </div>`,
-              iconSize: [100, 40],
-              iconAnchor: [50, 7],
+              html: `<div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; pointer-events: none;">
+                        <div style="
+                          width: 12px; 
+                          height: 12px; 
+                          background: #2ecc71; 
+                          border: 2px solid white; 
+                          border-radius: 50%; 
+                          box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+                          display: ${showDot ? 'block' : 'none'};
+                        "></div>
+                        <div style="
+                          font-family: 'Outfit', sans-serif;
+                          font-size: 11px; 
+                          font-weight: 600; 
+                          color: #000; 
+                          text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff; 
+                          white-space: nowrap; 
+                          margin-top: 2px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.5px;
+                          display: block;
+                        ">
+                          ${kab.name}
+                        </div>
+                      </div>`,
+              iconSize: [120, 40],
+              iconAnchor: [60, 5],
             })}
           >
-            {showDot && (
-              <Popup>
-                <div className="text-center">
-                  <b className="block text-sm mb-1">{kab.name}</b>
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded border border-green-200 font-bold">
-                    Terjangkau Listrik
-                  </span>
-                </div>
-              </Popup>
-            )}
+
           </Marker>
         );
       })}

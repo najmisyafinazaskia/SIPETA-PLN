@@ -27,38 +27,117 @@ async function importFromJSON() {
         fileContent = fileContent.replace(/,\s*\]$/, ']');
 
         const rawData = JSON.parse(fileContent);
-        console.log(`📊 Ditemukan ${rawData.length} entri data.`);
+        console.log(`📊 Ditemukan ${rawData.length} entri data mentah.`);
 
-        // Mapping data langsung dari format JSON ke Model Mongoose
-        const mappedData = rawData.map((item) => {
+        // Deteksi Format: Cek apakah ada header "Column2" yang berisi "Kabupaten/Kota"
+        let isColumnFormat = false;
+        let headerRow = null;
+        let dataRows = rawData;
+
+        // Cek item pertama untuk header
+        if (rawData.length > 0 && rawData[0]['Column2'] && (rawData[0]['Column2'].includes('Kabupaten') || rawData[0]['Column2'].includes('Kabupaten/Kota'))) {
+            isColumnFormat = true;
+            headerRow = rawData[0];
+            dataRows = rawData.slice(1); // Exclude header row
+            console.log('ℹ️ Terdeteksi format data baru dengan header Column.');
+        }
+
+        // Helper to clean invalid values
+        const isValidValue = (val) => {
+            if (val === null || val === undefined) return false;
+            const str = String(val).trim();
+            return str !== '' && str !== '0' && str.toLowerCase() !== 'null' && str !== '-';
+        };
+
+        // Mapping data
+        const mappedData = dataRows.map((item) => {
             const dusuns = [];
 
-            // Loop Dusun A sampai F
-            ['A', 'B', 'C', 'D', 'E', 'F'].forEach(suffix => {
-                const namaDusun = item[`Nama Dusun ${suffix}`];
-                const statusDusun = item[`Status Dusun ${suffix}`];
+            if (isColumnFormat) {
+                // LOGIKA FORMAT BARU (ColumnX)
+                // Mapping berdasarkan struktur yang diberikan user:
+                // Col2=Kab, Col3=Kec, Col4=Desa, Col5=X, Col6=Y
+                // Col7=Nama1, Col8=Status1, Col9=Nama2, Col10=Status2, dst...
 
-                if (namaDusun && namaDusun !== "0" && namaDusun !== 0) {
-                    dusuns.push({
-                        nama: String(namaDusun).trim(),
-                        status: String(statusDusun || "Belum Berlistrik").trim()
-                    });
+                const kab = String(item['Column2'] || '').trim();
+                const kec = String(item['Column3'] || '').trim();
+                const des = String(item['Column4'] || '').trim();
+
+                // Skip jika data kosong/header parsing error
+                if (!isValidValue(kab) || kab === 'Kabupaten/Kota') return null;
+
+                const xVal = isValidValue(item['Column5']) ? String(item['Column5']).trim() : '0';
+                const yVal = isValidValue(item['Column6']) ? String(item['Column6']).trim() : '0';
+
+                // Loop Dusun 1 sampai 6 (Column 7 sampai 18)
+                // Pasangan: (7,8), (9,10), (11,12), (13,14), (15,16), (17,18)
+                for (let i = 0; i < 6; i++) {
+                    const colNameIndex = 7 + (i * 2);
+                    const colStatusIndex = 8 + (i * 2);
+
+                    const colNameKey = `Column${colNameIndex}`;
+                    const colStatusKey = `Column${colStatusIndex}`;
+
+                    const namaDusun = item[colNameKey];
+                    let statusDusun = item[colStatusKey];
+
+                    // Cleaning Status
+                    if (!isValidValue(statusDusun)) {
+                        statusDusun = "Berlistrik PLN"; // Default jika kosong dianggap Berlistrik
+                    }
+
+                    if (isValidValue(namaDusun)) {
+                        dusuns.push({
+                            nama: String(namaDusun).trim(),
+                            status: String(statusDusun).trim()
+                        });
+                    }
                 }
-            });
 
-            return {
-                kabupaten: String(item['Kabupaten/Kota']).trim(),
-                kecamatan: String(item['KECAMATAN']).trim(),
-                desa: String(item['NAMA KELURAHAN/DESA']).trim(),
-                X: String(item['x']).trim(),
-                Y: String(item['y']).trim(),
-                x: String(item['x']).trim(),
-                y: String(item['y']).trim(),
-                dusun_detail: dusuns
-            };
-        });
+                return {
+                    kabupaten: kab,
+                    kecamatan: kec,
+                    desa: des,
+                    X: xVal,
+                    Y: yVal,
+                    x: xVal,
+                    y: yVal,
+                    dusun_detail: dusuns
+                };
 
-        console.log(`🧹 Memproses ${mappedData.length} entri data ke database.`);
+            } else {
+                // LOGIKA FORMAT LAMA (Nama Dusun A, dst)
+                ['A', 'B', 'C', 'D', 'E', 'F'].forEach(suffix => {
+                    const namaDusun = item[`Nama Dusun ${suffix}`];
+                    let statusDusun = item[`Status Dusun ${suffix}`];
+
+                    // Cleaning Status
+                    if (!isValidValue(statusDusun)) {
+                        statusDusun = "Berlistrik PLN"; // Default jika kosong dianggap Berlistrik
+                    }
+
+                    if (isValidValue(namaDusun)) {
+                        dusuns.push({
+                            nama: String(namaDusun).trim(),
+                            status: String(statusDusun).trim()
+                        });
+                    }
+                });
+
+                return {
+                    kabupaten: String(item['Kabupaten/Kota']).trim(),
+                    kecamatan: String(item['KECAMATAN']).trim(),
+                    desa: String(item['NAMA KELURAHAN/DESA']).trim(),
+                    X: String(item['x']).trim(),
+                    Y: String(item['y']).trim(),
+                    x: String(item['x']).trim(),
+                    y: String(item['y']).trim(),
+                    dusun_detail: dusuns
+                };
+            }
+        }).filter(item => item !== null); // Hapus null entries
+
+        console.log(`🧹 Memproses ${mappedData.length} entri data valid ke database.`);
 
         // Hapus data lama
         console.log('🗑️ Menghapus data lokasi lama...');

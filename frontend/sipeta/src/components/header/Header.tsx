@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { ThemeToggleButton } from "../common/ThemeToggleButton";
 import UserDropdown from "./UserDropdown";
 import { Link } from "react-router";
 
@@ -34,7 +32,7 @@ const Header: React.FC<HeaderProps> = ({ onToggle }) => {
 
         {/* SISI KANAN: User Profile */}
         <div className="flex items-center gap-3 2xsm:gap-7">
-          <ThemeToggleButton />
+
           <UserDropdown />
         </div>
       </div>

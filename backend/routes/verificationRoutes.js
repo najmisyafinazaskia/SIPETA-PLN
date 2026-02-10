@@ -40,17 +40,20 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
-        if (file.mimetype === "application/pdf") {
+        const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+        if (allowedTypes.includes(file.mimetype)) {
             cb(null, true);
         } else {
-            cb(new Error("Hanya file PDF yang diperbolehkan!"), false);
+            cb(new Error("Hanya file PDF dan Gambar (JPG/PNG) yang diperbolehkan!"), false);
         }
     }
 });
 
 router.get('/', verificationController.getAllVerifications);
 router.get('/:dusunId', verificationController.getVerification);
+router.get('/download/:dusunId', verificationController.downloadFile);
 router.post('/upload/:dusunId', verifyToken, upload.single('document'), verificationController.uploadFile);
+router.put('/status/:dusunId', verifyToken, verificationController.updateStatus);
 router.delete('/:dusunId', verifyToken, verificationController.deleteVerification);
 
 module.exports = router;

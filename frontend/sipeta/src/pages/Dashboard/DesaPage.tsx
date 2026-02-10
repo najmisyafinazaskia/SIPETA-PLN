@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DesaMap from "./DesaMap";
 import MapFilter from "../../components/ui/MapFilter";
+import SearchableSelect from "../../components/ui/SearchableSelect";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -12,6 +13,9 @@ interface DesaItem {
   kec: string;
   kab: string;
   dusuns: any[];
+  warga: number;
+  sumber: string;
+  tahun: string | number;
 }
 
 export default function DesaPage() {
@@ -69,41 +73,14 @@ export default function DesaPage() {
 
         if (json.success && isMounted) {
           const mapped = json.data.map((item: any) => {
-            // 1. Definisikan kondisi "Dusun Bermasalah"
-            const isDusunProblematic = (d: any) =>
-              d.status === "0" ||
-              d.status === "REFF!" ||
-              d.status === "Dusun tidak diketahui" ||
-              d.status?.toLowerCase().includes("belum");
-
             const dusuns = item.dusun_detail || [];
-            const hasDusuns = dusuns.length > 0;
 
-            // 2. Cek apakah SEMUA dusun bermasalah
-            const allDusunsBad = hasDusuns && dusuns.every(isDusunProblematic);
+            // LOGIKA PENENTUAN STATUS DESA:
+            //  Seluruh Desa di Provinsi Aceh sudah teraliri listrik (TERJANGKAU).
+            // Status Desa (Stable) BERBEDA dan TIDAK TERGANTUNG pada status Dusun di dalamnya.
+            // Meskipun ada dusun yang belum berlistrik, status indikator Desa tetap HIJAU (Stable).
 
-            // 3. Cek apakah ada MINIMAL SATU dusun yang baik
-            const hasGoodDusun = hasDusuns && dusuns.some((d: any) => !isDusunProblematic(d));
-
-            // 4. Tentukan status akhir
-            let finalType: "stable" | "warning" = "stable";
-
-            // SPECIAL CASE: Pulau Bunta harus selalu warning
-            const isPulauBunta = item.desa.toLowerCase().includes("pulau bunta") ||
-              item.desa.toLowerCase().includes("pulo bunta");
-
-            if (isPulauBunta) {
-              finalType = "warning";
-            } else if (allDusunsBad) {
-              // Jika semua dusun bermasalah -> Pasti Warning
-              finalType = "warning";
-            } else if (hasGoodDusun) {
-              // Jika ada minimal 1 yang baik -> Pasti Stable (Meskipun status desa "REFF!")
-              finalType = "stable";
-            } else {
-              // Jika tidak ada data dusun, default ke stable (sesuai permintaan user)
-              finalType = "stable";
-            }
+            const finalType: "stable" | "warning" = "stable";
 
             return {
               id: item._id,
@@ -111,7 +88,10 @@ export default function DesaPage() {
               type: finalType,
               kec: item.kecamatan,
               kab: item.kabupaten,
-              dusuns: dusuns
+              dusuns: dusuns,
+              warga: item.warga || 0,
+              sumber: item.sumber_warga || "-",
+              tahun: item.tahun_warga || "-"
             };
           });
           setAllDesa(mapped);
@@ -140,9 +120,7 @@ export default function DesaPage() {
 
     return allDesa.filter((item) => {
       const term = (searchTerm || "").toLowerCase();
-      const matchSearch =
-        (item.name || "").toLowerCase().includes(term) ||
-        (item.dusuns || []).some((d: any) => (d.nama || "").toLowerCase().includes(term));
+      const matchSearch = (item.name || "").toLowerCase().includes(term);
       const matchKec = selectedKec === "Tampilkan Semua" || (item.kec || "") === selectedKec;
       const matchTab = item.type === activeTab;
       return matchSearch && matchKec && matchTab;
@@ -181,7 +159,11 @@ export default function DesaPage() {
           uniqueLocations={uniqueLocations}
         />
         <div className="w-full h-full">
-          <DesaMap activeFilters={{ stable: showStable, warning: showWarning }} filterLocations={selectedLocations} />
+          <DesaMap
+            activeFilters={{ stable: showStable, warning: showWarning }}
+            filterLocations={selectedLocations}
+            dataSourceUrl={`${API_URL}/api/locations/map/geojson`}
+          />
         </div>
       </div>
 
@@ -199,15 +181,13 @@ export default function DesaPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <select
-              className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold outline-none focus:ring-2 focus:ring-[#0052CC] dark:text-white cursor-pointer"
+            <SearchableSelect
+              options={daftarKecamatan}
               value={selectedKec}
-              onChange={(e) => setSelectedKec(e.target.value)}
-            >
-              {daftarKecamatan.map((kec) => (
-                <option key={kec} value={kec}>{kec}</option>
-              ))}
-            </select>
+              onChange={setSelectedKec}
+              placeholder="Pilih Kecamatan"
+              className="w-full sm:w-auto min-w-[200px]"
+            />
           </div>
         </div>
 

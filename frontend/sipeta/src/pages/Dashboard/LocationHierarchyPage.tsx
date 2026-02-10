@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { locationService, LocationData } from '../../services/locationService';
 
 export default function LocationHierarchyPage() {
+    const navigate = useNavigate();
     const [kabupatenList, setKabupatenList] = useState<string[]>([]);
     const [selectedKabupaten, setSelectedKabupaten] = useState<string>('');
     const [kecamatanList, setKecamatanList] = useState<string[]>([]);

@@ -1,7 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
-// import { useNavigate } from "react-router-dom"; // Navigation might not be needed if this is the lowest level, or maybe to detail?
+// import { useNavigate } from "react-router-dom"; 
+import { useSearchParams } from "react-router-dom";
 import DusunMap from "./DusunMap";
 import MapFilter from "../../components/ui/MapFilter";
+import { useAuth } from "../../context/AuthContext";
+import SearchableSelect from "../../components/ui/SearchableSelect";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -16,14 +19,33 @@ interface DusunItem {
 }
 
 export default function DusunPage() {
-    // const navigate = useNavigate(); // Dusun detail page usually doesn't exist deep enough, but let's keep it if needed.
+    const [searchParams] = useSearchParams();
+    const { user } = useAuth(); // Get user context
+    // const navigate = useNavigate(); 
+
+    // Initial State from URL params logic
+    const initialTab = searchParams.get('tab') === 'warning' ? 'warning' : 'stable';
+    const initialSearch = searchParams.get('highlight') || '';
+
     const [allDusuns, setAllDusuns] = useState<DusunItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState(initialSearch);
     const [selectedKec, setSelectedKec] = useState("Tampilkan Semua");
-    const [activeTab, setActiveTab] = useState<"stable" | "warning">("stable");
+    const [activeTab, setActiveTab] = useState<"stable" | "warning">(initialTab);
     const [showStable, setShowStable] = useState(true);
     const [showWarning, setShowWarning] = useState(true);
+
+    // Update state if params change later (e.g. click another notification while on page)
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        const highlight = searchParams.get('highlight');
+        if (tab === 'warning' || tab === 'stable') {
+            setActiveTab(tab);
+        }
+        if (highlight) {
+            setSearchTerm(highlight);
+        }
+    }, [searchParams]);
 
     const [selectedDusun, setSelectedDusun] = useState<DusunItem | null>(null);
     const [updating, setUpdating] = useState(false);
@@ -74,7 +96,13 @@ export default function DusunPage() {
                     const dusuns = desa.dusun_detail || [];
                     if (dusuns.length > 0) {
                         dusuns.forEach((d: any, idx: number) => {
-                            // Determine status
+                            // LOGIKA PENENTUAN STATUS DUSUN:
+                            // Status Dusun dihitung secara MANDIRI dan tidak dipengaruhi oleh status Desa (Desa selalu Stable).
+                            // Dusun dianggap bermasalah (warning) jika:
+                            // 1. Status adalah "0", "REFF!", atau mengandung kata "belum"
+                            // 2. Status adalah "Dusun tidak diketahui"
+                            // 3. Lokasi khusus seperti Pulau Bunta/Pulo Bunta (Belum Berlistrik)
+
                             const isProblematic =
                                 d.status === "0" ||
                                 d.status === "REFF!" ||
@@ -121,13 +149,20 @@ export default function DusunPage() {
 
         try {
             setUpdating(true);
+            const token = localStorage.getItem("token");
+            console.log("Updating dusun status. User:", user); // Debug
+
             const response = await fetch(`${API_URL}/api/locations/dusun/update-status`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     desaId: selectedDusun.id,
                     dusunName: selectedDusun.name,
-                    newStatus: newStatus
+                    newStatus: newStatus,
+                    userName: user?.name || "Admin"
                 })
             });
             const json = await response.json();
@@ -154,9 +189,7 @@ export default function DusunPage() {
 
     const filteredList = useMemo(() => {
         return allDusuns.filter((item) => {
-            const matchSearch =
-                item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.desa.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchKec = selectedKec === "Tampilkan Semua" || item.kec === selectedKec;
             const matchTab = item.type === activeTab;
             return matchSearch && matchKec && matchTab;
@@ -191,7 +224,7 @@ export default function DusunPage() {
                     uniqueLocations={uniqueLocations}
                 />
                 <div className="w-full h-full">
-                    <DusunMap activeFilters={{ stable: showStable, warning: showWarning }} filterLocations={selectedLocations} />
+                    <DusunMap activeFilters={{ stable: showStable, warning: showWarning }} filterLocations={selectedLocations} dataSourceUrl={`${API_URL}/api/locations/map/geojson?strict=true`} />
                 </div>
             </div>
 
@@ -204,20 +237,18 @@ export default function DusunPage() {
                     <div className="flex flex-col sm:flex-row gap-3 bg-gray-50 dark:bg-gray-800/40 p-2 rounded-2xl border border-gray-100 dark:border-gray-700 w-full md:w-auto">
                         <input
                             type="text"
-                            placeholder="Cari dusun, desa..."
+                            placeholder="Cari dusun..."
                             className="pl-4 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm outline-none focus:ring-2 focus:ring-[#0052CC] dark:text-white min-w-[200px]"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        <select
-                            className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-bold outline-none focus:ring-2 focus:ring-[#0052CC] dark:text-white cursor-pointer"
+                        <SearchableSelect
+                            options={daftarKecamatan}
                             value={selectedKec}
-                            onChange={(e) => setSelectedKec(e.target.value)}
-                        >
-                            {daftarKecamatan.map((kec) => (
-                                <option key={kec} value={kec}>{kec}</option>
-                            ))}
-                        </select>
+                            onChange={setSelectedKec}
+                            placeholder="Pilih Kecamatan"
+                            className="w-full sm:w-auto min-w-[200px]"
+                        />
                     </div>
                 </div>
 
@@ -259,6 +290,11 @@ export default function DusunPage() {
                                 <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">
                                     DESA {item.desa} • {item.kec}
                                 </span>
+                                {['PERPOLIN', 'PERABIS', 'LHOK PINEUNG'].some(n => item.name.toUpperCase().includes(n)) && (
+                                    <span className="text-[9px] font-bold text-orange-600 mt-1.5 uppercase tracking-widest bg-orange-50 border border-orange-200 px-2 py-1 rounded-md w-fit">
+                                        🏠 RUMAH KEBUN | TIDAK TERALIRI LISTRIK 24 JAM
+                                    </span>
+                                )}
                             </div>
                             <div className={`w-3 h-3 rounded-full ${item.type === "stable" ? "bg-[#00C851]" : "bg-[#F2C94C] shadow-[0_0_8px_rgba(242,201,76,0.6)]"}`}></div>
                         </div>
