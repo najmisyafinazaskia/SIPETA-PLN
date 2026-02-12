@@ -1,0 +1,54 @@
+[{
+  "_id": {
+    "$oid": "6981806ca1d04a7de6dc3ff9"
+  },
+  "nama_up3": "Banda Aceh",
+  "longitude": 95.31591678,
+  "latitude": 5.557431029,
+  "total_desa": 712
+},
+{
+  "_id": {
+    "$oid": "6981806ca1d04a7de6dc3ffa"
+  },
+  "nama_up3": "Langsa",
+  "longitude": 97.96865989,
+  "latitude": 4.471108612,
+  "total_desa": 1316
+},
+{
+  "_id": {
+    "$oid": "6981806ca1d04a7de6dc3ffb"
+  },
+  "nama_up3": "Lhokseumawe",
+  "longitude": 97.13441004,
+  "latitude": 5.169254149,
+  "total_desa": 2056
+},
+{
+  "_id": {
+    "$oid": "6981806ca1d04a7de6dc3ffc"
+  },
+  "nama_up3": "Meulaboh",
+  "longitude": 96.13012235,
+  "latitude": 4.15294479,
+  "total_desa": 854
+},
+{
+  "_id": {
+    "$oid": "6981806ca1d04a7de6dc3ffd"
+  },
+  "nama_up3": "Sigli",
+  "longitude": 95.95553031,
+  "latitude": 5.380172489,
+  "total_desa": 952
+},
+{
+  "_id": {
+    "$oid": "6981806ca1d04a7de6dc3ffe"
+  },
+  "nama_up3": "Subulussalam",
+  "longitude": 98.01887008,
+  "latitude": 2.630687253,
+  "total_desa": 610
+}]

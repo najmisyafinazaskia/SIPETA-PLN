@@ -1,0 +1,1110 @@
+import React, { useState, useMemo, useEffect } from "react";
+import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, TrashIcon, CheckCircle2Icon, XCircleIcon, AlertCircleIcon, ImageIcon, DownloadIcon } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
+// --- TIPE DATA ---
+interface Dusun {
+  id: string;
+  name: string;
+  file: string | null;
+  uploadTime: string | null;
+}
+
+interface Desa {
+  id: string;
+  name: string;
+  dusun: Dusun[];
+}
+
+interface Kecamatan {
+  id: string;
+  name: string;
+  desa: Desa[];
+}
+
+interface Kabupaten {
+  id: string;
+  name: string;
+  kecamatan: Kecamatan[];
+}
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+// --- COMPONENTS ---
+
+const DeleteConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  isLoading
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 mb-2">
+            <TrashIcon size={32} />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Hapus Dokumen?</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Apakah Anda yakin ingin menghapus dokumen ini? Tindakan ini tidak dapat dibatalkan.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full mt-4">
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/30 transition-all flex items-center justify-center gap-2"
+            >
+              {isLoading ? <Loader2 size={18} className="animate-spin" /> : "Ya, Hapus"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StatusActionModal = ({
+  isOpen,
+  status,
+  onClose,
+  onConfirm,
+  isLoading,
+  desaName
+}: {
+  isOpen: boolean;
+  status: string;
+  onClose: () => void;
+  onConfirm: (message: string) => void;
+  isLoading: boolean;
+  desaName: string;
+}) => {
+  const [message, setMessage] = useState("");
+  if (!isOpen) return null;
+
+  const isCorrection = status === 'Sesuai (Perlu Perbaikan)';
+  const colorClass = isCorrection ? "text-orange-500 bg-orange-50 dark:bg-orange-900/20" : "text-red-500 bg-red-50 dark:bg-red-900/20";
+  const btnClass = isCorrection ? "bg-orange-600 hover:bg-orange-700 shadow-orange-500/30" : "bg-red-600 hover:bg-red-700 shadow-red-500/30";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
+              {isCorrection ? <AlertCircleIcon size={24} /> : <XCircleIcon size={24} />}
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{status}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Desa {desaName}</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Deskripsi / Alasan:</label>
+            <textarea
+              className="w-full p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-sm font-bold min-h-[120px] dark:text-white"
+              placeholder={`Masukkan alasan mengapa dokumen ${status.toLowerCase()}...`}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full mt-2">
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={() => onConfirm(message)}
+              disabled={isLoading || !message.trim()}
+              className={`px-4 py-3 rounded-xl font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${btnClass}`}
+            >
+              {isLoading ? <Loader2 size={18} className="animate-spin" /> : "Simpan Status"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CancelConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  isLoading,
+  desaName
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+  desaName: string;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 mb-2">
+            <AlertCircleIcon size={32} />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Batalkan Verifikasi?</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-bold">
+              Apakah Anda yakin ingin membatalkan verifikasi untuk desa <span className="text-blue-600">{desaName}</span>?
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full mt-4">
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Tidak
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/30 transition-all flex items-center justify-center gap-2"
+            >
+              {isLoading ? <Loader2 size={18} className="animate-spin" /> : "Ya, Batalkan"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const VerificationSuccessModal = ({
+  isOpen,
+  onClose,
+  desaName
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  desaName: string;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-8 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center text-center gap-5">
+          <div className="w-20 h-20 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-500 animate-bounce">
+            <CheckCircle2Icon size={48} />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-2xl font-black text-gray-900 dark:text-white">Berhasil!</h3>
+            <p className="text-base text-gray-600 dark:text-gray-400 font-bold">
+              Berita acara desa <span className="text-blue-600">{desaName}</span> telah diverifikasi
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-4 rounded-2xl font-black text-white bg-green-600 hover:bg-green-700 shadow-xl shadow-green-500/30 transition-all uppercase tracking-widest text-sm"
+          >
+            Selesai
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 1.5 DESA VERIFICATION PANEL (Moved from DusunItem)
+const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string, desaName: string, onUpdate: () => void }) => {
+  const { user } = useAuth();
+  const [file, setFile] = useState<string | null>(null);
+  const [filePath, setFilePath] = useState<string | null>(null);
+  const [lastUpload, setLastUpload] = useState<string | null>(null);
+  const [uploader, setUploader] = useState<string | null>(null);
+  const [status, setStatus] = useState<string>("Menunggu Verifikasi");
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showActionModal, setShowActionModal] = useState<{ open: boolean, status: string }>({ open: false, status: '' });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [loadingNotif, setLoadingNotif] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const API_URL = import.meta.env.VITE_API_URL || "";
+  const isUP2K = user?.role === "superadmin";
+  const isUP3 = user?.role === "admin";
+
+  // Defined outside useEffect to be reusable
+  const fetchStatus = React.useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/verification/${desaId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setFile(data.fileName);
+        setFilePath(data.filePath);
+        setLastUpload(new Date(data.updatedAt).toLocaleString());
+        setUploader(data.uploadedBy?.name || "Admin");
+        setStatus(data.status || "Menunggu Verifikasi");
+      } else {
+        // Reset if no data found
+        setFile(null);
+        setFilePath(null);
+        setLastUpload(null);
+        setUploader(null);
+        setStatus("Menunggu Verifikasi");
+      }
+    } catch (err) { console.error(err); }
+  }, [desaId, API_URL]);
+
+  // Fetch initial state
+  React.useEffect(() => {
+    fetchStatus();
+  }, [fetchStatus]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+    if (!allowedTypes.includes(selectedFile.type)) {
+      alert("Hanya file PDF atau Gambar (JPG/PNG) yang diperbolehkan");
+      return;
+    }
+
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append("dusunName", desaName);
+    formData.append("document", selectedFile);
+
+    try {
+      const res = await fetch(`${API_URL}/api/verification/upload/${desaId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        // Refresh data to get the populated uploader name properly
+        await fetchStatus();
+        setIsEditing(false);
+        alert("Dokumen Desa berhasil diunggah!");
+        onUpdate();
+      } else {
+        alert(data.message || "Gagal mengunggah dokumen");
+      }
+    } catch (err) {
+      alert("Gagal menghubungi server");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (newStatus: string, message?: string) => {
+    if (!isUP2K) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/verification/status/${desaId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          message: message,
+          dusunName: desaName
+        })
+      });
+
+      if (res.ok) {
+        setStatus(newStatus);
+        setShowActionModal({ open: false, status: '' });
+        setShowCancelModal(false);
+        if (newStatus === 'Terverifikasi') {
+          setShowSuccessModal(true);
+        }
+        onUpdate();
+
+        // Visual delay to let notifications process
+        setLoadingNotif(true);
+        setTimeout(() => {
+          setLoadingNotif(false);
+        }, 1500);
+
+      } else {
+        const data = await res.json();
+        alert(data.message || "Gagal memperbarui status");
+      }
+    } catch (err) {
+      alert("Gagal menghubungi server");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const executeDelete = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/verification/${desaId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+
+      if (res.ok) {
+        setFile(null);
+        setFilePath(null);
+        setLastUpload(null);
+        setUploader(null);
+        setStatus("Menunggu Verifikasi");
+        setShowDeleteModal(false);
+        alert("Dokumen berhasil dihapus");
+        onUpdate();
+      } else {
+        const data = await res.json();
+        alert(data.message || "Gagal menghapus dokumen");
+      }
+    } catch (err) {
+      alert("Gagal menghubungi server");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const triggerUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Status configuration helper
+  const getStatusConfig = (s: string) => {
+    switch (s) {
+      case 'Terverifikasi':
+        return {
+          label: 'Terverifikasi',
+          color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
+          icon: <CheckCircle2Icon size={14} />
+        };
+      case 'Tidak Sesuai':
+        return {
+          label: 'Tidak Sesuai',
+          color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
+          icon: <XCircleIcon size={14} />
+        };
+      case 'Sesuai (Perlu Perbaikan)':
+        return {
+          label: 'Sesuai (Perlu Perbaikan)',
+          color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800',
+          icon: <AlertCircleIcon size={14} />
+        };
+      default:
+        return {
+          label: 'Menunggu Verifikasi',
+          color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+          icon: <ClockIcon size={14} />
+        };
+    }
+  };
+
+  const statusConfig = getStatusConfig(status);
+
+  return (
+    <>
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={executeDelete}
+        isLoading={isLoading}
+      />
+
+      <StatusActionModal
+        isOpen={showActionModal.open}
+        status={showActionModal.status}
+        desaName={desaName}
+        onClose={() => setShowActionModal({ open: false, status: '' })}
+        onConfirm={(msg) => handleStatusUpdate(showActionModal.status, msg)}
+        isLoading={isLoading}
+      />
+
+      <VerificationSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        desaName={desaName}
+      />
+
+      <CancelConfirmationModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={() => handleStatusUpdate('Menunggu Verifikasi')}
+        isLoading={isLoading}
+        desaName={desaName}
+      />
+
+      {loadingNotif && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/60 dark:bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-100 dark:border-gray-700">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full border-4 border-blue-100 dark:border-blue-900/30 border-t-blue-600 animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <ClockIcon className="text-blue-600 animate-pulse" size={24} />
+              </div>
+            </div>
+            <div className="text-center">
+              <h4 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight">Memproses Notifikasi</h4>
+              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-1">Mohon tunggu sebentar...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-6 p-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl">
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept="application/pdf,image/jpeg,image/png"
+        />
+
+        <div className="flex flex-col gap-4">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                <FileTextIcon size={20} />
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900 dark:text-white text-lg">Dokumen Verifikasi Desa</h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Verifikasi Berita Acara untuk Desa {desaName}</p>
+              </div>
+            </div>
+            {file && (
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-wider ${statusConfig.color}`}>
+                {statusConfig.icon}
+                {statusConfig.label}
+              </div>
+            )}
+          </div>
+
+          {/* File Info & Actions same as before but styled for main panel */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+
+              {/* File Info */}
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${file ? "bg-blue-100 text-blue-600 dark:bg-blue-600/20 dark:text-blue-400" : "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500"}`}>
+                  {isLoading ? (
+                    <Loader2 size={24} className="animate-spin" />
+                  ) : file?.toLowerCase().endsWith('.pdf') ? (
+                    <FileTextIcon size={24} />
+                  ) : file ? (
+                    <ImageIcon size={24} />
+                  ) : (
+                    <FileTextIcon size={24} />
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                    {file ? file : "Belum ada dokumen"}
+                  </span>
+                  {lastUpload ? (
+                    <div className="flex flex-col gap-0.5 mt-1.5">
+                      <span className="text-xs flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                        <ClockIcon size={12} /> Terakhir diubah: {lastUpload}
+                      </span>
+                      {uploader && (
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 ml-4">
+                          Oleh: {uploader}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400 italic mt-1">Silahkan unggah berita acara desa</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                {isUP3 && (
+                  status === 'Terverifikasi' ? (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800 rounded-xl text-sm font-bold">
+                      <CheckCircle2Icon size={16} /> Dokumen Sudah Terverifikasi
+                    </div>
+                  ) : file && !isEditing ? (
+                    <>
+                      <button
+                        onClick={handleDeleteClick}
+                        disabled={isLoading}
+                        className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-5 py-2.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm font-bold rounded-xl hover:bg-red-100 transition-all disabled:opacity-50"
+                      >
+                        <TrashIcon size={16} /> Hapus
+                      </button>
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        disabled={isLoading}
+                        className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all disabled:opacity-50"
+                      >
+                        <EditIcon size={16} /> Ganti
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={triggerUpload}
+                      disabled={isLoading}
+                      className="w-full sm:w-auto flex justify-center items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" /> Sedang Mengunggah...
+                        </>
+                      ) : isEditing ? (
+                        <>
+                          <UploadCloudIcon size={18} /> Unggah File Baru
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloudIcon size={18} /> Unggah Dokumen
+                        </>
+                      )}
+                    </button>
+                  )
+                )}
+                {isUP2K && !file && (
+                  <span className="text-sm font-bold text-gray-400 italic">Menunggu Unggahan UP3</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* UP2K CATEGORIZATION ACTIONS */}
+          {isUP2K && file && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm animate-in slide-in-from-top-2 duration-300">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                    <CheckCircle2Icon size={18} />
+                  </div>
+                  <h5 className="font-bold text-gray-900 dark:text-white">Kategorikan Dokumen</h5>
+                  <span className="text-[10px] font-black uppercase bg-blue-50 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded border border-blue-100">Role: Super Admin</span>
+                </div>
+
+                {status === 'Terverifikasi' ? (
+                  <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-green-50 dark:bg-green-900/10 border-2 border-green-500/20 rounded-2xl gap-4">
+                    <div className="flex items-center gap-3 text-green-700 dark:text-green-400">
+                      <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg shadow-green-500/20">
+                        <CheckCircle2Icon size={20} />
+                      </div>
+                      <span className="text-sm font-black uppercase tracking-tight">Dokumen Sudah Terverifikasi</span>
+                    </div>
+                    <button
+                      onClick={() => setShowCancelModal(true)}
+                      disabled={isLoading}
+                      className="w-full sm:w-auto px-8 py-3 bg-white dark:bg-gray-800 border-2 border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-black uppercase tracking-widest text-xs rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-500 transition-all shadow-sm"
+                    >
+                      Batalkan Verifikasi
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <button
+                      onClick={() => handleStatusUpdate('Terverifikasi')}
+                      disabled={isLoading || status === 'Terverifikasi'}
+                      className={`flex items-center justify-center gap-3 p-4 rounded-xl font-bold text-sm transition-all border-2
+                                              ${status === 'Terverifikasi'
+                          ? 'bg-green-50 border-green-500 text-green-700 dark:bg-green-900/20 dark:border-green-600 dark:text-green-400'
+                          : 'bg-white border-gray-100 text-gray-600 hover:border-green-500 hover:text-green-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}
+                                          `}
+                    >
+                      <CheckCircle2Icon size={20} />
+                      Terverifikasi
+                    </button>
+
+                    <button
+                      onClick={() => setShowActionModal({ open: true, status: 'Tidak Sesuai' })}
+                      disabled={isLoading || status === 'Tidak Sesuai'}
+                      className={`flex items-center justify-center gap-3 p-4 rounded-xl font-bold text-sm transition-all border-2
+                                              ${status === 'Tidak Sesuai'
+                          ? 'bg-red-50 border-red-500 text-red-700 dark:bg-red-900/20 dark:border-red-600 dark:text-red-400'
+                          : 'bg-white border-gray-100 text-gray-600 hover:border-red-500 hover:text-red-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}
+                                          `}
+                    >
+                      <XCircleIcon size={20} />
+                      Tidak Sesuai
+                    </button>
+
+                    <button
+                      onClick={() => setShowActionModal({ open: true, status: 'Sesuai (Perlu Perbaikan)' })}
+                      disabled={isLoading || status === 'Sesuai (Perlu Perbaikan)'}
+                      className={`flex items-center justify-center gap-3 p-4 rounded-xl font-bold text-sm transition-all border-2
+                                              ${status === 'Sesuai (Perlu Perbaikan)'
+                          ? 'bg-orange-50 border-orange-500 text-orange-700 dark:bg-orange-900/20 dark:border-orange-600 dark:text-orange-400'
+                          : 'bg-white border-gray-100 text-gray-600 hover:border-orange-500 hover:text-orange-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}
+                                          `}
+                    >
+                      <AlertCircleIcon size={20} />
+                      Sesuai (Perlu Perbaikan)
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Document Preview & Download */}
+          {filePath && (
+            <div className="mt-4 flex flex-col gap-4">
+              <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-500 animate-in fade-in slide-in-from-bottom-4">
+                {filePath.toLowerCase().endsWith('.pdf') ? (
+                  <iframe
+                    src={`${API_URL}/${filePath}`}
+                    className="w-full h-[800px] md:h-[1200px] bg-gray-50 dark:bg-gray-900"
+                    title="Preview Dokumen"
+                  />
+                ) : (
+                  <div className="flex flex-col gap-4 p-4 bg-gray-50 dark:bg-gray-900/50">
+                    <img
+                      src={`${API_URL}/${filePath}`}
+                      alt="Preview Dokumen"
+                      className="max-w-full h-auto rounded-lg mx-auto shadow-sm"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Optional: Add a direct download button for better experience, especially for images */}
+              <a
+                href={`${API_URL}/api/verification/download/${desaId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700"
+              >
+                <DownloadIcon size={18} /> Unduh Dokumen ({filePath.split('.').pop()?.toUpperCase()})
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+};
+
+// 2. ACCORDION WRAPPER
+const Accordion = ({
+  title,
+  children,
+  level = 0,
+  defaultOpen = false,
+  onClick,
+  isVerified,
+  status
+}: {
+  title: string,
+  children: React.ReactNode,
+  level?: number,
+  defaultOpen?: boolean,
+  onClick?: () => void,
+  isVerified?: boolean,
+  status?: string
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  const getStatusLabel = (s: string) => {
+    switch (s) {
+      case 'Terverifikasi':
+        return <span className="text-[10px] font-black uppercase text-green-600 bg-green-50 px-2 py-1 rounded-md border border-green-100">Terverifikasi</span>;
+      case 'Tidak Sesuai':
+        return <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-2 py-1 rounded-md border border-red-100">Tidak Sesuai</span>;
+      case 'Sesuai (Perlu Perbaikan)':
+        return <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2 py-1 rounded-md border border-orange-100">Perbaikan</span>;
+      default:
+        return <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100">Menunggu</span>;
+    }
+  };
+
+  const handleToggle = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      setIsOpen(!isOpen);
+    }
+  };
+
+  return (
+    <div className={`mb-3 ${level > 0 ? "ml-4 md:ml-8 border-l-2 border-dashed border-gray-200 dark:border-gray-700" : ""}`}>
+      <button
+        onClick={handleToggle}
+        className={`w-full flex items-center justify-between px-6 py-5 rounded-2xl transition-all duration-300 group
+                ${level === 0
+            ? "bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-900"
+            : "hover:bg-white dark:hover:bg-gray-800/50"}
+                ${isOpen && level === 0 ? "ring-2 ring-blue-500/5 border-blue-500/20" : ""}
+            `}
+      >
+        <div className="flex items-center gap-5">
+          <div className={`
+                    w-8 h-8 flex items-center justify-center rounded-xl transition-all duration-300
+                    ${isOpen
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30 rotate-90"
+              : "bg-gray-100 text-gray-400 dark:bg-gray-700 group-hover:bg-blue-50 group-hover:text-blue-600 dark:group-hover:bg-blue-900/30 dark:group-hover:text-blue-400"}
+                `}>
+            {onClick && level === 2 ? <MapPinIcon size={16} strokeWidth={3} /> : <ChevronRightIcon size={16} strokeWidth={3} />}
+          </div>
+
+          <div className="flex flex-col items-start gap-1">
+            <span className={`
+                        ${level === 0 ? "text-lg font-black tracking-tight text-gray-800 dark:text-white" : "text-base font-bold text-gray-700 dark:text-gray-300"}
+                    `}>
+              {title}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {level === 2 && (
+            isVerified ? (
+              getStatusLabel(status || "")
+            ) : (
+              <span className="text-[10px] font-black uppercase text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">Belum Verifikasi</span>
+            )
+          )}
+          {onClick && level === 2 && (
+            <span className="text-[10px] font-black uppercase text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">Buka Detail</span>
+          )}
+        </div>
+      </button>
+
+      {!onClick && (
+        <div className={`overflow-hidden transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${isOpen ? "max-h-[3000px] opacity-100 pt-3 opacity-100" : "max-h-0 opacity-0"}`}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+export default function VerifikasiPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [allData, setAllData] = useState<Kabupaten[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDesa, setSelectedDesa] = useState<{ kab: string, kec: string, desa: Desa } | null>(null);
+  const [verifiedDesaMap, setVerifiedDesaMap] = useState<Record<string, string>>({});
+  const [searchParams] = useSearchParams();
+
+  // Function to fetch all verified IDs
+  const fetchVerifications = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/verification`);
+      if (res.ok) {
+        const data = await res.json();
+        const map: Record<string, string> = {};
+        data.forEach((v: any) => {
+          map[v.dusunId] = v.status || "Menunggu Verifikasi";
+        });
+        setVerifiedDesaMap(map);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => {
+    const fetchHierarchy = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_URL}/api/locations/hierarchy`);
+        const json = await res.json();
+        if (json.success) {
+          setAllData(json.data);
+        }
+      } catch (err) {
+        console.error("Error fetching hierarchy:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHierarchy();
+    fetchVerifications();
+  }, []);
+
+  // Auto-select Desa from query param
+  useEffect(() => {
+    const targetDesaName = searchParams.get("desa");
+    if (targetDesaName && allData.length > 0) {
+      if (selectedDesa?.desa.name.toLowerCase() === targetDesaName.toLowerCase()) return;
+
+      for (const kab of allData) {
+        for (const kec of kab.kecamatan) {
+          const foundDesa = kec.desa.find(d => d.name.toLowerCase() === targetDesaName.toLowerCase());
+          if (foundDesa) {
+            setSelectedDesa({ kab: kab.name, kec: kec.name, desa: foundDesa });
+            setSearchTerm("");
+            return;
+          }
+        }
+      }
+    }
+  }, [searchParams, allData, selectedDesa]);
+
+  // Create flat results for easier search when many identical names exist
+  const flatResults = useMemo(() => {
+    if (!searchTerm || searchTerm.trim().length < 2) return [];
+    const results: any[] = [];
+    const parts = searchTerm.toLowerCase().split(",").map(p => p.trim()).filter(Boolean);
+    const mainQuery = parts[0];
+
+    allData.forEach(kab => {
+      const kabMatchAny = kab.name.toLowerCase().includes(mainQuery);
+
+      kab.kecamatan.forEach(kec => {
+        const kecMatchAny = kec.name.toLowerCase().includes(mainQuery);
+
+        kec.desa.forEach(desa => {
+          const desaMatch = desa.name.toLowerCase().includes(mainQuery);
+
+          let isFinalMatch = false;
+
+          // HIERARCHICAL SEARCH (Desa, Kecamatan, Kabupaten)
+          if (parts.length > 1) {
+            // First part is Desa
+            const matchesDesa = desa.name.toLowerCase().includes(parts[0]);
+            // Second part is Kecamatan
+            const matchesKec = kec.name.toLowerCase().includes(parts[1] || "");
+            // Third part is Kabupaten (if exists)
+            const matchesKab = parts.length > 2 ? kab.name.toLowerCase().includes(parts[2]) : true;
+
+            isFinalMatch = matchesDesa && matchesKec && matchesKab;
+          } else {
+            // SIMPLE SEARCH (Check if query matches any level)
+            const hasMatchingDusun = desa.dusun.some(d => d.name.toLowerCase().includes(mainQuery));
+            isFinalMatch = desaMatch || hasMatchingDusun || kecMatchAny || kabMatchAny;
+          }
+
+          if (isFinalMatch) {
+            results.push({
+              kab: kab.name,
+              kec: kec.name,
+              desa: desa,
+              isVerified: !!verifiedDesaMap[desa.id],
+              status: verifiedDesaMap[desa.id]
+            });
+          }
+        });
+      });
+    });
+
+    return results;
+  }, [searchTerm, allData, verifiedDesaMap]);
+
+  // Recursively filter data (Unchanged but kept for reference)
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return allData;
+    const lowerSearch = searchTerm.toLowerCase();
+
+    const filterKabupaten = (kab: Kabupaten) => {
+      const kecMatches = kab.kecamatan.map(kec => {
+        const desaMatches = kec.desa.map(desa => {
+          const dusunMatches = desa.dusun.filter(dusun =>
+            dusun.name.toLowerCase().includes(lowerSearch)
+          );
+
+          if (dusunMatches.length > 0) return { ...desa, dusun: dusunMatches };
+          if (desa.name.toLowerCase().includes(lowerSearch)) return desa;
+          return null;
+        }).filter(Boolean) as Desa[];
+
+        if (desaMatches.length > 0) return { ...kec, desa: desaMatches };
+        if (kec.name.toLowerCase().includes(lowerSearch)) return kec;
+        return null;
+      }).filter(Boolean) as Kecamatan[];
+
+      if (kecMatches.length > 0) return { ...kab, kecamatan: kecMatches };
+      if (kab.name.toLowerCase().includes(lowerSearch)) return kab;
+      return null;
+    };
+
+    return allData.map(filterKabupaten).filter(Boolean) as Kabupaten[];
+  }, [searchTerm, allData]);
+
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#0052CC] border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03] font-outfit relative">
+
+      {/* 1. Header & Navigation */}
+      <div className="p-8 pb-4">
+        {selectedDesa ? (
+          <div className="flex flex-col gap-4">
+            <button
+              onClick={() => setSelectedDesa(null)}
+              className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              <ArrowLeftIcon size={16} /> Kembali
+            </button>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                <span>{selectedDesa.kab}</span>
+                <ChevronRightIcon size={12} />
+                <span>{selectedDesa.kec}</span>
+              </div>
+              <h1 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tight">
+                Berita Acara Desa {selectedDesa.desa.name}
+              </h1>
+            </div>
+          </div>
+        ) : (
+          <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
+            Berita Acara Wilayah
+          </h1>
+        )}
+      </div>
+
+      {/* 2. Content */}
+      <div className="px-8 pb-8">
+        {!selectedDesa ? (
+          <>
+            {/* SEARCH VIEW */}
+            <div className="flex gap-4 mb-8">
+              <div className="relative group w-full">
+                <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-600 transition-colors">
+                  <SearchIcon size={20} />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Cari desa, kecamatan, atau kabupaten/kota (contoh: Cot Mesjid, Leung Bata, Banda Aceh)"
+                  className="w-full pl-12 pr-6 py-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:bg-white dark:focus:bg-gray-800 focus:border-blue-500/30 outline-none transition-all text-sm font-bold placeholder:text-gray-400 dark:text-white"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* HIERARCHY LIST OR SEARCH RESULTS */}
+            <div className="space-y-4 pb-4">
+              {searchTerm.trim().length >= 2 ? (
+                // SEARCH RESULTS VIEW
+                flatResults.length > 0 ? (
+                  flatResults.map((res: any, idx: number) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedDesa({ kab: res.kab, kec: res.kec, desa: res.desa })}
+                      className="w-full flex items-center justify-between p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-900 transition-all group"
+                    >
+                      <div className="flex items-center gap-4 text-left">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                          <MapPinIcon size={20} />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-lg font-black text-gray-800 dark:text-white uppercase leading-tight">
+                            {res.desa.name}
+                          </span>
+                          <div className="flex items-center gap-2 text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider bg-blue-50/5/50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md w-fit border border-blue-100/50 dark:border-blue-800/50">
+                            <span>{res.kec}</span>
+                            <span className="text-blue-300">-</span>
+                            <span>{res.kab}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {res.isVerified ? (
+                          <div className="flex flex-col items-end gap-1">
+                            {res.status === 'Terverifikasi' ? (
+                              <span className="text-[10px] font-black uppercase text-green-600 bg-green-50 px-2 py-1 rounded-md border border-green-100">Terverifikasi</span>
+                            ) : res.status === 'Tidak Sesuai' ? (
+                              <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-2 py-1 rounded-md border border-red-100">Tidak Sesuai</span>
+                            ) : res.status === 'Sesuai (Perlu Perbaikan)' ? (
+                              <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2 py-1 rounded-md border border-orange-100">Perbaikan</span>
+                            ) : (
+                              <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100">Menunggu</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-black uppercase text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">Belum Verifikasi</span>
+                        )}
+                        <ChevronRightIcon size={16} className="text-gray-300" />
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-24 rounded-2xl border-2 border-dashed border-gray-100 dark:border-gray-800">
+                    <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                      <SearchIcon size={24} className="text-gray-300 dark:text-gray-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-1">Tidak Ditemukan</h3>
+                    <p className="text-gray-400 text-sm">Coba kata kunci pencarian yang lain</p>
+                  </div>
+                )
+              ) : (
+                // HIERARCHY TREE VIEW
+                filteredData.map((kab) => (
+                  <Accordion key={kab.id} title={kab.name} level={0} defaultOpen={!!searchTerm}>
+                    {kab.kecamatan.map((kec) => (
+                      <Accordion key={kec.id} title={`Kec. ${kec.name}`} level={1} defaultOpen={!!searchTerm}>
+                        {kec.desa.map((desa) => (
+                          <Accordion
+                            key={desa.id}
+                            title={`Desa ${desa.name}`}
+                            level={2}
+                            onClick={() => setSelectedDesa({ kab: kab.name, kec: kec.name, desa })}
+                            isVerified={!!verifiedDesaMap[desa.id]}
+                            status={verifiedDesaMap[desa.id]}
+                          >
+                            <div />
+                          </Accordion>
+                        ))}
+                      </Accordion>
+                    ))}
+                  </Accordion>
+                ))
+              )}
+            </div>
+          </>
+        ) : (
+          /* DESA DETAIL VIEW */
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <DesaVerificationPanel desaId={selectedDesa.desa.id} desaName={selectedDesa.desa.name} onUpdate={fetchVerifications} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

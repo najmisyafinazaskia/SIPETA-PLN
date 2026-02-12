@@ -1,0 +1,8 @@
+﻿
+> tailadmin-react@2.0.1 build
+> tsc -b && vite build
+
+src/components/header/NotificationDropdown.tsx(123,23): error TS6133: '_desaName' is declared but its value is never read.
+src/components/ui/dropdown/SearchableSelect.tsx(3,10): error TS6133: 'CheckIcon' is declared but its value is never read.
+src/data/populationData.ts(105,35): error TS6133: 'name' is declared but its value is never read.
+src/main.tsx(1,1): error TS6133: 'StrictMode' is declared but its value is never read.
