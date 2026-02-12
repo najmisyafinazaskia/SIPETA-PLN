@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIPETA - Dashboard Level ULP</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Dashboard Container */
+        .dashboard-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            font-weight: bold;
+            color: #2c3e50;
+            padding: 12px;
+            border-bottom: 2px solid #2ecc71;
+            background: white;
+            letter-spacing: 0.5px;
+        }
+
+        /* Accordion Styles */
+        .accordion-item {
+            border-bottom: 1px solid #eee;
+        }
+
+        .accordion-header {
+            padding: 10px 15px;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .accordion-header i {
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .accordion-header.active i {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            display: none;
+            padding: 10px 15px;
+            background: #fff;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .accordion-content.show {
+            display: block;
+        }
+
+        /* Color Schemes */
+        .bg-green {
+            background-color: #2ecc71;
+        }
+
+        /* Filter Status */
+        .bg-blue {
+            background-color: #3498db;
+        }
+
+        /* Statistik Data */
+        .bg-orange {
+            background-color: #e67e22;
+        }
+
+        /* Pilih Wilayah */
+
+        .bg-green:hover {
+            background-color: #27ae60;
+        }
+
+        .bg-blue:hover {
+            background-color: #2980b9;
+        }
+
+        .bg-orange:hover {
+            background-color: #d35400;
+        }
+
+        /* Form Elements */
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-item input {
+            margin-right: 10px;
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ulp-name {
+            flex-grow: 1;
+        }
+
+        .badge-container {
+            display: flex;
+            gap: 5px;
+        }
+
+        /* Statistics Table */
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .stats-table th,
+        .stats-table td {
+            text-align: left;
+            padding: 6px 0;
+            border-bottom: 1px solid #f1f1f1;
+        }
+
+        .stats-table th {
+            color: #7f8c8d;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 10px;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .badge-green {
+            background: #2ecc71;
+        }
+
+        .badge-orange {
+            background: #f39c12;
+        }
+
+        .map-title {
+            position: absolute;
+            top: 20px;
+            left: 60px;
+            /* Shifted for zoom control */
+            background: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            color: #2c3e50;
+        }
+
+        /* Menghilangkan Garis Persegi Hitam Saat Diklik - STYLE FROM UP3 */
+        path.leaflet-interactive:focus {
+            outline: none;
+        }
+
+        .leaflet-container path {
+            outline: none;
+        }
+
+        /* Style Label Kabupaten (UP3 Style) */
+        .leaflet-tooltip.kabupaten-label {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            font-weight: bold;
+            font-size: 10px;
+            /* Sedikit lebih kecil agar tidak menutupi ULP */
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .leaflet-tooltip.kabupaten-label::before {
+            display: none;
+        }
+
+        /* Merapikan Tooltip Nama ULP */
+        .ulp-label {
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+
+        /* Scrollable Legend/Layer Control */
+        .leaflet-control-layers-list {
+            max-height: 300px;
+            /* Batasi tinggi agar tidak kepanjangan */
+            overflow-y: auto;
+            /* Scroll jika item banyak */
+            padding-right: 10px;
+            /* Space untuk scrollbar */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="map-title">SIPETA: PEMANTAUAN ELEKTRIFIKASI LEVEL ULP</div>
+    <div id="map"></div>
+
+    <!-- Custom Dashboard -->
+    <div class="dashboard-container">
+        <div class="dashboard-header">MONITORING LISTRIK</div>
+
+        <!-- Section 1: Filter Status -->
+        <div class="accordion-item">
+            <div class="accordion-header bg-green" onclick="toggleAccordion(this)">
+                <span>Filter Status</span>
+                <i>▼</i>
+            </div>
+            <div class="accordion-content show"> <!-- Default Expanded -->
+                <div class="checkbox-item">
+                    <input type="checkbox" id="filter-berlistrik" checked onchange="toggleFilter('Berlistrik')">
+                    <label for="filter-berlistrik">Berlistrik PLN</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="filter-belum" checked onchange="toggleFilter('Belum')">
+                    <label for="filter-belum">Belum Berlistrik</label>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Section 3: Pilih Wilayah -->
+        <div class="accordion-item">
+            <div class="accordion-header bg-orange" onclick="toggleAccordion(this)">
+                <span>Pilih Wilayah</span>
+                <i>▼</i>
+            </div>
+            <div class="accordion-content" id="wilayah-content">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggle-boundary" checked onchange="toggleLayer('boundary')">
+                    <label for="toggle-boundary">Batas Kabupaten</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="toggle-kantor" checked onchange="toggleLayer('kantor')">
+                    <label for="toggle-kantor">Kantor ULP</label>
+                </div>
+                <!-- Select All Option -->
+                <div class="checkbox-item"
+                    style="border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 10px;">
+                    <input type="checkbox" id="toggle-all-ulp" checked onchange="toggleAllULP(this.checked)">
+                    <label for="toggle-all-ulp" style="font-weight:bold; color:#e67e22;">Tampilkan Semua ULP</label>
+                </div>
+                <div id="ulp-list">
+                    <!-- ULP Layers populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // 1. Inisialisasi Peta
+        var map = L.map('map', { zoomControl: false }).setView([4.6951, 96.7494], 8);
+        L.control.zoom({ position: 'topleft' }).addTo(map);
+
+        // CUSTOM PANE: Agar titik desa selalu di atas (z-index tinggi)
+        map.createPane('desaPane');
+        map.getPane('desaPane').style.zIndex = 600; // Point desa
+
+        // CUSTOM PANE: Agar Kantor ULP PALING ATAS (Lebih tinggi dari desa)
+        map.createPane('kantorPane');
+        map.getPane('kantorPane').style.zIndex = 680; // Di atas desa(600) tapi di bawah popup(700)
+
+        // POPUP PANE: Wajib paling atas
+        map.getPane('popupPane').style.zIndex = 2000;
+
+        // 2. Layer Base
+        L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        }).addTo(map);
+
+        // Global Variables untuk Filter
+        var layers = {
+            boundary: null,
+            kantor: null,
+            ulpGroups: {} // Object menyimpan layerGroup per ULP
+        };
+        var allMarkers = []; // Menyimpan semua marker desa untuk filter global
+
+        // --- UI Logic ---
+        function toggleAccordion(header) {
+            header.classList.toggle('active');
+            var content = header.nextElementSibling;
+            content.classList.toggle('show');
+        }
+
+        // --- Map Logic ---
+
+        // Konfigurasi Ikon
+        var iconKantorULP = L.icon({
+            iconUrl: 'gedung ulp.png',
+            iconSize: [35, 35],
+            iconAnchor: [17, 35],
+            popupAnchor: [0, -35]
+        });
+
+        // Warna Helpers
+        function getDesaColor(status) {
+            return (status === '√' || status === 'Berlistrik') ? '#2ecc71' : '#f39c12';
+        }
+
+        function getMapColor(name) {
+            if (!name) return "#2E8B57";
+            const n = name.toUpperCase();
+            if (n.includes("ACEH BARAT DAYA") || n.includes("ACEH SELATAN") || n.includes("ACEH SINGKIL") || n.includes("SUBULUSSALAM")) return "#D87093";
+            if (n.includes("ACEH BARAT") || n.includes("ACEH JAYA") || n.includes("NAGAN RAYA") || n.includes("SIMEULUE")) return "#2E8B57";
+            if (n.includes("ACEH BESAR") || n.includes("BANDA ACEH") || n.includes("SABANG")) return "#CD853F";
+            if (n.includes("ACEH TAMIANG") || n.includes("ACEH TENGGARA") || n.includes("ACEH TIMUR") || n.includes("GAYO LUES") || n.includes("LANGSA")) return "#008B8B";
+            if (n.includes("ACEH TENGAH") || n.includes("ACEH UTARA") || n.includes("BENER MERIAH") || n.includes("BIREUEN") || n.includes("LHOKSEUMAWE")) return "#1E90FF";
+            if (n.includes("PIDIE") || n.includes("PIDIE JAYA")) return "#6A5ACD";
+            return "#2E8B57";
+        }
+
+        // --- Data Fetching ---
+
+        // 1. Batas Kabupaten
+        fetch('http://localhost:5000/api/batas-kabupaten?t=' + Date.now())
+            .then(res => res.json())
+            .then(data => {
+                var cleanFeatures = data.map(feature => {
+                    if (feature.geometry.type === 'MultiPolygon') {
+                        var newCoords = feature.geometry.coordinates.filter(poly => poly[0].length > 120);
+                        if (newCoords.length === 0) return null;
+                        feature.geometry.coordinates = newCoords;
+                    } else if (feature.geometry.type === 'Polygon') {
+                        if (feature.geometry.coordinates[0].length <= 120) return null;
+                    }
+                    return feature;
+                }).filter(f => f !== null);
+
+                layers.boundary = L.geoJSON(cleanFeatures, {
+                    style: (f) => ({
+                        color: 'white', weight: 1.5, fillColor: getMapColor(f.properties.Kab_Kota), fillOpacity: 0.4
+                    }),
+                    onEachFeature: (f, l) => {
+                        if (f.properties.Kab_Kota) l.bindTooltip(f.properties.Kab_Kota, { permanent: false, direction: "center", className: "kabupaten-label" });
+                        l.on({ mouseover: (e) => e.target.setStyle({ fillOpacity: 0.6, weight: 2 }), mouseout: (e) => layers.boundary.resetStyle(e.target) });
+                    }
+                }).addTo(map);
+                layers.boundary.bringToBack();
+            });
+
+        // 2. Kantor ULP
+        fetch('http://localhost:5000/api/ulp')
+            .then(res => res.json())
+            .then(data => {
+                layers.kantor = L.layerGroup();
+                data.forEach(ulp => {
+                    if (ulp.y && ulp.x) {
+                        L.marker([ulp.y, ulp.x], {
+                            icon: iconKantorULP,
+                            pane: 'kantorPane' // Pastikan ini paling atas
+                        })
+                            .bindPopup(`<b>KANTOR ULP ${ulp.ULP}</b>`)
+                            .bindTooltip(ulp.ULP, {
+                                permanent: false,
+                                direction: 'top',
+                                offset: [0, -35], // Geser ke atas agar tidak menutupi logo
+                                className: 'ulp-label'
+                            })
+                            .addTo(layers.kantor);
+                    }
+                });
+                layers.kantor.addTo(map);
+            });
+
+        // 3. Desa & Statistik
+        fetch('http://localhost:5000/api/desa_by_ulp')
+            .then(res => res.json())
+            .then(groupedData => {
+                const ulpListDiv = document.getElementById('ulp-list');
+                const statsBody = document.getElementById('stats-body');
+
+                Object.keys(groupedData).sort().forEach((namaULP, index) => {
+                    var group = L.layerGroup().addTo(map);
+                    layers.ulpGroups[namaULP] = group; // Store reference
+
+                    let countBerlistrik = 0;
+                    let countBelum = 0;
+
+                    groupedData[namaULP].forEach(desa => {
+                        var lat = desa.latitude || desa.y;
+                        var lng = desa.longitude || desa.x;
+                        var status = desa.Status_Listrik || desa.status;
+                        var isBerlistrik = (status === '√' || status === 'Berlistrik');
+
+                        if (isBerlistrik) countBerlistrik++; else countBelum++;
+
+                        if (lat && lng) {
+                            var marker = L.circleMarker([lat, lng], {
+                                radius: 4,
+                                fillColor: getDesaColor(status),
+                                color: 'white',
+                                weight: 0.5,
+                                fillOpacity: 0.9,
+                                pane: 'desaPane', // Gunakan pane khusus yang z-index nya tinggi
+                                interactive: true // Pastikan bisa diklik
+                            }).bindPopup(`<b>Desa:</b> ${desa.Desa}<br><b>ULP:</b> ${namaULP}<br><b>Status:</b> ${isBerlistrik ? 'Berlistrik' : 'Belum'}`);
+                            marker.status = isBerlistrik ? 'Berlistrik' : 'Belum'; // Meta data for filter
+                            marker.addTo(group);
+                            allMarkers.push(marker); // Keep track globally for filter status
+                        }
+                    });
+
+                    // Update UI: Pilih Wilayah List (Prefix ULP Added + Badges)
+                    const div = document.createElement('div');
+                    div.className = 'checkbox-item';
+                    div.innerHTML = `
+                        <input type="checkbox" id="ulp-${index}" class="ulp-checkbox" checked onchange="toggleULP('${namaULP}')">
+                        <label for="ulp-${index}">
+                            <span class="ulp-name">ULP ${namaULP}</span>
+                            <div class="badge-container">
+                                <span class="badge badge-green" title="Berlistrik">${countBerlistrik}</span>
+                                <span class="badge badge-orange" title="Belum Berlistrik">${countBelum}</span>
+                            </div>
+                        </label>`;
+                    ulpListDiv.appendChild(div);
+                });
+            });
+
+        // --- Toggle Functions ---
+
+        function toggleLayer(type) {
+            if (type === 'boundary') {
+                if (map.hasLayer(layers.boundary)) map.removeLayer(layers.boundary);
+                else map.addLayer(layers.boundary);
+            } else if (type === 'kantor') {
+                if (map.hasLayer(layers.kantor)) map.removeLayer(layers.kantor);
+                else map.addLayer(layers.kantor);
+            }
+        }
+
+        function toggleULP(namaULP) {
+            const group = layers.ulpGroups[namaULP];
+            if (map.hasLayer(group)) map.removeLayer(group);
+            else map.addLayer(group);
+
+            // Check state of "Select All" based on individual clicks could be added here,
+            // but for simplicity we leave it independent.
+        }
+
+        // Feature: Select All / Deselect All
+        function toggleAllULP(isChecked) {
+            // 1. Toggle Layer Checkboxes
+            const checkboxes = document.querySelectorAll('.ulp-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = isChecked;
+            });
+
+            // 2. Add/Remove Layers from Map
+            Object.keys(layers.ulpGroups).forEach(namaULP => {
+                const group = layers.ulpGroups[namaULP];
+                if (isChecked) {
+                    if (!map.hasLayer(group)) map.addLayer(group);
+                } else {
+                    if (map.hasLayer(group)) map.removeLayer(group);
+                }
+            });
+        }
+
+        function toggleFilter(type) {
+            const showBerlistrik = document.getElementById('filter-berlistrik').checked;
+            const showBelum = document.getElementById('filter-belum').checked;
+
+            allMarkers.forEach(marker => {
+                const isBerlistrik = marker.status === 'Berlistrik';
+
+                let visible = false;
+                if (isBerlistrik && showBerlistrik) visible = true;
+                if (!isBerlistrik && showBelum) visible = true;
+
+                if (visible) {
+                    marker.setStyle({ opacity: 1, fillOpacity: 0.9 });
+                } else {
+                    marker.setStyle({ opacity: 0, fillOpacity: 0 });
+                }
+            });
+        }
+
+    </script>
+</body>
+
+</html>
