@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, TrashIcon, CheckCircle2Icon, XCircleIcon, AlertCircleIcon, ImageIcon, DownloadIcon } from "lucide-react";
+import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, TrashIcon, CheckCircle2Icon, XCircleIcon, AlertCircleIcon, ImageIcon, DownloadIcon, XIcon } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -723,6 +723,8 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
   );
 };
 
+
+
 // 2. ACCORDION WRAPPER
 const Accordion = ({
   title,
@@ -824,7 +826,40 @@ export default function VerifikasiPage() {
   const [loading, setLoading] = useState(true);
   const [selectedDesa, setSelectedDesa] = useState<{ kab: string, kec: string, desa: Desa } | null>(null);
   const [verifiedDesaMap, setVerifiedDesaMap] = useState<Record<string, string>>({});
+  const [statusFilter, setStatusFilter] = useState("Semua");
   const [searchParams] = useSearchParams();
+
+  const counts = useMemo(() => {
+    const c = {
+      Semua: 0,
+      "Terverifikasi": 0,
+      "Sesuai (Perlu Perbaikan)": 0,
+      "Tidak Sesuai": 0,
+      "Menunggu Verifikasi": 0,
+      "Belum Diunggah": 0
+    };
+
+    allData.forEach(kab => {
+      kab.kecamatan.forEach(kec => {
+        kec.desa.forEach(desa => {
+          c.Semua++;
+          const status = verifiedDesaMap[desa.id];
+          if (!status) {
+            c["Belum Diunggah"]++;
+          } else if (status === 'Terverifikasi') {
+            c["Terverifikasi"]++;
+          } else if (status === 'Sesuai (Perlu Perbaikan)') {
+            c["Sesuai (Perlu Perbaikan)"]++;
+          } else if (status === 'Tidak Sesuai') {
+            c["Tidak Sesuai"]++;
+          } else if (status === 'Menunggu Verifikasi') {
+            c["Menunggu Verifikasi"]++;
+          }
+        });
+      });
+    });
+    return c;
+  }, [allData, verifiedDesaMap]);
 
   // Function to fetch all verified IDs
   const fetchVerifications = async () => {
@@ -848,7 +883,15 @@ export default function VerifikasiPage() {
         const res = await fetch(`${API_URL}/api/locations/hierarchy`);
         const json = await res.json();
         if (json.success) {
-          setAllData(json.data);
+          // Robust sorting at all levels
+          const sortedData = json.data.sort((a: any, b: any) => a.name.localeCompare(b.name)).map((kab: any) => ({
+            ...kab,
+            kecamatan: kab.kecamatan.sort((a: any, b: any) => a.name.localeCompare(b.name)).map((kec: any) => ({
+              ...kec,
+              desa: kec.desa.sort((a: any, b: any) => a.name.localeCompare(b.name))
+            }))
+          }));
+          setAllData(sortedData);
         }
       } catch (err) {
         console.error("Error fetching hierarchy:", err);
@@ -926,38 +969,83 @@ export default function VerifikasiPage() {
       });
     });
 
-    return results;
-  }, [searchTerm, allData, verifiedDesaMap]);
+    const filteredResults = results.sort((a, b) => a.desa.name.localeCompare(b.desa.name));
 
-  // Recursively filter data (Unchanged but kept for reference)
+    if (statusFilter === "Semua") return filteredResults;
+
+    return filteredResults.filter(res => {
+      const status = verifiedDesaMap[res.desa.id];
+      if (statusFilter === "Belum Diunggah") return !status;
+      return status === statusFilter;
+    });
+  }, [searchTerm, allData, verifiedDesaMap, statusFilter]);
+
+  // Recursively filter data
   const filteredData = useMemo(() => {
-    if (!searchTerm) return allData;
-    const lowerSearch = searchTerm.toLowerCase();
-
-    const filterKabupaten = (kab: Kabupaten) => {
-      const kecMatches = kab.kecamatan.map(kec => {
-        const desaMatches = kec.desa.map(desa => {
-          const dusunMatches = desa.dusun.filter(dusun =>
-            dusun.name.toLowerCase().includes(lowerSearch)
-          );
-
-          if (dusunMatches.length > 0) return { ...desa, dusun: dusunMatches };
-          if (desa.name.toLowerCase().includes(lowerSearch)) return desa;
-          return null;
-        }).filter(Boolean) as Desa[];
-
-        if (desaMatches.length > 0) return { ...kec, desa: desaMatches };
-        if (kec.name.toLowerCase().includes(lowerSearch)) return kec;
-        return null;
-      }).filter(Boolean) as Kecamatan[];
-
-      if (kecMatches.length > 0) return { ...kab, kecamatan: kecMatches };
-      if (kab.name.toLowerCase().includes(lowerSearch)) return kab;
-      return null;
+    const sortHierarchy = (data: Kabupaten[]) => {
+      return [...data]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(kab => ({
+          ...kab,
+          kecamatan: [...kab.kecamatan]
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(kec => ({
+              ...kec,
+              desa: [...kec.desa].sort((a, b) => a.name.localeCompare(b.name))
+            }))
+        }));
     };
 
-    return allData.map(filterKabupaten).filter(Boolean) as Kabupaten[];
-  }, [searchTerm, allData]);
+    const filterByStatus = (data: Kabupaten[]) => {
+      if (statusFilter === "Semua") return data;
+      return data.map(kab => {
+        const filteredKec = kab.kecamatan.map(kec => {
+          const filteredDesa = kec.desa.filter(desa => {
+            const status = verifiedDesaMap[desa.id];
+            if (statusFilter === "Belum Diunggah") return !status;
+            return status === statusFilter;
+          });
+          if (filteredDesa.length > 0) return { ...kec, desa: filteredDesa };
+          return null;
+        }).filter(Boolean) as Kecamatan[];
+        if (filteredKec.length > 0) return { ...kab, kecamatan: filteredKec };
+        return null;
+      }).filter(Boolean) as Kabupaten[];
+    };
+
+    let result = allData;
+
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+
+      const filterKabupaten = (kab: Kabupaten): Kabupaten | null => {
+        const kecMatches = kab.kecamatan.map(kec => {
+          const desaMatches = kec.desa.map(desa => {
+            const dusunMatches = desa.dusun.filter(dusun =>
+              dusun.name.toLowerCase().includes(lowerSearch)
+            );
+
+            if (dusunMatches.length > 0) return { ...desa, dusun: dusunMatches };
+            if (desa.name.toLowerCase().includes(lowerSearch)) return desa;
+            return null;
+          }).filter(Boolean) as Desa[];
+
+          if (desaMatches.length > 0) return { ...kec, desa: desaMatches };
+          if (kec.name.toLowerCase().includes(lowerSearch)) return kec;
+          return null;
+        }).filter(Boolean) as Kecamatan[];
+
+        if (kecMatches.length > 0) return { ...kab, kecamatan: kecMatches };
+        if (kab.name.toLowerCase().includes(lowerSearch)) return kab;
+        return null;
+      };
+
+      result = allData.map(filterKabupaten).filter(Boolean) as Kabupaten[];
+    }
+
+    const filteredResult = filterByStatus(result);
+    return sortHierarchy(filteredResult);
+  }, [searchTerm, allData, statusFilter, verifiedDesaMap]);
 
   if (loading) {
     return (
@@ -1002,19 +1090,86 @@ export default function VerifikasiPage() {
       <div className="px-8 pb-8">
         {!selectedDesa ? (
           <>
+            {/* 1.5 Quick Stats Header */}
+            {!selectedDesa && (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-8">
+                {[
+                  { label: "Total Desa", value: "Semua", count: counts.Semua, color: "blue", icon: <FileTextIcon size={14} /> },
+                  { label: "Terverifikasi", value: "Terverifikasi", count: counts.Terverifikasi, color: "green", icon: <CheckCircle2Icon size={14} /> },
+                  { label: "Perlu Perbaikan", value: "Sesuai (Perlu Perbaikan)", count: counts["Sesuai (Perlu Perbaikan)"], color: "orange", icon: <AlertCircleIcon size={14} /> },
+                  { label: "Tidak Sesuai", value: "Tidak Sesuai", count: counts["Tidak Sesuai"], color: "red", icon: <XCircleIcon size={14} /> },
+                  { label: "Menunggu", value: "Menunggu Verifikasi", count: counts["Menunggu Verifikasi"], color: "sky", icon: <ClockIcon size={14} /> },
+                  { label: "Belum Unggah", value: "Belum Diunggah", count: counts["Belum Diunggah"], color: "slate", icon: <UploadCloudIcon size={14} /> },
+                ].map((stat, i) => {
+                  const isActive = statusFilter === stat.value;
+                  const colorMap: Record<string, any> = {
+                    blue: { inactive: "border-blue-100 bg-blue-50/40 text-blue-700 dark:bg-blue-500/5 dark:border-blue-500/10", active: "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/25", ripple: "bg-blue-400" },
+                    green: { inactive: "border-green-100 bg-green-50/40 text-green-700 dark:bg-green-500/5 dark:border-green-500/10", active: "bg-green-600 border-green-600 text-white shadow-lg shadow-green-500/25", ripple: "bg-green-400" },
+                    orange: { inactive: "border-orange-100 bg-orange-50/40 text-orange-700 dark:bg-orange-500/5 dark:border-orange-500/10", active: "bg-orange-600 border-orange-600 text-white shadow-lg shadow-orange-500/25", ripple: "bg-orange-400" },
+                    red: { inactive: "border-red-100 bg-red-50/40 text-red-700 dark:bg-red-500/5 dark:border-red-500/10", active: "bg-red-600 border-red-600 text-white shadow-lg shadow-red-500/25", ripple: "bg-red-400" },
+                    sky: { inactive: "border-sky-100 bg-sky-50/40 text-sky-700 dark:bg-sky-500/5 dark:border-sky-500/10", active: "bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/25", ripple: "bg-sky-300" },
+                    slate: { inactive: "border-slate-100 bg-slate-50/40 text-slate-700 dark:bg-slate-500/5 dark:border-slate-500/10", active: "bg-slate-600 border-slate-600 text-white shadow-lg shadow-slate-500/25", ripple: "bg-slate-400" },
+                  };
+                  const style = colorMap[stat.color];
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setStatusFilter(stat.value)}
+                      className={`text-left p-4 rounded-[20px] border-2 transition-all duration-300 group relative overflow-hidden flex flex-col justify-between min-h-[85px]
+                        ${isActive ? style.active + " scale-[1.03] z-10" : style.inactive + " hover:border-gray-200 dark:hover:border-gray-600 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md hover:-translate-y-0.5"}
+                      `}
+                    >
+                      <div className="relative z-10">
+                        <div className={`flex items-center gap-2 text-[10px] font-black font-outfit uppercase tracking-[0.15em] mb-2 transition-colors
+                          ${isActive ? "text-white/80" : "text-gray-400 dark:text-gray-500 group-hover:text-gray-600"}
+                        `}>
+                          <span className={`${isActive ? "text-white" : "text-current opacity-70"}`}>{stat.icon}</span>
+                          {stat.label}
+                        </div>
+                        <p className={`text-2xl font-black font-outfit transition-all duration-300
+                          ${isActive ? "text-white scale-110 origin-left" : "text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400"}
+                        `}>
+                          {stat.count.toLocaleString()}
+                        </p>
+                      </div>
+
+                      {/* Decorative Background Element */}
+                      <div className={`absolute -right-4 -bottom-4 w-16 h-16 rounded-full blur-2xl transition-all duration-500
+                        ${isActive ? "bg-white/30 scale-150" : "bg-gray-100 dark:bg-gray-700 opacity-0 group-hover:opacity-100"}
+                      `}></div>
+
+                      {/* Active Indicator Bar */}
+                      {isActive && (
+                        <div className="absolute left-0 bottom-0 top-0 w-1.5 bg-white/30"></div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* SEARCH VIEW */}
-            <div className="flex gap-4 mb-8">
+            <div className="flex flex-col gap-5 mb-8">
               <div className="relative group w-full">
-                <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-600 transition-colors">
+                <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-600 transition-colors">
                   <SearchIcon size={20} />
                 </div>
                 <input
                   type="text"
-                  placeholder="Cari desa, kecamatan, atau kabupaten/kota (contoh: Cot Mesjid, Leung Bata, Banda Aceh)"
-                  className="w-full pl-12 pr-6 py-4 rounded-xl bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:bg-white dark:focus:bg-gray-800 focus:border-blue-500/30 outline-none transition-all text-sm font-bold placeholder:text-gray-400 dark:text-white"
+                  placeholder="Cari desa, kecamatan, atau kabupaten/kota..."
+                  className="w-full pl-14 pr-12 py-4.5 rounded-2xl bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-sm font-bold placeholder:text-gray-400 dark:text-white shadow-sm focus:shadow-xl focus:shadow-blue-500/5"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors"
+                  >
+                    <XIcon size={16} />
+                  </button>
+                )}
               </div>
             </div>
 

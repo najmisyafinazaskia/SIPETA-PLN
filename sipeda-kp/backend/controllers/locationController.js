@@ -702,6 +702,18 @@ exports.getHierarchy = async (req, res) => {
                 }
             },
             {
+                $unwind: "$desa"
+            },
+            {
+                $sort: { "desa.name": 1 }
+            },
+            {
+                $group: {
+                    _id: "$_id",
+                    desa: { $push: "$desa" }
+                }
+            },
+            {
                 $group: {
                     _id: "$_id.kab",
                     kecamatan: {
@@ -710,6 +722,18 @@ exports.getHierarchy = async (req, res) => {
                             desa: "$desa"
                         }
                     }
+                }
+            },
+            {
+                $unwind: "$kecamatan"
+            },
+            {
+                $sort: { "kecamatan.name": 1 }
+            },
+            {
+                $group: {
+                    _id: "$_id",
+                    kecamatan: { $push: "$kecamatan" }
                 }
             },
             {

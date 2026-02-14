@@ -192,28 +192,25 @@ const AppSidebar: React.FC = () => {
 
           {/* Footer Call Center */}
           {(isExpanded || isHovered) && (
-            <div className="mt-auto px-10 pb-8">
+            <div className="mt-auto px-12 pb-6">
               <Link
                 to="/dashboard/call-center"
-                className={`flex flex-col items-center justify-center p-4 rounded-2xl transition-all duration-300 group
+                className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 group
                   ${isActive("/dashboard/call-center")
                     ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
                     : "bg-slate-50 text-[#1C2434]/70 hover:bg-blue-50 hover:text-blue-600 dark:bg-white/[0.03] dark:text-slate-400 dark:hover:bg-blue-600/10 dark:hover:text-blue-400"}`}
               >
-                <div className={`p-2 rounded-xl mb-2 transition-colors duration-300
+                <div className={`p-1.5 rounded-xl mb-1.5 transition-colors duration-300
                   ${isActive("/dashboard/call-center")
                     ? "bg-white/20"
                     : "bg-white dark:bg-gray-800 shadow-sm group-hover:bg-blue-600"}`}>
                   <img
-                    src={isActive("/dashboard/call-center")
-                      ? "/images/icons/call-center.png"
-                      : (theme === "dark" ? "/images/icons/callcenter-dark.png" : "/images/icons/call-center.png")
-                    }
+                    src={theme === "dark" ? "/images/icons/callcenter-dark.png" : "/images/icons/call-center.png"}
                     alt="Call Center"
-                    className={`size-10 object-contain transition-all duration-300 ${isActive("/dashboard/call-center") ? "brightness-0 invert" : ""}`}
+                    className={`size-7 object-contain transition-all duration-300 ${isActive("/dashboard/call-center") && theme !== "dark" ? "brightness-0 invert" : ""}`}
                   />
                 </div>
-                <span className="text-xs font-black uppercase tracking-wider">Call Center</span>
+                <span className="text-[10px] font-black uppercase tracking-wider">Call Center</span>
               </Link>
             </div>
           )}

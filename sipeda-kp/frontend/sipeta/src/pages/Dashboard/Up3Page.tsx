@@ -43,8 +43,8 @@ export default function Up3Page() {
     const [isInputModalOpen, setIsInputModalOpen] = useState(false);
     const [editingUp3, setEditingUp3] = useState<Up3Data | null>(null);
     const [newPelanggan, setNewPelanggan] = useState("");
-    const [newSumber, setNewSumber] = useState("Data Induk Layanan PLN");
-    const [newTahun, setNewTahun] = useState("2025");
+    const [newSumber, setNewSumber] = useState("Data Induk Layanan");
+    const [newTahun, setNewTahun] = useState("PLN 2025");
     const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
@@ -256,8 +256,8 @@ export default function Up3Page() {
                                             e.stopPropagation();
                                             setEditingUp3(item);
                                             setNewPelanggan(item.pelanggan?.toString() || "");
-                                            setNewSumber(item.sumber || "Data Induk Layanan PLN");
-                                            setNewTahun(item.tahun || "2025");
+                                            setNewSumber((item.sumber && item.sumber !== "-") ? item.sumber : "Data Induk Layanan");
+                                            setNewTahun((item.tahun && item.tahun !== "-") ? item.tahun : "PLN 2025");
                                             setIsInputModalOpen(true);
                                         }}
                                         className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"

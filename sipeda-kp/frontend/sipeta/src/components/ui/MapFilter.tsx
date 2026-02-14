@@ -57,7 +57,7 @@ export default function MapFilter({
                             </div>
                             <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{markerLabel}</span>
                         </div>
-                        <img src="/assets/icons/ulp_temp.png" alt="ULP" className="w-4 h-4 object-contain" />
+                        <img src="/assets/icons/ulp_temp.png" alt="ULP" className="w-3 h-4 object-contain" />
                     </label>
                 )}
 

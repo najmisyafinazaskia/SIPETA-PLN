@@ -61,8 +61,8 @@ export default function UlpUnitDetail() {
     const [loading, setLoading] = useState(true);
     const [isInputModalOpen, setIsInputModalOpen] = useState(false);
     const [newPelanggan, setNewPelanggan] = useState("");
-    const [newSumber, setNewSumber] = useState("Data Induk Layanan PLN");
-    const [newTahun, setNewTahun] = useState("2025");
+    const [newSumber, setNewSumber] = useState("Data Induk Layanan");
+    const [newTahun, setNewTahun] = useState("PLN 2025");
     const [isUpdating, setIsUpdating] = useState(false);
     const [modal, setModal] = useState<{
         isOpen: boolean;
@@ -256,8 +256,7 @@ export default function UlpUnitDetail() {
                     {/* Card 4: Warga (Estimasi) */}
                     <div
                         onClick={() => {
-                            const link = KECAMATAN_SOURCES[decodedName] || 'https://aceh.bps.go.id/id/statistics-table/2/NjAyIzI=/-sk-kp-015---proyeksi-sp2020--jumlah-penduduk-hasil-proyeksi-sensus-penduduk-2020-menurut-jenis-kelamin-dan-kabupaten-kota.html';
-                            // Note: ULP Unit covers many areas, default to general BPS Aceh is appropriate.
+                            const link = 'https://data.acehprov.go.id/ru/dataset/jumlah-penduduk-desa-berdasarkan-jenis-kelamin-idm/resource/3f4f7fd0-5c2c-4067-adfe-d9b007c02bd3';
                             window.open(link, '_blank');
                         }}
                         className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-pointer"
@@ -284,8 +283,8 @@ export default function UlpUnitDetail() {
                         onClick={() => {
                             if (user?.role !== "superadmin") return;
                             setNewPelanggan(stats.stats.pelanggan?.toString() || "");
-                            setNewSumber(stats.stats.sumber_pelanggan || "Data Induk Layanan PLN");
-                            setNewTahun(stats.stats.tahun_pelanggan || "2025");
+                            setNewSumber((stats.stats.sumber_pelanggan && stats.stats.sumber_pelanggan !== "-") ? stats.stats.sumber_pelanggan : "Data Induk Layanan");
+                            setNewTahun((stats.stats.tahun_pelanggan && stats.stats.tahun_pelanggan !== "-") ? stats.stats.tahun_pelanggan : "PLN 2025");
                             setIsInputModalOpen(true);
                         }}
                         className={`p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group relative ${user?.role === "superadmin" ? "cursor-pointer" : ""}`}
@@ -303,7 +302,7 @@ export default function UlpUnitDetail() {
                             {stats.stats.pelanggan || stats.stats.pelanggan === 0 ? stats.stats.pelanggan.toLocaleString() : "-"}
                         </h3>
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
-                            Sumber : {stats.stats.sumber_pelanggan || "Data Induk Layanan, PLN"}, {stats.stats.tahun_pelanggan || "2025"}
+                            Sumber : {(stats.stats.sumber_pelanggan && stats.stats.sumber_pelanggan !== "-") ? stats.stats.sumber_pelanggan : "Data Induk Layanan"}, {(stats.stats.tahun_pelanggan && stats.stats.tahun_pelanggan !== "-") ? stats.stats.tahun_pelanggan : "PLN 2025"}
                         </p>
                     </div>
 

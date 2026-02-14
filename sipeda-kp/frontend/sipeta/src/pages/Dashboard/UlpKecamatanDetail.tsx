@@ -121,14 +121,7 @@ export default function UlpKecamatanDetail() {
                 {/* Card 3: Warga */}
                 <div
                     onClick={() => {
-                        let link = 'https://aceh.bps.go.id/id/statistics-table/2/NjAyIzI=/-sk-kp-015---proyeksi-sp2020--jumlah-penduduk-hasil-proyeksi-sensus-penduduk-2020-menurut-jenis-kelamin-dan-kabupaten-kota.html';
-                        const kabName = (stats.kab || "").toUpperCase().replace(/^(KABUPATEN|KAB\.|KOTA)\s+/i, "").trim();
-                        for (const [key, val] of Object.entries(KECAMATAN_SOURCES)) {
-                            if (key.includes(kabName) || kabName.includes(key)) {
-                                link = val;
-                                break;
-                            }
-                        }
+                        const link = 'https://data.acehprov.go.id/ru/dataset/jumlah-penduduk-desa-berdasarkan-jenis-kelamin-idm/resource/3f4f7fd0-5c2c-4067-adfe-d9b007c02bd3';
                         window.open(link, '_blank');
                     }}
                     className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-pointer"

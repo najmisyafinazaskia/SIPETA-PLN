@@ -23,9 +23,9 @@ interface RegionMapProps {
 // Icon Gedung UP3 Custom
 const up3Icon = L.icon({
   iconUrl: '/assets/icons/up3_office.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32]
+  iconSize: [28, 40],
+  iconAnchor: [14, 40],
+  popupAnchor: [0, -40]
 });
 
 // Bright neon colors palette for map borders
@@ -169,26 +169,26 @@ const getPointPopupHtml = (props: any, isBerlistrik: boolean, hideStatus: boolea
                   <span style="font-weight: 800; white-space: nowrap; color: ${color}; font-size: 10px;">${d.status}</span>
                 </div>
                 ${(isBad) ? (() => {
-      if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS')) {
-        return `
+        if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS')) {
+          return `
                         <div style="margin-top: 4px; font-size: 10px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px; width: fit-content;">
                           🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025
                         </div>
                         `;
-      }
-      if (nameUpper.includes('LHOK PINEUNG')) {
-        return `
+        }
+        if (nameUpper.includes('LHOK PINEUNG')) {
+          return `
                         <div style="margin-top: 4px; font-size: 10px; font-weight: 800; color: #9333ea; text-transform: uppercase; letter-spacing: 0.5px; background: #f5f3ff; border: 1px solid #ddd6fe; padding: 2px 6px; border-radius: 4px; width: fit-content;">
                           📅 SUDAH MASUK PADA ROADMAP 2026
                         </div>
                         `;
-      }
-      return `
+        }
+        return `
                       <div style="margin-top: 4px; font-size: 10px; font-weight: 800; color: #ea580c; text-transform: uppercase; letter-spacing: 0.5px;">
                         🏠 RUMAH KEBUN | TIDAK BERLISTRIK 24 JAM
                       </div>
                       `;
-    })() : ''}
+      })() : ''}
               </div>
             `;
   }).join('') : '<span style="color: #94a3b8; font-style: italic; font-size: 10px;">Tidak ada data dusun</span>'}
@@ -699,8 +699,8 @@ const RegionMap: React.FC<RegionMapProps> = ({
                 src="/assets/icons/ulp_temp.png" 
                 alt="ULP Icon" 
                 style="
-                  width: 48px; 
-                  height: 48px; 
+                  width: 22px; 
+                  height: 30px; 
                   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
                   margin-top: -2px;
                 "
