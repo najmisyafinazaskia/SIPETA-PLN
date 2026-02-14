@@ -160,7 +160,6 @@ const getPointPopupHtml = (props: any, isBerlistrik: boolean, hideStatus: boolea
     const isBad = s.includes('BELUM') || s.includes('NON PLN') || s.includes('ROADMAP') || s === '0' || s === 'REFF!' || s === '#REF!';
     const color = (!isBad && s.includes('PLN')) ? '#22c55e' : '#eab308';
     const nameUpper = (d.name || "").toUpperCase();
-    const hasSpecialLabel = ['PERPOLIN', 'PERABIS', 'LHOK PINEUNG'].some(n => nameUpper.includes(n));
 
     return `
               <div class="popup-dusun-item">

@@ -4,37 +4,14 @@ import { ChevronLeftIcon, GroupIcon } from "../../icons";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-const KECAMATAN_SOURCES: Record<string, string> = {
-    "ACEH BARAT": "https://disdukcapil.acehbaratkab.go.id/halaman/data-agregat-kependudukan-aceh-barat-per-gampong",
-    "ACEH BARAT DAYA": "https://acehbaratdayakab.bps.go.id/statistics-table/2/MzA3IzI=/proyeksi-penduduk-kabupaten-aceh-barat-daya-menurut-kecamatan-.html",
-    "ACEH BESAR": "https://acehbesarkab.bps.go.id/indicator/12/43/1/perkembangan-jumlah-penduduk.html",
-    "ACEH JAYA": "https://acehjayakab.bps.go.id/indicator/12/140/1/jumlah-penduduk-kabupaten-aceh-jaya-menurut-jenis-kelamin.html",
-    "ACEH SELATAN": "https://acehselatankab.bps.go.id/statistics-table/2/MzMjMg==/proyeksi-penduduk-per-kecamatan.html",
-    "ACEH SINGKIL": "https://acehsingkilkab.bps.go.id/indicator/12/45/1/jumlah-penduduk-aceh-singkil-menurut-kecamatan.html",
-    "ACEH TAMIANG": "https://acehtamiangkab.bps.go.id/indicator/12/117/1/jumlah-penduduk-menurut-kecamatan-di-kabupaten-aceh-tamiang.html",
-    "ACEH TENGAH": "https://acehtengahkab.bps.go.id/indicator/12/137/3/jumlah-penduduk-kabupaten-aceh-tengah-berdasarkan-jenis-kelamin-per-kecamatan-.html",
-    "ACEH TENGGARA": "https://acehtenggarakab.bps.go.id/indicator/12/119/2/jumlah-penduduk-menurut-jenis-kelamin-dan-kecamatan.html",
-    "ACEH TIMUR": "https://dispendukcapil.acehtimurkab.go.id/berita/kategori/berita-dinas/jumlah-penduduk-kabupaten-aceh-timur-mencapai-466225-jiwa-pada-semester-i-tahun-2025",
-    "ACEH UTARA": "https://acehutarakab.bps.go.id/id/statistics-table/3/V1ZSbFRUY3lTbFpEYTNsVWNGcDZjek53YkhsNFFUMDkjMw==/penduduk--laju-pertumbuhan-penduduk--distribusi-persentase-penduduk--kepadatan-penduduk--rasio-jenis-kelamin-penduduk-menurut-kecamatan-di-kabupaten-aceh-utara--2021.html?year=2021",
-    "BENER MERIAH": "https://benermeriahkab.bps.go.id/id/statistics-table/3/V1ZSbFRUY3lTbFpEYTNsVWNGcDZjek53YkhsNFFUMDkjMw==/penduduk--laju-pertumbuhan-penduduk--distribusi-persentase-penduduk-kepadatan-penduduk--rasio-jenis-kelamin-penduduk-menurut-kecamatan-di-kabupaten-bener-meriah--2024.html",
-    "BIREUEN": "https://data.bireuenkab.go.id/dataset/jumlah-penduduk/resource/a6b41a04-30a1-4414-bf4b-0eb89d039877",
-    "GAYO LUES": "https://data.go.id/dataset/dataset/jumlah-penduduk-menurut-kecamatan-di-kabupaten-gayo-lues-2023",
-    "NAGAN RAYA": "https://naganrayakab.bps.go.id/indicator/12/29/1/jumlah-penduduk.html",
-    "PIDIE": "https://pidiekab.bps.go.id/indicator/12/90/1/jumlah-penduduk.html",
-    "PIDIE JAYA": "https://pidiejayakab.bps.go.id/indicator/12/42/1/jumlah-penduduk.html",
-    "SIMEULUE": "https://dukcapil.simeuluekab.go.id/media/2023.08/jumlah_penduduk_20221.pdf",
-    "BANDA ACEH": "https://disdukcapil.bandaacehkota.go.id/download/jumlah-penduduk-kota-banda-aceh/",
-    "LANGSA": "https://langsakota.bps.go.id/statistics-table/2/MTQ3IzI=/jumlah-penduduk-berdasarkan-jenis-kelamin.html",
-    "LHOKSEUMAWE": "https://data.lhokseumawekota.go.id/dataset/jumlah-penduduk-menurut-kecamatan/resource/926144dc-92c2-4b56-8daa-ff71a0857e13",
-    "SABANG": "https://sabangkota.bps.go.id/indicator/12/54/1/jumlah-penduduk-menurut-kecamatan.html",
-    "SUBULUSSALAM": "https://subulussalamkota.bps.go.id/id/statistics-table/1/NTQ1IzE=/luas-wilayah-dan-jumlah-penduduk-menurut-kecamatan-di-kota-subulussalam-tahun-2016.html"
-};
+
 
 export default function Up3KecamatanDetail() {
     const { name } = useParams();
     const navigate = useNavigate();
     const decodedName = decodeURIComponent(name || "");
     const [searchTerm, setSearchTerm] = useState("");
+    const [listDesa, setListDesa] = useState<string[]>([]);
     const [stats, setStats] = useState<any>({});
     const [loading, setLoading] = useState(true);
 
@@ -57,7 +34,7 @@ export default function Up3KecamatanDetail() {
         fetchKecDetail();
     }, [decodedName]);
 
-    const filteredDesa = listDesa.filter(d => d.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredDesa = listDesa.filter((d: string) => d.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const handleDesaClick = (desaName: string) => {
         navigate(`/dashboard/up3/desa/${encodeURIComponent(desaName)}`);
@@ -138,7 +115,7 @@ export default function Up3KecamatanDetail() {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                    {filteredDesa.map((desa, idx) => (
+                    {filteredDesa.map((desa: string, idx: number) => (
                         <div
                             key={idx}
                             onClick={() => handleDesaClick(desa)}
