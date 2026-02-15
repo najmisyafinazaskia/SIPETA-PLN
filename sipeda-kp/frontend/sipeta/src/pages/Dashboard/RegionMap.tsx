@@ -897,12 +897,42 @@ const RegionMap: React.FC<RegionMapProps> = ({
     });
   }, [kabData, zoomLevel, markerLevel, filterLocations]);
 
+  // 4. Handle auto-opening popup for selected point
+  useEffect(() => {
+    if (!selectedPointId || !leafletMap.current || loading) return;
+
+    const tryOpenPopup = () => {
+      let found = false;
+      leafletMap.current?.eachLayer((layer: any) => {
+        if (found) return;
+        const props = layer.feature?.properties || {};
+        const options = layer.options || {};
+
+        const lId = (props.id || props.locationId || options.locationId || options.id || "").toString();
+        const targetId = selectedPointId.toString();
+
+        if (targetId && lId && targetId === lId) {
+          console.log("Found selected marker, opening popup:", lId);
+          if (layer.openPopup) {
+            layer.openPopup();
+          } else {
+            layer.fire('click', { latlng: layer.getLatLng() });
+          }
+          found = true;
+        }
+      });
+    };
+
+    // Delay to ensure layers are rendered
+    const timeout = setTimeout(tryOpenPopup, 1000);
+    return () => clearTimeout(timeout);
+  }, [selectedPointId, data, loading]);
+
   // View manipulation when search item is clicked
   const handleSelectResult = (feature: any) => {
     if (!leafletMap.current) return;
 
     const coords = feature.geometry.coordinates;
-    const name = feature.properties.name;
     const id = feature.properties.id || feature.properties.locationId;
 
     setSelectedPointId(id);
@@ -910,39 +940,6 @@ const RegionMap: React.FC<RegionMapProps> = ({
     // Smooth fly to location
     leafletMap.current.flyTo([coords[1], coords[0]], 15, { duration: 1.5 });
 
-    // Open popup after movement ends
-    const openSearchPopup = () => {
-      if (!leafletMap.current) return;
-      leafletMap.current.off('moveend', openSearchPopup);
-
-      if (pointsLayer.current) {
-        pointsLayer.current.eachLayer((layer: any) => {
-          const props = layer.feature?.properties || {};
-          const options = layer.options || {};
-
-          const lId = (props.id || props.locationId || options.locationId || options.id || "").toString();
-          const targetId = (id || "").toString();
-
-          const layerName = (props.name || props.Desa || options.title || options.desaName || "").toString().toUpperCase();
-          const targetName = name.toString().toUpperCase();
-
-          if ((targetId && lId && targetId === lId) || (layerName && targetName && layerName === targetName)) {
-            if (layer.openPopup) {
-              layer.openPopup();
-            } else {
-              const latlng = layer.getLatLng ? layer.getLatLng() : L.latLng(coords[1], coords[0]);
-              layer.fire('click', { latlng: latlng });
-            }
-          }
-        });
-      }
-    };
-
-    leafletMap.current.on('moveend', openSearchPopup);
-
-    // Safety fallback if moveend takes too long
-    setTimeout(openSearchPopup, 2000);
-    // Clear search set query but keep selected status
     setSearchQuery("");
     setShowSuggestions(false);
   };
