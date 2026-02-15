@@ -36,8 +36,8 @@ const up3Icon = L.icon({
 
 const ulpIcon = L.icon({
   iconUrl: '/assets/icons/ulp_temp.png',
-  iconSize: [25, 30],
-  iconAnchor: [12, 30],
+  iconSize: [20, 30],
+  iconAnchor: [10, 30],
   popupAnchor: [0, -30]
 });
 
