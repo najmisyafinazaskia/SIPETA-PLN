@@ -115,7 +115,7 @@ const StatusActionModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-md w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
@@ -1151,225 +1151,227 @@ export default function VerifikasiPage() {
   }
 
   return (
-    <div className="rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03] font-outfit relative">
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div className="rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03] font-outfit relative">
 
-      {/* 1. Header & Navigation */}
-      <div className="p-8 pb-4">
-        {selectedDesa ? (
-          <div className="flex flex-col gap-4">
-            <button
-              onClick={() => setSelectedDesa(null)}
-              className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
-            >
-              <ArrowLeftIcon size={16} /> Kembali
-            </button>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
-                <span>{selectedDesa.kab}</span>
-                <ChevronRightIcon size={12} />
-                <span>{selectedDesa.kec}</span>
+        {/* 1. Header & Navigation */}
+        <div className="p-8 pb-4">
+          {selectedDesa ? (
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={() => setSelectedDesa(null)}
+                className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                <ArrowLeftIcon size={16} /> Kembali
+              </button>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  <span>{selectedDesa.kab}</span>
+                  <ChevronRightIcon size={12} />
+                  <span>{selectedDesa.kec}</span>
+                </div>
+                <h1 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tight">
+                  Berita Acara Desa {selectedDesa.desa.name}
+                </h1>
               </div>
-              <h1 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tight">
-                Berita Acara Desa {selectedDesa.desa.name}
-              </h1>
             </div>
-          </div>
-        ) : (
-          <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
-            Berita Acara Wilayah
-          </h1>
-        )}
-      </div>
+          ) : (
+            <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
+              Berita Acara Wilayah
+            </h1>
+          )}
+        </div>
 
-      {/* 2. Content */}
-      <div className="px-8 pb-8">
-        {!selectedDesa ? (
-          <>
-            {/* 1.5 Quick Stats Header */}
-            {!selectedDesa && (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-8">
-                {[
-                  { label: "Total Desa", value: "Semua", count: counts.Semua, color: "blue", icon: <FileTextIcon size={14} /> },
-                  { label: "Terverifikasi", value: "Terverifikasi", count: counts.Terverifikasi, color: "green", icon: <CheckCircle2Icon size={14} /> },
-                  { label: "Perlu Perbaikan", value: "Sesuai (Perlu Perbaikan)", count: counts["Sesuai (Perlu Perbaikan)"], color: "orange", icon: <AlertCircleIcon size={14} /> },
-                  { label: "Tidak Sesuai", value: "Tidak Sesuai", count: counts["Tidak Sesuai"], color: "red", icon: <XCircleIcon size={14} /> },
-                  { label: "Menunggu", value: "Menunggu Verifikasi", count: counts["Menunggu Verifikasi"], color: "sky", icon: <ClockIcon size={14} /> },
-                  { label: "Belum Unggah", value: "Belum Diunggah", count: counts["Belum Diunggah"], color: "slate", icon: <UploadCloudIcon size={14} /> },
-                ].map((stat, i) => {
-                  const isActive = statusFilter === stat.value;
-                  const colorMap: Record<string, any> = {
-                    blue: { inactive: "border-blue-100 bg-blue-50/40 text-blue-700 dark:bg-blue-500/5 dark:border-blue-500/10", active: "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/25", ripple: "bg-blue-400" },
-                    green: { inactive: "border-green-100 bg-green-50/40 text-green-700 dark:bg-green-500/5 dark:border-green-500/10", active: "bg-green-600 border-green-600 text-white shadow-lg shadow-green-500/25", ripple: "bg-green-400" },
-                    orange: { inactive: "border-orange-100 bg-orange-50/40 text-orange-700 dark:bg-orange-500/5 dark:border-orange-500/10", active: "bg-orange-600 border-orange-600 text-white shadow-lg shadow-orange-500/25", ripple: "bg-orange-400" },
-                    red: { inactive: "border-red-100 bg-red-50/40 text-red-700 dark:bg-red-500/5 dark:border-red-500/10", active: "bg-red-600 border-red-600 text-white shadow-lg shadow-red-500/25", ripple: "bg-red-400" },
-                    sky: { inactive: "border-sky-100 bg-sky-50/40 text-sky-700 dark:bg-sky-500/5 dark:border-sky-500/10", active: "bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/25", ripple: "bg-sky-300" },
-                    slate: { inactive: "border-slate-100 bg-slate-50/40 text-slate-700 dark:bg-slate-500/5 dark:border-slate-500/10", active: "bg-slate-600 border-slate-600 text-white shadow-lg shadow-slate-500/25", ripple: "bg-slate-400" },
-                  };
-                  const style = colorMap[stat.color];
+        {/* 2. Content */}
+        <div className="px-8 pb-8">
+          {!selectedDesa ? (
+            <>
+              {/* 1.5 Quick Stats Header */}
+              {!selectedDesa && (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-8">
+                  {[
+                    { label: "Total Desa", value: "Semua", count: counts.Semua, color: "blue", icon: <FileTextIcon size={14} /> },
+                    { label: "Terverifikasi", value: "Terverifikasi", count: counts.Terverifikasi, color: "green", icon: <CheckCircle2Icon size={14} /> },
+                    { label: "Perlu Perbaikan", value: "Sesuai (Perlu Perbaikan)", count: counts["Sesuai (Perlu Perbaikan)"], color: "orange", icon: <AlertCircleIcon size={14} /> },
+                    { label: "Tidak Sesuai", value: "Tidak Sesuai", count: counts["Tidak Sesuai"], color: "red", icon: <XCircleIcon size={14} /> },
+                    { label: "Menunggu", value: "Menunggu Verifikasi", count: counts["Menunggu Verifikasi"], color: "sky", icon: <ClockIcon size={14} /> },
+                    { label: "Belum Unggah", value: "Belum Diunggah", count: counts["Belum Diunggah"], color: "slate", icon: <UploadCloudIcon size={14} /> },
+                  ].map((stat, i) => {
+                    const isActive = statusFilter === stat.value;
+                    const colorMap: Record<string, any> = {
+                      blue: { inactive: "border-blue-100 bg-blue-50/40 text-blue-700 dark:bg-blue-500/5 dark:border-blue-500/10", active: "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/25", ripple: "bg-blue-400" },
+                      green: { inactive: "border-green-100 bg-green-50/40 text-green-700 dark:bg-green-500/5 dark:border-green-500/10", active: "bg-green-600 border-green-600 text-white shadow-lg shadow-green-500/25", ripple: "bg-green-400" },
+                      orange: { inactive: "border-orange-100 bg-orange-50/40 text-orange-700 dark:bg-orange-500/5 dark:border-orange-500/10", active: "bg-orange-600 border-orange-600 text-white shadow-lg shadow-orange-500/25", ripple: "bg-orange-400" },
+                      red: { inactive: "border-red-100 bg-red-50/40 text-red-700 dark:bg-red-500/5 dark:border-red-500/10", active: "bg-red-600 border-red-600 text-white shadow-lg shadow-red-500/25", ripple: "bg-red-400" },
+                      sky: { inactive: "border-sky-100 bg-sky-50/40 text-sky-700 dark:bg-sky-500/5 dark:border-sky-500/10", active: "bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/25", ripple: "bg-sky-300" },
+                      slate: { inactive: "border-slate-100 bg-slate-50/40 text-slate-700 dark:bg-slate-500/5 dark:border-slate-500/10", active: "bg-slate-600 border-slate-600 text-white shadow-lg shadow-slate-500/25", ripple: "bg-slate-400" },
+                    };
+                    const style = colorMap[stat.color];
 
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => setStatusFilter(stat.value)}
-                      className={`text-left p-4 rounded-[20px] border-2 transition-all duration-300 group relative overflow-hidden flex flex-col justify-between min-h-[85px]
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setStatusFilter(stat.value)}
+                        className={`text-left p-4 rounded-[20px] border-2 transition-all duration-300 group relative overflow-hidden flex flex-col justify-between min-h-[85px]
                         ${isActive ? style.active + " scale-[1.03] z-10" : style.inactive + " hover:border-gray-200 dark:hover:border-gray-600 hover:bg-white dark:hover:bg-gray-800 hover:shadow-md hover:-translate-y-0.5"}
                       `}
-                    >
-                      <div className="relative z-10">
-                        <div className={`flex items-center gap-2 text-[10px] font-black font-outfit uppercase tracking-[0.15em] mb-2 transition-colors
+                      >
+                        <div className="relative z-10">
+                          <div className={`flex items-center gap-2 text-[10px] font-black font-outfit uppercase tracking-[0.15em] mb-2 transition-colors
                           ${isActive ? "text-white/80" : "text-gray-400 dark:text-gray-500 group-hover:text-gray-600"}
                         `}>
-                          <span className={`${isActive ? "text-white" : "text-current opacity-70"}`}>{stat.icon}</span>
-                          {stat.label}
-                        </div>
-                        <p className={`text-2xl font-black font-outfit transition-all duration-300
+                            <span className={`${isActive ? "text-white" : "text-current opacity-70"}`}>{stat.icon}</span>
+                            {stat.label}
+                          </div>
+                          <p className={`text-2xl font-black font-outfit transition-all duration-300
                           ${isActive ? "text-white scale-110 origin-left" : "text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400"}
                         `}>
-                          {stat.count.toLocaleString()}
-                        </p>
-                      </div>
+                            {stat.count.toLocaleString()}
+                          </p>
+                        </div>
 
-                      {/* Decorative Background Element */}
-                      <div className={`absolute -right-4 -bottom-4 w-16 h-16 rounded-full blur-2xl transition-all duration-500
+                        {/* Decorative Background Element */}
+                        <div className={`absolute -right-4 -bottom-4 w-16 h-16 rounded-full blur-2xl transition-all duration-500
                         ${isActive ? "bg-white/30 scale-150" : "bg-gray-100 dark:bg-gray-700 opacity-0 group-hover:opacity-100"}
                       `}></div>
 
-                      {/* Active Indicator Bar */}
-                      {isActive && (
-                        <div className="absolute left-0 bottom-0 top-0 w-1.5 bg-white/30"></div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* SEARCH VIEW */}
-            <div className="flex flex-col gap-5 mb-8">
-              <div className="relative group w-full">
-                <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-600 transition-colors">
-                  <SearchIcon size={20} />
+                        {/* Active Indicator Bar */}
+                        {isActive && (
+                          <div className="absolute left-0 bottom-0 top-0 w-1.5 bg-white/30"></div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-                <input
-                  type="text"
-                  placeholder="Cari desa, kecamatan, atau kabupaten/kota..."
-                  className="w-full pl-14 pr-12 py-4.5 rounded-2xl bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-sm font-bold placeholder:text-gray-400 dark:text-white shadow-sm focus:shadow-xl focus:shadow-blue-500/5"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors"
-                  >
-                    <XIcon size={16} />
-                  </button>
+              )}
+
+              {/* SEARCH VIEW */}
+              <div className="flex flex-col gap-5 mb-8">
+                <div className="relative group w-full">
+                  <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-600 transition-colors">
+                    <SearchIcon size={20} />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Cari desa, kecamatan, atau kabupaten/kota..."
+                    className="w-full pl-14 pr-12 py-4.5 rounded-2xl bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-sm font-bold placeholder:text-gray-400 dark:text-white shadow-sm focus:shadow-xl focus:shadow-blue-500/5"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors"
+                    >
+                      <XIcon size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* HIERARCHY LIST OR SEARCH RESULTS */}
+              <div className="space-y-4 pb-4">
+                {searchTerm.trim().length >= 2 ? (
+                  // SEARCH RESULTS VIEW
+                  flatResults.length > 0 ? (
+                    flatResults.map((res: any, idx: number) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedDesa({ kab: res.kab, kec: res.kec, desa: res.desa })}
+                        className="w-full flex items-center justify-between p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-900 transition-all group"
+                      >
+                        <div className="flex items-center gap-4 text-left">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            <MapPinIcon size={20} />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-lg font-black text-gray-800 dark:text-white uppercase leading-tight">
+                              {res.desa.name}
+                            </span>
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider bg-blue-50/5/50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md w-fit border border-blue-100/50 dark:border-blue-800/50">
+                              <span>{res.kec}</span>
+                              <span className="text-blue-300">-</span>
+                              <span>{res.kab}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {res.isVerified ? (
+                            <div className="flex flex-col items-end gap-1">
+                              {res.status === 'Terverifikasi' ? (
+                                <span className="text-[10px] font-black uppercase text-green-600 bg-green-50 px-2 py-1 rounded-md border border-green-100">Terverifikasi</span>
+                              ) : res.status === 'Tidak Sesuai' ? (
+                                <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-2 py-1 rounded-md border border-red-100">Tidak Sesuai</span>
+                              ) : res.status === 'Sesuai (Perlu Perbaikan)' ? (
+                                <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2 py-1 rounded-md border border-orange-100">Perbaikan</span>
+                              ) : (
+                                <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100">Menunggu</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] font-black uppercase text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">Belum Verifikasi</span>
+                          )}
+                          <ChevronRightIcon size={16} className="text-gray-300" />
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-24 rounded-2xl border-2 border-dashed border-gray-100 dark:border-gray-800">
+                      <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                        <SearchIcon size={24} className="text-gray-300 dark:text-gray-600" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-1">Tidak Ditemukan</h3>
+                      <p className="text-gray-400 text-sm">Coba kata kunci pencarian yang lain</p>
+                    </div>
+                  )
+                ) : (
+                  // HIERARCHY TREE VIEW
+                  (filteredData as Kabupaten[]).map((kab) => {
+                    const isKabSelected = selectedDesa && (selectedDesa as any).kab === kab.name;
+                    return (
+                      <Accordion
+                        key={kab.id}
+                        title={kab.name}
+                        level={0}
+                        defaultOpen={!!searchTerm || !!isKabSelected}
+                      >
+                        {kab.kecamatan.map((kec) => {
+                          const isKecSelected = selectedDesa && (selectedDesa as any).kec === kec.name;
+                          return (
+                            <Accordion
+                              key={kec.id}
+                              title={`Kec. ${kec.name}`}
+                              level={1}
+                              defaultOpen={!!searchTerm || !!isKecSelected}
+                            >
+                              {kec.desa.map((desa) => (
+                                <Accordion
+                                  key={desa.id}
+                                  title={`Desa ${desa.name}`}
+                                  level={2}
+                                  onClick={() => setSelectedDesa({ kab: kab.name, kec: kec.name, desa })}
+                                  isVerified={!!verifiedDesaMap[desa.id]}
+                                  status={verifiedDesaMap[desa.id]}
+                                >
+                                  <div />
+                                </Accordion>
+                              ))}
+                            </Accordion>
+                          );
+                        })}
+                      </Accordion>
+                    );
+                  })
                 )}
               </div>
+            </>
+          ) : (
+            /* DESA DETAIL VIEW */
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <DesaVerificationPanel desaId={selectedDesa.desa.id} desaName={selectedDesa.desa.name} onUpdate={fetchVerifications} />
             </div>
-
-            {/* HIERARCHY LIST OR SEARCH RESULTS */}
-            <div className="space-y-4 pb-4">
-              {searchTerm.trim().length >= 2 ? (
-                // SEARCH RESULTS VIEW
-                flatResults.length > 0 ? (
-                  flatResults.map((res: any, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedDesa({ kab: res.kab, kec: res.kec, desa: res.desa })}
-                      className="w-full flex items-center justify-between p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-900 transition-all group"
-                    >
-                      <div className="flex items-center gap-4 text-left">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
-                          <MapPinIcon size={20} />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-lg font-black text-gray-800 dark:text-white uppercase leading-tight">
-                            {res.desa.name}
-                          </span>
-                          <div className="flex items-center gap-2 text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider bg-blue-50/5/50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md w-fit border border-blue-100/50 dark:border-blue-800/50">
-                            <span>{res.kec}</span>
-                            <span className="text-blue-300">-</span>
-                            <span>{res.kab}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {res.isVerified ? (
-                          <div className="flex flex-col items-end gap-1">
-                            {res.status === 'Terverifikasi' ? (
-                              <span className="text-[10px] font-black uppercase text-green-600 bg-green-50 px-2 py-1 rounded-md border border-green-100">Terverifikasi</span>
-                            ) : res.status === 'Tidak Sesuai' ? (
-                              <span className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-2 py-1 rounded-md border border-red-100">Tidak Sesuai</span>
-                            ) : res.status === 'Sesuai (Perlu Perbaikan)' ? (
-                              <span className="text-[10px] font-black uppercase text-orange-600 bg-orange-50 px-2 py-1 rounded-md border border-orange-100">Perbaikan</span>
-                            ) : (
-                              <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100">Menunggu</span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-[10px] font-black uppercase text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">Belum Verifikasi</span>
-                        )}
-                        <ChevronRightIcon size={16} className="text-gray-300" />
-                      </div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-24 rounded-2xl border-2 border-dashed border-gray-100 dark:border-gray-800">
-                    <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                      <SearchIcon size={24} className="text-gray-300 dark:text-gray-600" />
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-1">Tidak Ditemukan</h3>
-                    <p className="text-gray-400 text-sm">Coba kata kunci pencarian yang lain</p>
-                  </div>
-                )
-              ) : (
-                // HIERARCHY TREE VIEW
-                (filteredData as Kabupaten[]).map((kab) => {
-                  const isKabSelected = selectedDesa && (selectedDesa as any).kab === kab.name;
-                  return (
-                    <Accordion
-                      key={kab.id}
-                      title={kab.name}
-                      level={0}
-                      defaultOpen={!!searchTerm || !!isKabSelected}
-                    >
-                      {kab.kecamatan.map((kec) => {
-                        const isKecSelected = selectedDesa && (selectedDesa as any).kec === kec.name;
-                        return (
-                          <Accordion
-                            key={kec.id}
-                            title={`Kec. ${kec.name}`}
-                            level={1}
-                            defaultOpen={!!searchTerm || !!isKecSelected}
-                          >
-                            {kec.desa.map((desa) => (
-                              <Accordion
-                                key={desa.id}
-                                title={`Desa ${desa.name}`}
-                                level={2}
-                                onClick={() => setSelectedDesa({ kab: kab.name, kec: kec.name, desa })}
-                                isVerified={!!verifiedDesaMap[desa.id]}
-                                status={verifiedDesaMap[desa.id]}
-                              >
-                                <div />
-                              </Accordion>
-                            ))}
-                          </Accordion>
-                        );
-                      })}
-                    </Accordion>
-                  );
-                })
-              )}
-            </div>
-          </>
-        ) : (
-          /* DESA DETAIL VIEW */
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <DesaVerificationPanel desaId={selectedDesa.desa.id} desaName={selectedDesa.desa.name} onUpdate={fetchVerifications} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
