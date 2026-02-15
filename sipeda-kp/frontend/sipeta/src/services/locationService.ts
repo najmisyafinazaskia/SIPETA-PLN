@@ -1,4 +1,9 @@
-const API_URL = 'http://localhost:5000/api/locations';
+
+const _rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5055';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
 
 export interface LocationData {
     _id?: string;

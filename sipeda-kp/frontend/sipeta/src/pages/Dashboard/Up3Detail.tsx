@@ -3,12 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon, BoxCubeIcon, BoltIcon, GroupIcon, PencilIcon } from "../../icons";
 import { useAuth } from "../../context/AuthContext";
 
-const rawApiUrl = API_URL || 'http://localhost:5055';
-const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+const _rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5055';
+const API_URL = _rawUrl.replace(/\/+$/, '');
 
 
-const rawApiUrl = API_URL || 'http://localhost:5000';
-const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+
+
+
 
 interface Up3Stats {
     name: string;

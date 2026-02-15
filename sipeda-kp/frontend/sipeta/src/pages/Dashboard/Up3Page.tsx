@@ -5,13 +5,15 @@ import { useAuth } from "../../context/AuthContext";
 import Up3Map from "./Up3Map";
 import MapFilter from "../../components/ui/MapFilter";
 
-const rawApiUrl = API_URL || 'http://localhost:5055';
-const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+const _rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5055';
+const API_URL = _rawUrl.replace(/\/+$/, '');
 
 
 
-const rawApiUrl = API_URL || 'http://localhost:5000';
-const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+
+
+
 
 interface Up3Data {
     name: string;

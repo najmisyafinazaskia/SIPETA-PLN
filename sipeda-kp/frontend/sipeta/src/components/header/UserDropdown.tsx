@@ -4,13 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 
-const rawApiUrl = API_URL || 'http://localhost:5055';
-const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+const _rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5055';
+const API_URL = _rawUrl.replace(/\/+$/, '');
 
 
 
-const rawApiUrl = API_URL || 'http://localhost:5000';
-const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+
+
+
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);

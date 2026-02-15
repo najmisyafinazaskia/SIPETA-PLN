@@ -3,12 +3,14 @@ import { MapContainer, TileLayer, GeoJSON, Marker, useMap, ZoomControl } from "r
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const rawApiUrl = API_URL || 'http://localhost:5055';
-const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+const _rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5055';
+const API_URL = _rawUrl.replace(/\/+$/, '');
 
 
-const rawApiUrl = API_URL || 'http://localhost:5000';
-const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+
+
+
 
 interface KabkotMapProps {
   activeFilters: { stable: boolean; warning: boolean };

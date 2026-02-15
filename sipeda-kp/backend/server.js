@@ -21,6 +21,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+app.options('*', cors()); // Enable pre-flight for all routes
 app.use(express.json());
 app.use(ensureDbConnected); // Penjaga koneksi DB untuk semua rute API
 
