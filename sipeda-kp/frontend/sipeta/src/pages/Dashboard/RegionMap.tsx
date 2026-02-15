@@ -537,7 +537,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
           const name = String(rawName).toUpperCase().trim();
 
           if (filterLocations) {
-            if (filterLocations.length === 0) return false;
+            if (filterLocations.length === 0) return true; // Keep boundaries visible even when all points hidden
 
             if (markerLevel === 'up3') {
               const myUp3 = KABUPATEN_TO_UP3[name];
@@ -886,7 +886,9 @@ const RegionMap: React.FC<RegionMapProps> = ({
             if (layer.openPopup) {
               layer.openPopup();
             } else {
-              layer.fire('click');
+              // Ensure we pass coordinates for dynamic popups that depend on e.latlng
+              const latlng = layer.getLatLng ? layer.getLatLng() : (layer._latlng || coords);
+              layer.fire('click', { latlng: latlng });
             }
           }
         });
