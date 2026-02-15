@@ -348,7 +348,6 @@ const RegionMap: React.FC<RegionMapProps> = ({
         }
       }));
     }
-    luxury_search_source_kecamatan
     // Filter berdasarkan nama yang cocok dengan kata kunci
     const matches = searchSource.filter((f: any) => {
       const name = (f.properties?.name || "").toLowerCase();
