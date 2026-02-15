@@ -1003,7 +1003,29 @@ const Notification = require('../models/Notification'); // Import Notification m
 exports.getLocationPointDetail = async (req, res) => {
     try {
         const { id } = req.params;
-        const location = await Location.findById(id).lean();
+        const mongoose = require('mongoose');
+
+        let location;
+        if (mongoose.Types.ObjectId.isValid(id)) {
+            location = await Location.findById(id).lean();
+        } else {
+            // Assume it's a Kecamatan name search (for Kecamatan Map popup)
+            // Find one representative to get fields, but we might need to aggregate dusuns if we want them all.
+            // For now, let's just find one to prevent crash.
+            // Ideally we should aggregate ALL dusuns for this kecamatan.
+            const locs = await Location.find({ kecamatan: { $regex: new RegExp(`^${id}$`, 'i') } }).lean();
+            if (locs.length > 0) {
+                // Merge dusuns from all locations in this kecamatan
+                const allDusuns = locs.reduce((acc, loc) => acc.concat(loc.dusun_detail || []), []);
+                location = {
+                    ...locs[0], // Use first location as base for other fields
+                    dusun_detail: allDusuns,
+                    warga: locs.reduce((sum, l) => sum + (l.warga || 0), 0),
+                    // You might want to aggregate other stats here
+                };
+            }
+        }
+
         if (!location) return res.status(404).json({ success: false, message: 'Not found' });
 
         const filteredDusuns = (location.dusun_detail || []).filter(d =>
@@ -1082,6 +1104,7 @@ exports.getKecamatanPoints = async (req, res) => {
             return {
                 type: "Feature",
                 properties: {
+                    id: k.nama_kecamatan, // Stable ID for search matching
                     name: k.nama_kecamatan,
                     kabupaten: k.kabupaten,
                     kecamatan: k.nama_kecamatan,
