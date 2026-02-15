@@ -35,7 +35,7 @@ const up3Icon = L.icon({
 });
 
 const ulpIcon = L.icon({
-  iconUrl: '/assets/icons/gedung_ulp.png',
+  iconUrl: '/assets/icons/ulp_temp.png',
   iconSize: [25, 30],
   iconAnchor: [12, 30],
   popupAnchor: [0, -30]
