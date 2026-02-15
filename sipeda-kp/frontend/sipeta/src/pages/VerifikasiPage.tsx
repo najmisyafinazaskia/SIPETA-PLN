@@ -107,6 +107,11 @@ const StatusActionModal = ({
   desaName: string;
 }) => {
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (isOpen) setMessage("");
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const isCorrection = status === 'Sesuai (Perlu Perbaikan)';
@@ -333,6 +338,8 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
   const isUP2K = user?.role === "superadmin";
   const isUP3 = user?.role === "admin";
 
+  const [message, setMessage] = useState<string | null>(null);
+
   // Defined outside useEffect to be reusable
   const fetchStatus = React.useCallback(async () => {
     try {
@@ -346,6 +353,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
         const uUnit = data.uploadedBy?.unit;
         setUploader(uUnit ? `${uUnit} - ${uName}` : uName);
         setStatus(data.status || "Menunggu Verifikasi");
+        setMessage(data.message || null);
       } else {
         // Reset if no data found
         setFile(null);
@@ -353,6 +361,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
         setLastUpload(null);
         setUploader(null);
         setStatus("Menunggu Verifikasi");
+        setMessage(null);
       }
     } catch (err) { console.error(err); }
   }, [desaId, API_URL]);
@@ -425,6 +434,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
 
       if (res.ok) {
         setStatus(newStatus);
+        setMessage(message || null);
         setShowActionModal({ open: false, status: '' });
         setShowCancelModal(false);
         if (newStatus === 'Terverifikasi') {
@@ -469,6 +479,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
         setLastUpload(null);
         setUploader(null);
         setStatus("Menunggu Verifikasi");
+        setMessage(null);
         setShowDeleteModal(false);
         showAlert("Berhasil!", "Dokumen berhasil dihapus", "success");
         onUpdate();
@@ -607,6 +618,18 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
               </div>
             )}
           </div>
+
+          {message && (status === 'Tidak Sesuai' || status === 'Sesuai (Perlu Perbaikan)') && (
+            <div className={`mt-2 mb-4 p-4 rounded-xl border-l-4 ${status === 'Tidak Sesuai'
+              ? 'bg-red-50 border-red-500 text-red-800 dark:bg-red-900/10 dark:text-red-200'
+              : 'bg-orange-50 border-orange-500 text-orange-800 dark:bg-orange-900/10 dark:text-orange-200'
+              }`}>
+              <h5 className="font-bold uppercase text-xs tracking-wider mb-2 flex items-center gap-2 opacity-80">
+                <AlertCircleIcon size={14} /> Catatan Verifikator:
+              </h5>
+              <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap ml-6">"{message}"</p>
+            </div>
+          )}
 
           <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">

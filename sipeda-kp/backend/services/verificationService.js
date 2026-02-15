@@ -32,6 +32,7 @@ class VerificationService {
             verification.publicId = uploadResult.publicId;
             verification.uploadedBy = userId;
             verification.status = 'Menunggu Verifikasi';
+            verification.message = null; // Clear previous message
             await verification.save();
         } else {
             verification = new Verification({
