@@ -555,18 +555,12 @@ const RegionMap: React.FC<RegionMapProps> = ({
 
           if (filterLocations) {
             // Keep boundaries visible if no locations selected (Show all background)
+            // Keep boundaries visible if no locations selected (Show all background)
             if (filterLocations.length === 0) return true;
-            if (markerLevel === 'up3') {
-              const myUp3 = KABUPATEN_TO_UP3[name];
-              if (!myUp3) return false;
-              // Check for exact or partial match (handle 'UP3 Banda Aceh' vs 'Banda Aceh')
-              return filterLocations.some(loc => {
-                const uLoc = loc.toUpperCase();
-                const uMyUp3 = myUp3.toUpperCase();
-                return uLoc.includes(uMyUp3) || uMyUp3.includes(uLoc);
-              });
-            }
-            if (markerLevel === 'ulp') return true; // Show all boundaries on ULP map
+
+            // Show all boundaries on ULP and UP3 maps (User Request: Overlay persists)
+            if (markerLevel === 'ulp' || markerLevel === 'up3') return true;
+
             return filterLocations.some(loc => loc.toUpperCase().trim() === name);
           }
           return true;
