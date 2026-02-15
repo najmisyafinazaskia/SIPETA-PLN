@@ -70,11 +70,10 @@ export default function DusunPage() {
 
     // Sync Map Filter with Tabs below
     useEffect(() => {
-        if (!showStable && showWarning) {
-            setActiveTab("warning");
-        } else {
-            // If both checked, both unchecked, or only stable checked
+        if (showStable && !showWarning) {
             setActiveTab("stable");
+        } else if (!showStable && showWarning) {
+            setActiveTab("warning");
         }
     }, [showStable, showWarning]);
 

@@ -99,6 +99,15 @@ export default function KabKotPage() {
     fetchData();
   }, []);
 
+  // Sync Map Filter with Tabs
+  useEffect(() => {
+    if (showStable && !showWarning) {
+      setActiveTab("stable");
+    } else if (!showStable && showWarning) {
+      setActiveTab("warning");
+    }
+  }, [showStable, showWarning]);
+
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (searchTerm.trim().length > 2) {

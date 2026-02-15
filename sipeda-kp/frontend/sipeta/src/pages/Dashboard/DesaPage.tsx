@@ -109,13 +109,21 @@ export default function DesaPage() {
         if (isMounted) setLoading(false);
       }
     };
-
     fetchData();
 
     return () => {
       isMounted = false;
     };
   }, []);
+
+  // Sync Map Filter with Tabs
+  useEffect(() => {
+    if (showStable && !showWarning) {
+      setActiveTab("stable");
+    } else if (!showStable && showWarning) {
+      setActiveTab("warning");
+    }
+  }, [showStable, showWarning]);
 
   const daftarKecamatan = useMemo(() => {
     const kecs = allDesa.map((item) => item.kec);

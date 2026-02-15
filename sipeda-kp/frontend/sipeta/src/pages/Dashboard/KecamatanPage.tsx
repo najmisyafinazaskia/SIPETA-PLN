@@ -100,7 +100,14 @@ export default function KecamatanPage() {
     fetchData();
   }, []);
 
-
+  // Sync Map Filter with Tabs
+  useEffect(() => {
+    if (showStable && !showWarning) {
+      setActiveTab("stable");
+    } else if (!showStable && showWarning) {
+      setActiveTab("warning");
+    }
+  }, [showStable, showWarning]);
 
   const daftarKabupaten = useMemo(() => {
     const kabs = allKecamatan.map((item) => item.kab);
