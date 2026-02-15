@@ -374,6 +374,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
   // Pengaturan awal peta Leaflet dan pengambilan data dari server
   useEffect(() => {
     if (!mapRef.current || leafletMap.current) return;
+    console.log("RegionMap initialized - v2.1.2 - Robust Search & Boundary Fix");
 
     // Konfigurasi ikon default Leaflet agar kompatibel dengan sistem bundling Vite
     const DefaultIcon = L.Icon.Default as any;
@@ -905,48 +906,53 @@ const RegionMap: React.FC<RegionMapProps> = ({
     const id = feature.properties.id || feature.properties.locationId;
 
     setSelectedPointId(id);
-    // Clear any previously selected point after a short delay to allow re-render
-    setTimeout(() => setSelectedPointId(null), 2000);
 
-    // Center map and zoom
-    leafletMap.current.setView([coords[1], coords[0]], 15);
+    // Smooth fly to location
+    leafletMap.current.flyTo([coords[1], coords[0]], 15, { duration: 1.5 });
 
-    // After animation, find and open the popup
-    setTimeout(() => {
+    // Open popup after movement ends
+    const openSearchPopup = () => {
+      if (!leafletMap.current) return;
+      leafletMap.current.off('moveend', openSearchPopup);
+
       if (pointsLayer.current) {
         pointsLayer.current.eachLayer((layer: any) => {
           const props = layer.feature?.properties || {};
           const options = layer.options || {};
 
           const lId = (props.id || props.locationId || options.locationId || options.id || "").toString();
-          const targetId = (feature.properties.id || feature.properties.locationId || "").toString();
+          const targetId = (id || "").toString();
 
           const layerName = (props.name || props.Desa || options.title || options.desaName || "").toString().toUpperCase();
           const targetName = name.toString().toUpperCase();
 
           if ((targetId && lId && targetId === lId) || (layerName && targetName && layerName === targetName)) {
-            // Trigger click or open popup
             if (layer.openPopup) {
               layer.openPopup();
             } else {
-              // Ensure we pass coordinates for dynamic popups that depend on e.latlng
-              // Leaflet coords are [lat, lng], but GeoJSON coordinates are [lng, lat]
               const latlng = layer.getLatLng ? layer.getLatLng() : L.latLng(coords[1], coords[0]);
               layer.fire('click', { latlng: latlng });
             }
           }
         });
       }
-    }, 800);
+    };
 
+    leafletMap.current.on('moveend', openSearchPopup);
+
+    // Safety fallback if moveend takes too long
+    setTimeout(openSearchPopup, 2000);
     // Clear search set query but keep selected status
     setSearchQuery("");
     setShowSuggestions(false);
   };
 
   return (
-    <div className="relative w-full h-full bg-[#0a0a0a] overflow-hidden rounded-xl shadow-2xl border border-white/5">
-      {/* Loading Overlay */}
+    <div className="relative w-full h-full bg-[#0f172a] overflow-hidden rounded-xl shadow-2xl border border-white/10 group/map">
+      {/* Version Indicator for Debugging */}
+      <div className="absolute bottom-2 left-2 z-[1001] pointer-events-none opacity-20 group-hover/map:opacity-80 transition-opacity">
+        <span className="text-[8px] font-black text-white/40 uppercase tracking-tighter">MAP v2.1.2-R</span>
+      </div>
       {loading && (
         <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4">
