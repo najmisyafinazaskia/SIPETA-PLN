@@ -2,7 +2,12 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon, GroupIcon } from "../../icons";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const rawApiUrl = API_URL || 'http://localhost:5055';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+
+const rawApiUrl = API_URL || 'http://localhost:5000';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
 
 
 

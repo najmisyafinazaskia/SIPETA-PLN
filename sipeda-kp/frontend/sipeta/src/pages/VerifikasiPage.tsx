@@ -3,6 +3,10 @@ import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon,
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+const rawApiUrl = API_URL || 'http://localhost:5055';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+
 // --- TIPE DATA ---
 interface Dusun {
   id: string;
@@ -29,7 +33,8 @@ interface Kabupaten {
   kecamatan: Kecamatan[];
 }
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const rawApiUrl = API_URL || 'http://localhost:5000';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
 
 // --- COMPONENTS ---
 
@@ -258,7 +263,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
   const [loadingNotif, setLoadingNotif] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || "";
+  const API_URL = API_URL || "";
   const isUP2K = user?.role === "superadmin";
   const isUP3 = user?.role === "admin";
 

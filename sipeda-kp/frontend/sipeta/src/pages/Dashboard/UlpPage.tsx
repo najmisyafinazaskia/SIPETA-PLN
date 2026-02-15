@@ -5,8 +5,13 @@ import { useAuth } from "../../context/AuthContext";
 import UlpMap from "./UlpMap";
 import MapFilter from "../../components/ui/MapFilter";
 
+const rawApiUrl = API_URL || 'http://localhost:5055';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+
+const rawApiUrl = API_URL || 'http://localhost:5000';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
 
 interface UlpData {
     name: string;

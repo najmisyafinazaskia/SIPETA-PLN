@@ -7,7 +7,12 @@ import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const rawApiUrl = API_URL || 'http://localhost:5055';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+
+const rawApiUrl = API_URL || 'http://localhost:5000';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
 
 interface RegionMapProps {
   activeFilters: { stable: boolean; warning: boolean };

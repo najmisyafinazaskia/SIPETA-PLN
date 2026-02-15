@@ -7,9 +7,14 @@ import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { useAuth } from "../../context/AuthContext";
 
+const rawApiUrl = API_URL || 'http://localhost:5055';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+
 // --- KONFIGURASI ---
 const USE_DUMMY_MODE = false;
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5055";
+const rawApiUrl = API_URL || 'http://localhost:5055';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
 
 interface SignInFormProps {
   onLogin?: () => void;

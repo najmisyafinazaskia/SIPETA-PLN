@@ -4,7 +4,12 @@ import KabkotMap from "./KabkotMap";
 import MapFilter from "../../components/ui/MapFilter";
 import SearchableSelect from "../../components/ui/SearchableSelect";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const rawApiUrl = API_URL || 'http://localhost:5055';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+
+const rawApiUrl = API_URL || 'http://localhost:5000';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
 
 interface LocationItem {
   name: string;

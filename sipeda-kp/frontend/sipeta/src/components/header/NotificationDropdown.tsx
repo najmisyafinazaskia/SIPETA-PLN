@@ -4,6 +4,10 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { CheckCheckIcon, Trash2Icon, Loader2 } from "lucide-react";
 
+const rawApiUrl = API_URL || 'http://localhost:5055';
+const API_URL = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
+
 interface Notification {
     _id: string;
     title: string;
@@ -90,7 +94,7 @@ export default function NotificationDropdown() {
             const token = localStorage.getItem("token");
             if (!token) return;
 
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/notifications`, {
+            const res = await fetch(`${API_URL}/api/notifications`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
@@ -118,7 +122,7 @@ export default function NotificationDropdown() {
         try {
             setIsActionLoading(true);
             const token = localStorage.getItem("token");
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/notifications/read-all`, {
+            const res = await fetch(`${API_URL}/api/notifications/read-all`, {
                 method: "PUT",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -151,7 +155,7 @@ export default function NotificationDropdown() {
         try {
             setIsActionLoading(true);
             const token = localStorage.getItem("token");
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/notifications/clear`, {
+            const res = await fetch(`${API_URL}/api/notifications/clear`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -171,7 +175,7 @@ export default function NotificationDropdown() {
         // 1. Mark as read immediately in the backend
         try {
             const token = localStorage.getItem("token");
-            await fetch(`${import.meta.env.VITE_API_URL}/api/notifications/${notif._id}/read`, {
+            await fetch(`${API_URL}/api/notifications/${notif._id}/read`, {
                 method: "PUT",
                 headers: { Authorization: `Bearer ${token}` },
             });
