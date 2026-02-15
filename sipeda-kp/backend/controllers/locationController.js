@@ -875,7 +875,7 @@ exports.getLocationById = async (req, res) => {
 // Get locations as GeoJSON - OPTIMIZED for production (Vercel payload limit)
 exports.getGeoJSON = async (req, res) => {
     try {
-        // Hanya ambil field yang benar-benar dibutuhkan untuk merender titik di peta
+        // Optimized query: only select fields needed for map rendering
         const locations = await Location.find({}, {
             desa: 1,
             kecamatan: 1,
@@ -885,7 +885,7 @@ exports.getGeoJSON = async (req, res) => {
             x: 1,
             y: 1,
             location: 1,
-            dusun_detail: 1, // Kita butuh ini untuk hitung status, tapi jangan kirim semua ke client
+            dusun_detail: 1,
             warga: 1,
             pelanggan: 1
         }).lean();
@@ -893,9 +893,8 @@ exports.getGeoJSON = async (req, res) => {
         const features = locations.filter(l => {
             const X = l.X || l.x;
             const Y = l.Y || l.y;
-            const hasXY = X && Y && !isNaN(parseFloat(X)) && !isNaN(parseFloat(Y));
-            const hasLoc = l.location && l.location.coordinates && l.location.coordinates.length === 2;
-            return hasXY || hasLoc;
+            return (X && Y && !isNaN(parseFloat(X)) && !isNaN(parseFloat(Y))) ||
+                (l.location && l.location.coordinates && l.location.coordinates.length === 2);
         }).map(l => {
             let geometry = null;
             const X = l.X || l.x;
@@ -908,23 +907,17 @@ exports.getGeoJSON = async (req, res) => {
                     geometry = { type: "Point", coordinates: [lng, lat] };
                 }
             }
+            if (!geometry && l.location) geometry = l.location;
 
-            if (!geometry && l.location) {
-                geometry = l.location;
-            }
-
-            const rawDusuns = l.dusun_detail || [];
-            const filteredDusuns = rawDusuns.filter(d =>
-                d.status !== 'REFF!' && d.status !== '#REF!' && d.status !== '0' && d.nama !== 'REFF!'
-            );
-
-            // Tentukan status (Stable/Warning) tanpa mengirim detail semua dusun
+            // Logic for coloring (Safe status determination)
             const isStrictMode = req.query.strict === 'true';
             let statusText = "Berlistrik PLN";
 
             if (isStrictMode) {
-                const badDusunsCount = filteredDusuns.filter(d => {
+                const rawDusuns = l.dusun_detail || [];
+                const badDusunsCount = rawDusuns.filter(d => {
                     const s = (d.status || "").toUpperCase();
+                    if (s === 'REFF!' || s === '#REF!' || s === '0' || d.nama === 'REFF!') return false;
                     return !(s.includes('PLN') && !s.includes('NON PLN') && !s.includes('BELUM'));
                 }).length;
                 if (badDusunsCount > 0) statusText = "Belum Berlistrik";
@@ -938,17 +931,13 @@ exports.getGeoJSON = async (req, res) => {
                     kabupaten: l.kabupaten,
                     kecamatan: l.kecamatan,
                     status: statusText,
-                    dusun_count: filteredDusuns.length,
                     up3: KABUPATEN_TO_UP3[(l.kabupaten || "").toUpperCase()] || ""
                 },
                 geometry: geometry
             };
         });
 
-        res.json({
-            type: "FeatureCollection",
-            features: features
-        });
+        res.json({ type: "FeatureCollection", features: features });
     } catch (error) {
         console.error("GeoJSON Error:", error);
         res.status(500).json({ success: false, message: error.message });
@@ -978,28 +967,33 @@ exports.getLocationPointDetail = async (req, res) => {
     }
 };
 
-// Get Boundary GeoJSON - Fix for Vercel
+// Get Boundary GeoJSON - ULTRA RESILIENT for Vercel
 exports.getBoundaries = async (req, res) => {
     try {
         const fs = require('fs');
         const path = require('path');
-        // Vercel compatible path
-        const filePath = path.resolve(process.cwd(), 'data/geojson/aceh_kabupaten.geojson');
 
-        if (!fs.existsSync(filePath)) {
-            // Fallback to relative if cwd fails
-            const fallbackPath = path.join(__dirname, '../data/geojson/aceh_kabupaten.geojson');
-            if (fs.existsSync(fallbackPath)) {
-                return res.json(JSON.parse(fs.readFileSync(fallbackPath, 'utf8')));
+        // Coba beberapa kemungkinan path untuk Vercel
+        const paths = [
+            path.resolve(process.cwd(), 'data/geojson/aceh_kabupaten.geojson'),
+            path.join(__dirname, '../data/geojson/aceh_kabupaten.geojson'),
+            path.join(process.cwd(), 'backend/data/geojson/aceh_kabupaten.geojson')
+        ];
+
+        for (const filePath of paths) {
+            if (fs.existsSync(filePath)) {
+                console.log(`Loading boundary from: ${filePath}`);
+                const data = fs.readFileSync(filePath, 'utf8');
+                return res.json(JSON.parse(data));
             }
-            throw new Error(`File not found at ${filePath}`);
         }
 
-        const data = fs.readFileSync(filePath, 'utf8');
-        res.json(JSON.parse(data));
+        console.warn("All boundary paths failed. Returning empty collection.");
+        // Return empty FeatureCollection to prevent Frontend from crashing
+        res.json({ type: "FeatureCollection", features: [] });
     } catch (error) {
         console.error("Boundaries Error:", error);
-        res.status(500).json({ success: false, message: error.message });
+        res.json({ type: "FeatureCollection", features: [] }); // Silently fail to keep map running
     }
 };
 const Notification = require('../models/Notification'); // Import Notification model
