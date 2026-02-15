@@ -1066,6 +1066,8 @@ export default function VerifikasiPage() {
               kab: kab.name,
               kec: kec.name,
               desa: desa,
+              isVerified: !!verifiedDesaMap[desa.id],
+              status: verifiedDesaMap[desa.id]
             });
           }
         });
@@ -1073,7 +1075,7 @@ export default function VerifikasiPage() {
     });
 
     return results.sort((a, b) => a.desa.name.localeCompare(b.desa.name));
-  }, [searchTerm, allData]);
+  }, [searchTerm, allData, verifiedDesaMap]);
 
   // Recursively filter data
   const filteredData = useMemo(() => {
