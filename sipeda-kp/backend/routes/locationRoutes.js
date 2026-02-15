@@ -45,6 +45,7 @@ router.get('/search', locationController.globalSearch);
 router.get('/map/geojson', locationController.getGeoJSON);
 router.get('/map/kecamatan-points', locationController.getKecamatanPoints);
 router.get('/map/boundaries', locationController.getBoundaries);
+router.get('/map/point-detail/:id', locationController.getLocationPointDetail);
 
 // Get single location by ID
 router.get('/:id', locationController.getLocationById);
