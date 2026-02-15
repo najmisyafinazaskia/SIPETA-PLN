@@ -281,7 +281,14 @@ const RegionMap: React.FC<RegionMapProps> = ({
       searchSource = Object.entries(data.points.up3DesaGroup).flatMap(([up3Name, desaList]: any) =>
         desaList.map((desa: any) => ({
           type: "Feature",
-          properties: { name: desa.Desa, up3: up3Name, kabupaten: desa.Kabupaten, ulp: desa.ULP, kecamatan: desa.Kecamatan },
+          properties: {
+            name: desa.Desa,
+            up3: up3Name,
+            kabupaten: desa.Kabupaten,
+            ulp: desa.ULP,
+            kecamatan: desa.Kecamatan,
+            id: desa.locationId // Include ID for selection
+          },
           geometry: { type: "Point", coordinates: [desa.longitude, desa.latitude] }
         }))
       );
@@ -291,7 +298,14 @@ const RegionMap: React.FC<RegionMapProps> = ({
       searchSource = Object.entries(data.points.ulpDesaGroup).flatMap(([ulpName, desaList]: any) =>
         desaList.map((desa: any) => ({
           type: "Feature",
-          properties: { name: desa.Desa, ulp: ulpName, kabupaten: desa.Kabupaten, up3: desa.UP3, kecamatan: desa.Kecamatan },
+          properties: {
+            name: desa.Desa,
+            ulp: ulpName,
+            kabupaten: desa.Kabupaten,
+            up3: desa.UP3,
+            kecamatan: desa.Kecamatan,
+            id: desa.locationId // Include ID for selection
+          },
           geometry: { type: "Point", coordinates: [desa.longitude, desa.latitude] }
         }))
       );
@@ -650,6 +664,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
                   weight: 1,
                   fillColor: isBerlistrik ? '#2ecc71' : '#f39c12',
                   fillOpacity: 0.9,
+                  locationId: desa.locationId // Attach ID to options
                 } as any);
 
                 // Add identity for search lookup
@@ -735,7 +750,8 @@ const RegionMap: React.FC<RegionMapProps> = ({
                     color: 'white',
                     weight: 1,
                     fillColor: isBerlistrik ? '#2ecc71' : '#f39c12',
-                    fillOpacity: 0.9
+                    fillOpacity: 0.9,
+                    locationId: desa.locationId // Attach ID to options
                   } as any);
 
                   // Add identity for search lookup
@@ -902,10 +918,13 @@ const RegionMap: React.FC<RegionMapProps> = ({
           const props = layer.feature?.properties || {};
           const options = layer.options || {};
 
+          const lId = (props.id || props.locationId || options.locationId || options.id || "").toString();
+          const targetId = (feature.properties.id || feature.properties.locationId || "").toString();
+
           const layerName = (props.name || props.Desa || options.title || options.desaName || "").toString().toUpperCase();
           const targetName = name.toString().toUpperCase();
 
-          if (layerName === targetName || layerName.includes(targetName) || targetName.includes(layerName)) {
+          if ((targetId && lId && targetId === lId) || (layerName && targetName && layerName === targetName)) {
             // Trigger click or open popup
             if (layer.openPopup) {
               layer.openPopup();
