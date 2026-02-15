@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
 const verificationController = require('../controllers/verificationController');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 
 // Middleware Proteksi
 const verifyToken = (req, res, next) => {
@@ -20,22 +19,7 @@ const verifyToken = (req, res, next) => {
     });
 };
 
-// Konfigurasi Multer
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const uploadPath = 'uploads/verifications/';
-        // Pastikan folder ada
-        const fs = require('fs');
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        cb(null, uploadPath);
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({
     storage: storage,
@@ -52,7 +36,18 @@ const upload = multer({
 router.get('/', verificationController.getAllVerifications);
 router.get('/:dusunId', verificationController.getVerification);
 router.get('/download/:dusunId', verificationController.downloadFile);
-router.post('/upload/:dusunId', verifyToken, upload.single('document'), verificationController.uploadFile);
+router.post('/upload/:dusunId', verifyToken, (req, res, next) => {
+    upload.single('document')(req, res, (err) => {
+        if (err) {
+            console.error('❌ Multer Error:', err);
+            return res.status(500).json({
+                message: "Gagal memproses file",
+                error: err.message
+            });
+        }
+        next();
+    });
+}, verificationController.uploadFile);
 router.put('/status/:dusunId', verifyToken, verificationController.updateStatus);
 router.delete('/:dusunId', verifyToken, verificationController.deleteVerification);
 

@@ -4,18 +4,32 @@ const Notification = require('../models/Notification');
 const fs = require('fs');
 const path = require('path');
 
+const storageService = require('./storageService');
+
 class VerificationService {
     async uploadFile(userId, dusunId, dusunName, file) {
-        if (!file) throw new Error("File wajib diunggah.");
+        console.log(`[UPLOAD] Memulai upload untuk Dusun: ${dusunName} (${dusunId})`);
+        if (!file) {
+            console.error('[UPLOAD] File tidak ditemukan di request');
+            throw new Error("File wajib diunggah.");
+        }
+
+        // Upload ke Supabase
+        const uploadResult = await storageService.uploadFile(file);
+
+        console.log('[UPLOAD] File berhasil diunggah ke Supabase:', uploadResult.path);
 
         let verification = await Verification.findOne({ dusunId });
 
         if (verification) {
-            const oldPath = path.join(__dirname, '..', verification.filePath);
-            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+            // Hapus file lama di Supabase jika ada
+            if (verification.publicId) {
+                await storageService.deleteFile(verification.publicId);
+            }
 
             verification.fileName = file.originalname;
-            verification.filePath = file.path.replace(/\\/g, '/');
+            verification.filePath = uploadResult.path;
+            verification.publicId = uploadResult.publicId;
             verification.uploadedBy = userId;
             verification.status = 'Menunggu Verifikasi';
             await verification.save();
@@ -23,7 +37,8 @@ class VerificationService {
             verification = new Verification({
                 dusunId,
                 fileName: file.originalname,
-                filePath: file.path.replace(/\\/g, '/'),
+                filePath: uploadResult.path,
+                publicId: uploadResult.publicId,
                 uploadedBy: userId,
                 status: 'Menunggu Verifikasi'
             });
@@ -55,8 +70,10 @@ class VerificationService {
         const verification = await Verification.findOne({ dusunId });
         if (!verification) throw new Error("Data tidak ditemukan");
 
-        const filePath = path.join(__dirname, '..', verification.filePath);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        // Hapus file di Supabase
+        if (verification.publicId) {
+            await storageService.deleteFile(verification.publicId);
+        }
 
         await Verification.deleteOne({ _id: verification._id });
         return true;
@@ -96,9 +113,18 @@ class VerificationService {
     async getFilePath(dusunId) {
         const verification = await Verification.findOne({ dusunId });
         if (!verification) throw new Error("Data tidak ditemukan");
+
+        if (verification.filePath.startsWith('http')) {
+            return {
+                absolutePath: verification.filePath,
+                fileName: verification.fileName,
+                publicId: verification.publicId,
+                isRemote: true
+            };
+        }
         const absolutePath = path.join(__dirname, '..', verification.filePath);
         if (!fs.existsSync(absolutePath)) throw new Error("File fisik tidak ditemukan di server");
-        return { absolutePath, fileName: verification.fileName };
+        return { absolutePath, fileName: verification.fileName, isRemote: false };
     }
 }
 

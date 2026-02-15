@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, TrashIcon, CheckCircle2Icon, XCircleIcon, AlertCircleIcon, ImageIcon, DownloadIcon, XIcon } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import ModernAlert from "../components/ui/ModernAlert";
 
 const _rawUrl = import.meta.env.VITE_API_URL || '';
 const API_URL = _rawUrl.replace(/\/+$/, '');
@@ -114,7 +115,7 @@ const StatusActionModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-md w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
@@ -249,6 +250,59 @@ const VerificationSuccessModal = ({
 };
 
 // 1.5 DESA VERIFICATION PANEL (Moved from DusunItem)
+const ReplaceConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  isLoading,
+  desaName
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+  desaName: string;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 mb-2">
+            <EditIcon size={32} />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Ganti Dokumen?</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-bold">
+              Apakah Anda yakin ingin mengganti dokumen untuk desa <span className="text-blue-600">{desaName}</span>? Dokumen yang lama akan digantikan oleh yang baru.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full mt-4">
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2"
+            >
+              Ya, Ganti
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string, desaName: string, onUpdate: () => void }) => {
   const { user } = useAuth();
   const [file, setFile] = useState<string | null>(null);
@@ -262,7 +316,18 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
   const [showActionModal, setShowActionModal] = useState<{ open: boolean, status: string }>({ open: false, status: '' });
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showReplaceModal, setShowReplaceModal] = useState(false);
   const [loadingNotif, setLoadingNotif] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success"
+  });
+
+  const showAlert = (title: string, message: string, type: "success" | "error" | "warning" | "info" = "success") => {
+    setAlertConfig({ isOpen: true, title, message, type });
+  };
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const isUP2K = user?.role === "superadmin";
@@ -300,7 +365,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
     if (!selectedFile) return;
     const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
     if (!allowedTypes.includes(selectedFile.type)) {
-      alert("Hanya file PDF atau Gambar (JPG/PNG) yang diperbolehkan");
+      showAlert("File Tidak Valid", "Hanya file PDF atau Gambar (JPG/PNG) yang diperbolehkan", "warning");
       return;
     }
 
@@ -318,18 +383,22 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
         body: formData
       });
 
-      const data = await res.json();
+      const isJson = res.headers.get('content-type')?.includes('application/json');
+      const data = isJson ? await res.json() : null;
+
       if (res.ok) {
         // Refresh data to get the populated uploader name properly
         await fetchStatus();
         setIsEditing(false);
-        alert("Dokumen Desa berhasil diunggah!");
+        showAlert("Berhasil!", "Dokumen Desa berhasil diunggah!", "success");
         onUpdate();
       } else {
-        alert(data.message || "Gagal mengunggah dokumen");
+        const errorMsg = data?.message || `Gagal mengunggah dokumen (Status: ${res.status})`;
+        showAlert("Gagal!", errorMsg, "error");
       }
-    } catch (err) {
-      alert("Gagal menghubungi server");
+    } catch (err: any) {
+      console.error("Upload Error:", err);
+      showAlert("Error!", `Gagal menghubungi server: ${err.message}`, "error");
     } finally {
       setIsLoading(false);
     }
@@ -369,10 +438,10 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
 
       } else {
         const data = await res.json();
-        alert(data.message || "Gagal memperbarui status");
+        showAlert("Gagal!", data.message || "Gagal memperbarui status", "error");
       }
     } catch (err) {
-      alert("Gagal menghubungi server");
+      showAlert("Error!", "Gagal menghubungi server", "error");
     } finally {
       setIsLoading(false);
     }
@@ -399,14 +468,14 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
         setUploader(null);
         setStatus("Menunggu Verifikasi");
         setShowDeleteModal(false);
-        alert("Dokumen berhasil dihapus");
+        showAlert("Berhasil!", "Dokumen berhasil dihapus", "success");
         onUpdate();
       } else {
         const data = await res.json();
-        alert(data.message || "Gagal menghapus dokumen");
+        showAlert("Gagal!", data.message || "Gagal menghapus dokumen", "error");
       }
     } catch (err) {
-      alert("Gagal menghubungi server");
+      showAlert("Error!", "Gagal menghubungi server", "error");
     } finally {
       setIsLoading(false);
     }
@@ -480,6 +549,18 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
         desaName={desaName}
       />
 
+      <ReplaceConfirmationModal
+        isOpen={showReplaceModal}
+        onClose={() => setShowReplaceModal(false)}
+        onConfirm={() => {
+          setShowReplaceModal(false);
+          setIsEditing(true);
+          triggerUpload();
+        }}
+        isLoading={isLoading}
+        desaName={desaName}
+      />
+
       {loadingNotif && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/60 dark:bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-300">
           <div className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-100 dark:border-gray-700">
@@ -507,7 +588,6 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
         />
 
         <div className="flex flex-col gap-4">
-          {/* Header Section */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
@@ -526,11 +606,9 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
             )}
           </div>
 
-          {/* File Info & Actions same as before but styled for main panel */}
           <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
 
-              {/* File Info */}
               <div className="flex items-center gap-4 w-full sm:w-auto">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${file ? "bg-blue-100 text-blue-600 dark:bg-blue-600/20 dark:text-blue-400" : "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500"}`}>
                   {isLoading ? (
@@ -564,7 +642,6 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 {isUP3 && (
                   status === 'Terverifikasi' ? (
@@ -581,7 +658,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
                         <TrashIcon size={16} /> Hapus
                       </button>
                       <button
-                        onClick={() => setIsEditing(true)}
+                        onClick={() => setShowReplaceModal(true)}
                         disabled={isLoading}
                         className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all disabled:opacity-50"
                       >
@@ -617,7 +694,6 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
             </div>
           </div>
 
-          {/* UP2K CATEGORIZATION ACTIONS */}
           {isUP2K && file && (
             <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm animate-in slide-in-from-top-2 duration-300">
               <div className="flex flex-col gap-4">
@@ -691,20 +767,19 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
             </div>
           )}
 
-          {/* Document Preview & Download */}
           {filePath && (
             <div className="mt-4 flex flex-col gap-4">
               <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-500 animate-in fade-in slide-in-from-bottom-4">
-                {filePath.toLowerCase().endsWith('.pdf') ? (
-                  <iframe
-                    src={`${API_URL}/${filePath}`}
-                    className="w-full h-[800px] md:h-[1200px] bg-gray-50 dark:bg-gray-900"
-                    title="Preview Dokumen"
+                {(file?.toLowerCase().endsWith('.pdf') || (filePath && filePath.toLowerCase().includes('.pdf'))) ? (
+                  <embed
+                    src={`${API_URL}/api/verification/download/${desaId}?preview=true#toolbar=0`}
+                    type="application/pdf"
+                    className="w-full h-[800px] md:h-[1200px] bg-gray-50 dark:bg-gray-900 border-none rounded-xl"
                   />
                 ) : (
                   <div className="flex flex-col gap-4 p-4 bg-gray-50 dark:bg-gray-900/50">
                     <img
-                      src={`${API_URL}/${filePath}`}
+                      src={`${API_URL}/api/verification/download/${desaId}?preview=true`}
                       alt="Preview Dokumen"
                       className="max-w-full h-auto rounded-lg mx-auto shadow-sm"
                     />
@@ -712,27 +787,33 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
                 )}
               </div>
 
-              {/* Optional: Add a direct download button for better experience, especially for images */}
               <a
                 href={`${API_URL}/api/verification/download/${desaId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700"
               >
-                <DownloadIcon size={18} /> Unduh Dokumen ({filePath.split('.').pop()?.toUpperCase()})
+                <DownloadIcon size={18} /> Unduh Dokumen ({file?.split('.').pop()?.toUpperCase() || 'FILE'})
               </a>
             </div>
           )}
         </div>
       </div>
+
+      <ModernAlert
+        isOpen={alertConfig.isOpen}
+        onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </>
   );
 };
 
 
-
-// 2. ACCORDION WRAPPER
 const Accordion = ({
+
   title,
   children,
   level = 0,
@@ -830,10 +911,28 @@ export default function VerifikasiPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [allData, setAllData] = useState<Kabupaten[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedDesa, setSelectedDesa] = useState<{ kab: string, kec: string, desa: Desa } | null>(null);
   const [verifiedDesaMap, setVerifiedDesaMap] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState("Semua");
-  const [searchParams] = useSearchParams();
+
+  // Load saved state from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('last_selected_desa');
+    if (saved && !searchParams.get('desa')) {
+      try {
+        const parsed = JSON.parse(saved);
+        setSelectedDesa(parsed);
+      } catch (e) { console.error(e); }
+    }
+  }, []);
+
+  // Save state to localStorage
+  useEffect(() => {
+    if (selectedDesa) {
+      localStorage.setItem('last_selected_desa', JSON.stringify(selectedDesa));
+    }
+  }, [selectedDesa]);
 
   const counts = useMemo(() => {
     const c = {
@@ -967,24 +1066,14 @@ export default function VerifikasiPage() {
               kab: kab.name,
               kec: kec.name,
               desa: desa,
-              isVerified: !!verifiedDesaMap[desa.id],
-              status: verifiedDesaMap[desa.id]
             });
           }
         });
       });
     });
 
-    const filteredResults = results.sort((a, b) => a.desa.name.localeCompare(b.desa.name));
-
-    if (statusFilter === "Semua") return filteredResults;
-
-    return filteredResults.filter(res => {
-      const status = verifiedDesaMap[res.desa.id];
-      if (statusFilter === "Belum Diunggah") return !status;
-      return status === statusFilter;
-    });
-  }, [searchTerm, allData, verifiedDesaMap, statusFilter]);
+    return results.sort((a, b) => a.desa.name.localeCompare(b.desa.name));
+  }, [searchTerm, allData]);
 
   // Recursively filter data
   const filteredData = useMemo(() => {
@@ -1236,26 +1325,42 @@ export default function VerifikasiPage() {
                 )
               ) : (
                 // HIERARCHY TREE VIEW
-                filteredData.map((kab) => (
-                  <Accordion key={kab.id} title={kab.name} level={0} defaultOpen={!!searchTerm}>
-                    {kab.kecamatan.map((kec) => (
-                      <Accordion key={kec.id} title={`Kec. ${kec.name}`} level={1} defaultOpen={!!searchTerm}>
-                        {kec.desa.map((desa) => (
+                (filteredData as Kabupaten[]).map((kab) => {
+                  const isKabSelected = selectedDesa && (selectedDesa as any).kab === kab.name;
+                  return (
+                    <Accordion
+                      key={kab.id}
+                      title={kab.name}
+                      level={0}
+                      defaultOpen={!!searchTerm || !!isKabSelected}
+                    >
+                      {kab.kecamatan.map((kec) => {
+                        const isKecSelected = selectedDesa && (selectedDesa as any).kec === kec.name;
+                        return (
                           <Accordion
-                            key={desa.id}
-                            title={`Desa ${desa.name}`}
-                            level={2}
-                            onClick={() => setSelectedDesa({ kab: kab.name, kec: kec.name, desa })}
-                            isVerified={!!verifiedDesaMap[desa.id]}
-                            status={verifiedDesaMap[desa.id]}
+                            key={kec.id}
+                            title={`Kec. ${kec.name}`}
+                            level={1}
+                            defaultOpen={!!searchTerm || !!isKecSelected}
                           >
-                            <div />
+                            {kec.desa.map((desa) => (
+                              <Accordion
+                                key={desa.id}
+                                title={`Desa ${desa.name}`}
+                                level={2}
+                                onClick={() => setSelectedDesa({ kab: kab.name, kec: kec.name, desa })}
+                                isVerified={!!verifiedDesaMap[desa.id]}
+                                status={verifiedDesaMap[desa.id]}
+                              >
+                                <div />
+                              </Accordion>
+                            ))}
                           </Accordion>
-                        ))}
-                      </Accordion>
-                    ))}
-                  </Accordion>
-                ))
+                        );
+                      })}
+                    </Accordion>
+                  );
+                })
               )}
             </div>
           </>

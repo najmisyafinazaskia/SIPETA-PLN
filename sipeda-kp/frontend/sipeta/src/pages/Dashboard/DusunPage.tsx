@@ -5,6 +5,7 @@ import DusunMap from "./DusunMap";
 import MapFilter from "../../components/ui/MapFilter";
 import { useAuth } from "../../context/AuthContext";
 import SearchableSelect from "../../components/ui/SearchableSelect";
+import ModernAlert from "../../components/ui/ModernAlert";
 
 const _rawUrl = import.meta.env.VITE_API_URL || '';
 const API_URL = _rawUrl.replace(/\/+$/, '');
@@ -56,6 +57,16 @@ export default function DusunPage() {
 
     const [selectedDusun, setSelectedDusun] = useState<DusunItem | null>(null);
     const [updating, setUpdating] = useState(false);
+    const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, type: "success" | "error" | "warning" | "info" }>({
+        isOpen: false,
+        title: "",
+        message: "",
+        type: "success"
+    });
+
+    const showAlert = (title: string, message: string, type: "success" | "error" | "warning" | "info" = "success") => {
+        setAlertConfig({ isOpen: true, title, message, type });
+    };
 
     // Sync Map Filter with Tabs below
     useEffect(() => {
@@ -189,12 +200,13 @@ export default function DusunPage() {
                 // Close modal and refresh data
                 setSelectedDusun(null);
                 await fetchData();
+                showAlert("Berhasil!", "Status dusun telah diperbarui.", "success");
             } else {
-                alert("Gagal mengupdate status: " + json.message);
+                showAlert("Gagal!", json.message || "Gagal mengupdate status", "error");
             }
         } catch (error) {
             console.error("Update error:", error);
-            alert("Terjadi kesalahan koneksi");
+            showAlert("Error!", "Terjadi kesalahan koneksi ke server.", "error");
         } finally {
             setUpdating(false);
         }
@@ -302,19 +314,30 @@ export default function DusunPage() {
                             className="group p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer"
                         >
                             <div className="flex flex-col">
-                                <span className="text-sm font-black text-[#1C2434] dark:text-white uppercase leading-tight group-hover:text-[#0052CC]">
-                                    {item.name}
-                                </span>
+                                <div className="flex justify-between items-start gap-4">
+                                    <span className="text-sm font-black text-[#1C2434] dark:text-white uppercase leading-tight group-hover:text-[#0052CC]">
+                                        {item.name}
+                                    </span>
+                                    {item.type === "warning" && (() => {
+                                        const nameUpper = item.name.toUpperCase();
+                                        if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS') || nameUpper.includes('LHOK SANDENG') || nameUpper.includes('LHOK PINEUNG')) {
+                                            return <span className="text-[9px] font-extrabold text-yellow-600 whitespace-nowrap">BELUM BERLISTRIK PLN</span>;
+                                        }
+                                        return null;
+                                    })()}
+                                </div>
                                 <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">
                                     DESA {item.desa} • {item.kec}
                                 </span>
                                 {item.type === "warning" && (() => {
                                     const nameUpper = item.name.toUpperCase();
-                                    if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS')) {
+                                    if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS') || nameUpper.includes('LHOK SANDENG')) {
                                         return (
-                                            <span className="text-[9px] font-bold text-blue-600 mt-1.5 uppercase tracking-widest bg-blue-50 border border-blue-200 px-2 py-1 rounded-md w-fit">
-                                                🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025
-                                            </span>
+                                            <div className="flex flex-col gap-1.5 mt-1.5">
+                                                <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 border border-blue-200 px-2 py-1 rounded-md w-fit">
+                                                    🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025
+                                                </span>
+                                            </div>
                                         );
                                     }
                                     if (nameUpper.includes('LHOK PINEUNG')) {
@@ -388,6 +411,14 @@ export default function DusunPage() {
                     </div>
                 </div>
             )}
+
+            <ModernAlert
+                isOpen={alertConfig.isOpen}
+                onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+            />
         </div>
     );
 

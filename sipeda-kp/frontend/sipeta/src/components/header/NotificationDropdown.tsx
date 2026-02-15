@@ -105,7 +105,6 @@ export default function NotificationDropdown() {
             if (res.ok) {
                 setNotifications(data);
 
-                setNotifications(data);
 
                 // Calculate unread based on presence in readBy array
                 const unread = data.filter((n: Notification) => !(n.readBy || []).includes(user?.id || '')).length;
@@ -149,8 +148,8 @@ export default function NotificationDropdown() {
         const nextState = !isOpen;
         setIsOpen(nextState);
 
-        // Mark as read when CLOSING the dropdown, so users can see the red dots first
-        if (!nextState && unreadCount > 0) {
+        if (nextState) {
+            setUnreadCount(0);
             handleMarkAllAsRead();
         }
     };

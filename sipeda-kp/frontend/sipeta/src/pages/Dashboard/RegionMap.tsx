@@ -34,6 +34,13 @@ const up3Icon = L.icon({
   popupAnchor: [0, -40]
 });
 
+const ulpIcon = L.icon({
+  iconUrl: '/assets/icons/gedung_ulp.png',
+  iconSize: [25, 30],
+  iconAnchor: [12, 30],
+  popupAnchor: [0, -30]
+});
+
 // Bright neon colors palette for map borders
 const getBrightColor = (name: string) => {
   const colors = [
@@ -172,14 +179,23 @@ const getPointPopupHtml = (props: any, isBerlistrik: boolean, hideStatus: boolea
 
     // Logika Label Khusus (Penting: Sesuai DusunPage)
     let specialLabel = "";
+    let displayStatus = d.status;
+    let displayColor = color;
+
     if (isProblem) {
-      if (dNameUpper.includes('PERPOLIN') || dNameUpper.includes('PERABIS')) {
-        specialLabel = `<div style="margin-top: 4px; font-size: 9px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px; width: fit-content;">🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025</div>`;
+      if (dNameUpper.includes('PERPOLIN') || dNameUpper.includes('PERABIS') || dNameUpper.includes('LHOK SANDENG')) {
+        displayStatus = "BELUM BERLISTRIK PLN";
+        displayColor = "#eab308";
+        specialLabel = `
+          <div style="margin-top: 4px;">
+            <div style="font-size: 9px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px; width: fit-content;">🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025</div>
+          </div>
+        `;
       } else if (dNameUpper.includes('LHOK PINEUNG')) {
+        displayStatus = "BELUM BERLISTRIK PLN";
+        displayColor = "#eab308";
         specialLabel = `<div style="margin-top: 4px; font-size: 9px; font-weight: 800; color: #9333ea; text-transform: uppercase; letter-spacing: 0.5px; background: #f5f3ff; border: 1px solid #ddd6fe; padding: 2px 6px; border-radius: 4px; width: fit-content;">📅 SUDAH MASUK PADA ROADMAP 2026</div>`;
       } else if (!statusText.includes('ROADMAP')) {
-        // HANYA tampilkan "Rumah Kebun" jika status aslinya TIDAK mengandung kata "ROADMAP"
-        // Ini untuk menghindari double status seperti di screenshot user
         specialLabel = `<div style="margin-top: 4px; font-size: 9px; font-weight: 800; color: #ea580c; text-transform: uppercase; letter-spacing: 0.5px;">🏠 RUMAH KEBUN | TIDAK BERLISTRIK 24 JAM</div>`;
       }
     }
@@ -189,7 +205,7 @@ const getPointPopupHtml = (props: any, isBerlistrik: boolean, hideStatus: boolea
                 <div style="display: flex; flex-direction: column; gap: 2px;">
                   <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
                     <span class="popup-dusun-name">${dNameRaw}</span>
-                    <span style="font-weight: 800; white-space: nowrap; color: ${color}; font-size: 9px; text-align: right;">${d.status}</span>
+                    <span style="font-weight: 800; white-space: nowrap; color: ${displayColor}; font-size: 9px; text-align: right;">${displayStatus}</span>
                   </div>
                   ${specialLabel}
                 </div>
@@ -607,8 +623,65 @@ const RegionMap: React.FC<RegionMapProps> = ({
 
       } else if (markerLevel === 'ulp' && data.points.ulpOffices) {
         const ulpLayerGroup = L.layerGroup();
-        // ... (Simplified ULP rendering same as UP3 but for ULP) ...
-        // For now let's focus on the main point rendering fix
+
+        // 1. Render UP3 Offices as background (unfiltered)
+        if (data.points.up3Offices) {
+          data.points.up3Offices.forEach((off: any) => {
+            L.marker([off.latitude, off.longitude], { icon: up3Icon, opacity: 0.6 })
+              .bindTooltip(`<div class="text-[9px] font-bold text-gray-400 capitalize">UP3 ${off.nama_up3}</div>`)
+              .addTo(ulpLayerGroup);
+          });
+        }
+
+        // 2. Render ULP Offices
+        if (showUlpMarkers) {
+          data.points.ulpOffices.forEach((office: any) => {
+            const ulpName = office.nama_ulp.replace(/ULP\s+/i, '').trim().toUpperCase();
+            let showOffice = true;
+            if (filterLocations && filterLocations.length > 0) {
+              showOffice = filterLocations.some(loc => loc.replace(/ULP\s+/i, '').trim().toUpperCase() === ulpName);
+            }
+            if (showOffice) {
+              L.marker([office.latitude, office.longitude], { icon: ulpIcon, title: office.nama_ulp, zIndexOffset: 3000 })
+                .bindTooltip(`<div style="font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: #000; text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff; text-transform: uppercase; letter-spacing: 0.5px;">ULP ${office.nama_ulp}</div>`, { permanent: true, direction: 'top', offset: [0, -28], className: "!bg-transparent !border-0 !shadow-none !p-0" })
+                .bindPopup(`<b>Unit Layanan Pelanggan ${office.nama_ulp}</b>`)
+                .addTo(ulpLayerGroup);
+            }
+          });
+        }
+
+        // 3. Render Desa Points for ULP
+        if (data.points.ulpDesaGroup) {
+          Object.keys(data.points.ulpDesaGroup).forEach(ulpName => {
+            const cleanUlp = ulpName.replace(/ULP\s+/i, '').trim().toUpperCase();
+            let showGroup = true;
+            if (filterLocations && filterLocations.length > 0) {
+              if (!filterLocations.some(loc => loc.replace(/ULP\s+/i, '').trim().toUpperCase() === cleanUlp)) showGroup = false;
+            }
+
+            if (showGroup) {
+              data.points.ulpDesaGroup[ulpName].forEach((desa: any) => {
+                const isBerlistrik = desa.Status_Listrik === '√' || desa.Status_Listrik === 'Berlistrik';
+                let showDot = true;
+                if (searchQuery.trim().length >= 3 && !(desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim())) showDot = false;
+                if (showDot && isBerlistrik && !activeFilters.stable) showDot = false;
+                if (showDot && !isBerlistrik && !activeFilters.warning) showDot = false;
+
+                if (showDot) {
+                  L.circleMarker([desa.latitude, desa.longitude], { radius: 6, color: 'white', weight: 1, fillColor: isBerlistrik ? '#2ecc71' : '#f39c12', fillOpacity: 0.9 })
+                    .on('click', async (e) => {
+                      const pop = L.popup().setLatLng(e.latlng).setContent('<div class="p-2 text-xs">Loading...</div>').openOn(leafletMap.current!);
+                      const res = await fetch(`${API_URL}/api/locations/map/point-detail/${desa.locationId}`);
+                      const json = await res.json();
+                      if (json.success) pop.setContent(getPointPopupHtml(json.data, isBerlistrik, hideStatus, "ulp"));
+                    })
+                    .addTo(ulpLayerGroup);
+                }
+              });
+            }
+          });
+        }
+
         pointsLayer.current = ulpLayerGroup as any;
         pointsLayer.current?.addTo(leafletMap.current);
 

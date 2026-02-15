@@ -1,7 +1,9 @@
+const dotenv = require('dotenv');
+dotenv.config();
+// Server restarted after resource type change
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
@@ -9,16 +11,17 @@ const locationRoutes = require('./routes/locationRoutes');
 const path = require('path');
 const ensureDbConnected = require('./middleware/dbCheck');
 
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: '*', // Mengizinkan semua domain (lebih aman untuk testing deploy)
+  origin: (origin, callback) => {
+    // Mengizinkan semua origin (karena origin: '*' tidak bisa digunakan dengan credentials: true)
+    callback(null, true);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   credentials: true
 }));
 app.options('*', cors()); // Enable pre-flight for all routes
@@ -35,7 +38,7 @@ mongoose.connect(process.env.MONGO_URI, {
   connectTimeoutMS: 60000,
   socketTimeoutMS: 45000,
 })
-  .then(() => console.log('✅ MongoDB Connected'))
+  .then(() => console.log('✅ MongoDB Connected to Atlas'))
   .catch(err => {
     console.error('❌ MongoDB Connection Error:', err.message);
   });
@@ -47,6 +50,15 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/locations', locationRoutes);
 
 app.get('/', (req, res) => res.send('SIPETA Backend API Running'));
+
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error('❌ Global Error Handler:', err.message);
+  res.status(err.status || 500).json({
+    message: err.message || "Terjadi kesalahan internal pada server",
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
+});
 
 // Modifikasi untuk Vercel
 if (process.env.NODE_ENV !== 'production') {

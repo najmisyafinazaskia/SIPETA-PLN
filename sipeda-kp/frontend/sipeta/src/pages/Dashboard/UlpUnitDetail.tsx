@@ -377,16 +377,27 @@ export default function UlpUnitDetail() {
                                                         {idx + 1}
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                                                            {itemName}
-                                                        </span>
+                                                        <div className="flex justify-between items-start gap-4">
+                                                            <span className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                                                                {itemName}
+                                                            </span>
+                                                            {modal.type === "Dusun" && typeof item !== "string" && getDusunStatus(item.status) === "warning" && (() => {
+                                                                const nameUpper = itemName.toUpperCase();
+                                                                if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS') || nameUpper.includes('LHOK SANDENG') || nameUpper.includes('LHOK PINEUNG')) {
+                                                                    return <span className="text-[9px] font-extrabold text-yellow-600 whitespace-nowrap">BELUM BERLISTRIK PLN</span>;
+                                                                }
+                                                                return null;
+                                                            })()}
+                                                        </div>
                                                         {modal.type === "Dusun" && getDusunStatus(item.status) === "warning" && (() => {
                                                             const nameUpper = itemName.toUpperCase();
-                                                            if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS')) {
+                                                            if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS') || nameUpper.includes('LHOK SANDENG')) {
                                                                 return (
-                                                                    <span className="text-[8px] font-bold text-blue-600 mt-1 uppercase tracking-widest bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md w-fit">
-                                                                        🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025
-                                                                    </span>
+                                                                    <div className="flex flex-col gap-1 mt-1">
+                                                                        <span className="text-[8px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md w-fit">
+                                                                            🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025
+                                                                        </span>
+                                                                    </div>
                                                                 );
                                                             }
                                                             if (nameUpper.includes('LHOK PINEUNG')) {

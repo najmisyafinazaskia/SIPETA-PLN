@@ -54,11 +54,46 @@ exports.updateStatus = async (req, res) => {
     }
 };
 
+const { cloudinary } = require('../config/cloudinary');
+const https = require('https');
+
 exports.downloadFile = async (req, res) => {
     try {
-        const { absolutePath, fileName } = await verificationService.getFilePath(req.params.dusunId);
-        res.download(absolutePath, fileName);
+        const { absolutePath, fileName, isRemote } = await verificationService.getFilePath(req.params.dusunId);
+        const isPreview = req.query.preview === 'true';
+
+        if (isRemote) {
+            console.log(`[FULL_PROXY] Fetching & Serving: ${absolutePath}`);
+            const https = require('https');
+
+            https.get(absolutePath, (remoteRes) => {
+                // Jangan lanjutkan jika status bukan 200 (misalnya 404/403)
+                if (remoteRes.statusCode === 200) {
+                    const disposition = isPreview ? 'inline' : `attachment; filename="${fileName}"`;
+                    res.setHeader('Content-Disposition', disposition);
+                    // Paksa tipe PDF jika memungkinkan agar browser merender, bukan download
+                    res.setHeader('Content-Type', fileName.endsWith('.pdf') ? 'application/pdf' : (remoteRes.headers['content-type'] || 'application/octet-stream'));
+
+                    remoteRes.pipe(res);
+                } else {
+                    console.error(`[PROXY_FAIL] Status: ${remoteRes.statusCode}`);
+                    res.redirect(absolutePath); // Fallback: Redirect jika gagal proxy
+                }
+            }).on('error', (e) => {
+                console.error(`[PROXY_ERR] ${e.message}`);
+                res.redirect(absolutePath);
+            });
+            return;
+        }
+
+        if (isPreview) {
+            res.sendFile(absolutePath);
+        } else {
+            res.download(absolutePath, fileName);
+        }
     } catch (error) {
-        res.status(404).json({ message: error.message });
+        console.error('[DOWNLOAD_ERROR]:', error.message);
+        // Kirim status 404 sederhana agar iframe menampilkan halaman error browser, bukan JSON
+        res.status(404).send('File tidak ditemukan');
     }
 };
