@@ -698,14 +698,6 @@ const RegionMap: React.FC<RegionMapProps> = ({
       } else if (markerLevel === 'ulp' && data.points.ulpOffices) {
         const ulpLayerGroup = L.layerGroup();
 
-        // 1. Render UP3 Offices as background (unfiltered)
-        if (data.points.up3Offices) {
-          data.points.up3Offices.forEach((off: any) => {
-            L.marker([off.latitude, off.longitude], { icon: up3Icon, opacity: 0.6 })
-              .bindTooltip(`<div class="text-[9px] font-bold text-gray-400 capitalize">UP3 ${off.nama_up3}</div>`)
-              .addTo(ulpLayerGroup);
-          });
-        }
 
         // 2. Render ULP Offices
         if (showUlpMarkers) {
