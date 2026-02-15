@@ -941,23 +941,15 @@ export default function VerifikasiPage() {
   const [verifiedDesaMap, setVerifiedDesaMap] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState("Semua");
 
-  // Load saved state from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('last_selected_desa');
-    if (saved && !searchParams.get('desa')) {
-      try {
-        const parsed = JSON.parse(saved);
-        setSelectedDesa(parsed);
-      } catch (e) { console.error(e); }
-    }
-  }, []);
-
-  // Save state to localStorage
+  // Sync selectedDesa to URL params to support refreshing and deep linking
+  // while ensuring fresh navigation (without params) starts at the list view
   useEffect(() => {
     if (selectedDesa) {
-      localStorage.setItem('last_selected_desa', JSON.stringify(selectedDesa));
+      setSearchParams({ desa: selectedDesa.desa.name });
+    } else if (searchParams.get("desa")) {
+      setSearchParams({});
     }
-  }, [selectedDesa]);
+  }, [selectedDesa, setSearchParams, searchParams]);
 
   const counts = useMemo(() => {
     const c = {
@@ -1186,11 +1178,7 @@ export default function VerifikasiPage() {
           {selectedDesa ? (
             <div className="flex flex-col gap-4">
               <button
-                onClick={() => {
-                  setSelectedDesa(null);
-                  setSearchParams({}); // Clear query params so it doesn't auto-reselect
-                  localStorage.removeItem('last_selected_desa'); // Also clear last selected from storage
-                }}
+                onClick={() => setSelectedDesa(null)}
                 className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
               >
                 <ArrowLeftIcon size={16} /> Kembali
