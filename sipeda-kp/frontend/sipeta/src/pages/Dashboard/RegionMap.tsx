@@ -439,8 +439,6 @@ const RegionMap: React.FC<RegionMapProps> = ({
         if (markerLevel === 'ulp') {
           promises.push(fetch(`${API_URL}/api/locations/ulp/office`));
           promises.push(fetch(`${API_URL}/api/locations/ulp/desa-grouped`));
-          // Also fetch UP3 offices to show as background labels
-          promises.push(fetch(`${API_URL}/api/locations/up3/office`));
         }
 
         const responses = await Promise.all(promises);
@@ -461,15 +459,9 @@ const RegionMap: React.FC<RegionMapProps> = ({
           } else if (markerLevel === 'ulp' && officeRes?.ok && desaGroupRes?.ok) {
             const offices = await officeRes.json();
             const desaGroup = await desaGroupRes.json();
-            // Check if UP3 response exists (it's the last one in promises array for ULP)
-            // But promise array length is dynamic.
-            // Let's rely on checking the result index.
-            // In ULP block: [bound, point, stat, ulpOff, ulpDesa, up3Off]
-            const up3Offices = responses[5]?.ok ? await responses[5].json() : null;
-
             setData({
               boundaries,
-              points: { ...points, ulpOffices: offices, ulpDesaGroup: desaGroup, up3Offices: up3Offices }
+              points: { ...points, ulpOffices: offices, ulpDesaGroup: desaGroup }
             });
           } else {
             setData({ boundaries, points });
