@@ -549,17 +549,17 @@ const RegionMap: React.FC<RegionMapProps> = ({
       const filteredBoundaries = {
         ...data.boundaries,
         features: data.boundaries.features.filter((f: any) => {
+          // FORCE SHOW: Always show all boundaries (overlays) for ULP and UP3 maps
+          // regardless of what locations are selected (User Requirement)
+          if (markerLevel === 'ulp' || markerLevel === 'up3') return true;
+
           const props = f.properties || {};
           const rawName = props.Kab_Kota || props.KAB_KOTA || props.kabupaten || props.KABUPATEN || "Wilayah";
           const name = String(rawName).toUpperCase().trim();
 
           if (filterLocations) {
             // Keep boundaries visible if no locations selected (Show all background)
-            // Keep boundaries visible if no locations selected (Show all background)
             if (filterLocations.length === 0) return true;
-
-            // Show all boundaries on ULP and UP3 maps (User Request: Overlay persists)
-            if (markerLevel === 'ulp' || markerLevel === 'up3') return true;
 
             return filterLocations.some(loc => loc.toUpperCase().trim() === name);
           }
