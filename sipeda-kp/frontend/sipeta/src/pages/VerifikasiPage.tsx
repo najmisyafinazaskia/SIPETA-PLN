@@ -342,7 +342,9 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
         setFile(data.fileName);
         setFilePath(data.filePath);
         setLastUpload(new Date(data.updatedAt).toLocaleString());
-        setUploader(data.uploadedBy?.name || "Admin");
+        const uName = data.uploadedBy?.name || "Admin";
+        const uUnit = data.uploadedBy?.unit;
+        setUploader(uUnit ? `${uUnit} - ${uName}` : uName);
         setStatus(data.status || "Menunggu Verifikasi");
       } else {
         // Reset if no data found
@@ -1161,7 +1163,11 @@ export default function VerifikasiPage() {
           {selectedDesa ? (
             <div className="flex flex-col gap-4">
               <button
-                onClick={() => setSelectedDesa(null)}
+                onClick={() => {
+                  setSelectedDesa(null);
+                  setSearchParams({}); // Clear query params so it doesn't auto-reselect
+                  localStorage.removeItem('last_selected_desa'); // Also clear last selected from storage
+                }}
                 className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
               >
                 <ArrowLeftIcon size={16} /> Kembali

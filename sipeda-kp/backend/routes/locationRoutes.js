@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const locationController = require('../controllers/locationController');
+const { verifyToken } = require('../middleware/auth');
 
 // Get all kabupaten/kota
 router.get('/kabupaten-kota', locationController.getKabupatenKota);
@@ -51,10 +52,10 @@ router.get('/map/point-detail/:id', locationController.getLocationPointDetail);
 router.get('/:id', locationController.getLocationById);
 
 // Update Dusun Status
-router.put('/dusun/update-status', locationController.updateDusunStatus);
+router.put('/dusun/update-status', verifyToken, locationController.updateDusunStatus);
 
 // Update Pelanggan count for UP3/ULP
-router.put('/up3/update-pelanggan', locationController.updateUp3Pelanggan);
-router.put('/ulp/update-pelanggan', locationController.updateUlpPelanggan);
+router.put('/up3/update-pelanggan', verifyToken, locationController.updateUp3Pelanggan);
+router.put('/ulp/update-pelanggan', verifyToken, locationController.updateUlpPelanggan);
 
 module.exports = router;

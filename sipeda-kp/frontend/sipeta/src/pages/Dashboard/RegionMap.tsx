@@ -86,10 +86,16 @@ const UP3_MAPPING: Record<string, string[]> = {
 
 const KABUPATEN_TO_UP3: Record<string, string> = {};
 Object.entries(UP3_MAPPING).forEach(([up3, kabs]) => {
-  kabs.forEach(kab => { KABUPATEN_TO_UP3[kab] = up3; });
+  kabs.forEach(kab => {
+    KABUPATEN_TO_UP3[kab.toUpperCase().trim()] = up3;
+  });
 });
 
-const getUp3Color = (nama: string) => up3Colors[nama] || "#3498db";
+const getUp3Color = (nama: string) => {
+  if (!nama) return "#95a5a6";
+  const cleanNama = nama.replace(/^UP3\s+/i, '').trim();
+  return up3Colors[cleanNama] || up3Colors[nama] || "#3498db";
+};
 
 const getPointPopupHtml = (props: any, isBerlistrik: boolean, hideStatus: boolean = false, type: string = "desa") => {
   const displayPrefix = type === "kecamatan" ? "Kec." : "Desa";
@@ -526,15 +532,25 @@ const RegionMap: React.FC<RegionMapProps> = ({
       const filteredBoundaries = {
         ...data.boundaries,
         features: data.boundaries.features.filter((f: any) => {
-          const name = (f.properties?.Kab_Kota || f.properties?.KAB_KOTA || "Wilayah").toUpperCase();
-          if (filterLocations && filterLocations.length > 0) {
+          const props = f.properties || {};
+          const rawName = props.Kab_Kota || props.KAB_KOTA || props.kabupaten || props.KABUPATEN || "Wilayah";
+          const name = String(rawName).toUpperCase().trim();
+
+          if (filterLocations) {
+            if (filterLocations.length === 0) return false;
+
             if (markerLevel === 'up3') {
               const myUp3 = KABUPATEN_TO_UP3[name];
               if (!myUp3) return false;
-              return filterLocations.some(loc => loc.toUpperCase().includes(myUp3.toUpperCase()));
+              // Check for exact or partial match (handle 'UP3 Banda Aceh' vs 'Banda Aceh')
+              return filterLocations.some(loc => {
+                const uLoc = loc.toUpperCase();
+                const uMyUp3 = myUp3.toUpperCase();
+                return uLoc.includes(uMyUp3) || uMyUp3.includes(uLoc);
+              });
             }
-            if (markerLevel === 'ulp') return true;
-            return filterLocations.some(loc => loc.toUpperCase() === name);
+            if (markerLevel === 'ulp') return true; // Show all boundaries on ULP map
+            return filterLocations.some(loc => loc.toUpperCase().trim() === name);
           }
           return true;
         })
@@ -542,15 +558,21 @@ const RegionMap: React.FC<RegionMapProps> = ({
 
       boundaryLayer.current = L.geoJSON(filteredBoundaries, {
         style: (feature) => {
-          const kabName = (feature?.properties?.Kab_Kota || feature?.properties?.KAB_KOTA || "Wilayah").toUpperCase();
+          const props = feature?.properties || {};
+          const rawName = props.Kab_Kota || props.KAB_KOTA || props.kabupaten || props.KABUPATEN || "Wilayah";
+          const kabName = String(rawName).toUpperCase().trim();
           const isUp3Mode = markerLevel === 'up3' || markerLevel === 'ulp';
+
+          const up3Name = KABUPATEN_TO_UP3[kabName] || "Lainnya";
+          const fillColor = isUp3Mode ? getUp3Color(up3Name) : "transparent";
+
           return {
-            fillColor: isUp3Mode ? getUp3Color(KABUPATEN_TO_UP3[kabName] || "Lainnya") : "transparent",
+            fillColor: fillColor,
             weight: 2,
             opacity: 0.9,
             color: isUp3Mode ? "white" : getBrightColor(kabName),
             dashArray: isUp3Mode ? '' : '4, 4',
-            fillOpacity: isUp3Mode ? 0.3 : 0
+            fillOpacity: isUp3Mode ? 0.45 : 0
           };
         },
         onEachFeature: (feature, layer) => {
@@ -574,13 +596,17 @@ const RegionMap: React.FC<RegionMapProps> = ({
           data.points.up3Offices.forEach((office: any) => {
             const up3Name = office.nama_up3.replace(/UP3\s+/i, '').trim().toUpperCase();
             let showOffice = true;
-            if (filterLocations && filterLocations.length > 0) {
-              const matchesUp3 = filterLocations.some(loc => loc.replace(/UP3\s+/i, '').trim().toUpperCase() === up3Name);
-              if (!matchesUp3) {
-                const rawName = office.nama_up3.replace(/UP3\s+/i, '').trim();
-                const relatedKabs = UP3_MAPPING[rawName] || [];
-                const matchesKab = relatedKabs.some(kab => filterLocations.includes(kab));
-                if (!matchesKab) showOffice = false;
+            if (filterLocations) {
+              if (filterLocations.length === 0) {
+                showOffice = false;
+              } else {
+                const matchesUp3 = filterLocations.some(loc => loc.replace(/UP3\s+/i, '').trim().toUpperCase() === up3Name);
+                if (!matchesUp3) {
+                  const rawName = office.nama_up3.replace(/UP3\s+/i, '').trim();
+                  const relatedKabs = UP3_MAPPING[rawName] || [];
+                  const matchesKab = relatedKabs.some(kab => filterLocations.includes(kab));
+                  if (!matchesKab) showOffice = false;
+                }
               }
             }
             if (showOffice) {
@@ -601,18 +627,33 @@ const RegionMap: React.FC<RegionMapProps> = ({
               if (searchQuery.trim().length >= 3 && !(desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim())) showDot = false;
               if (showDot && isBerlistrik && !activeFilters.stable) showDot = false;
               if (showDot && !isBerlistrik && !activeFilters.warning) showDot = false;
-              if (showDot && filterLocations && filterLocations.length > 0) {
-                const cleanUp3 = up3Name.replace(/UP3\s+/i, '').trim().toUpperCase();
-                if (!filterLocations.some(loc => loc.replace(/UP3\s+/i, '').trim().toUpperCase() === cleanUp3)) showDot = false;
+              if (showDot && filterLocations) {
+                if (filterLocations.length === 0) {
+                  showDot = false;
+                } else {
+                  const cleanUp3 = up3Name.replace(/UP3\s+/i, '').trim().toUpperCase();
+                  if (!filterLocations.some(loc => loc.replace(/UP3\s+/i, '').trim().toUpperCase() === cleanUp3)) showDot = false;
+                }
               }
               if (showDot) {
-                L.circleMarker([desa.latitude, desa.longitude], { radius: 6, color: 'white', weight: 1, fillColor: isBerlistrik ? '#2ecc71' : '#f39c12', fillOpacity: 0.9 })
-                  .on('click', async (e) => {
-                    const pop = L.popup().setLatLng(e.latlng).setContent('<div class="p-2 text-xs">Loading...</div>').openOn(leafletMap.current!);
-                    const res = await fetch(`${API_URL}/api/locations/map/point-detail/${desa.locationId}`);
-                    const json = await res.json();
-                    if (json.success) pop.setContent(getPointPopupHtml(json.data, isBerlistrik, hideStatus, "up3"));
-                  })
+                const marker = L.circleMarker([desa.latitude, desa.longitude], {
+                  radius: 6,
+                  color: 'white',
+                  weight: 1,
+                  fillColor: isBerlistrik ? '#2ecc71' : '#f39c12',
+                  fillOpacity: 0.9,
+                } as any);
+
+                // Add identity for search lookup
+                (marker as any).options.title = desa.Desa;
+                (marker as any).options.desaName = desa.Desa;
+
+                marker.on('click', async (e) => {
+                  const pop = L.popup().setLatLng(e.latlng).setContent('<div class="p-2 text-xs">Loading...</div>').openOn(leafletMap.current!);
+                  const res = await fetch(`${API_URL}/api/locations/map/point-detail/${desa.locationId}`);
+                  const json = await res.json();
+                  if (json.success) pop.setContent(getPointPopupHtml(json.data, isBerlistrik, hideStatus, "up3"));
+                })
                   .addTo(up3LayerGroup);
               }
             });
@@ -638,8 +679,12 @@ const RegionMap: React.FC<RegionMapProps> = ({
           data.points.ulpOffices.forEach((office: any) => {
             const ulpName = office.nama_ulp.replace(/ULP\s+/i, '').trim().toUpperCase();
             let showOffice = true;
-            if (filterLocations && filterLocations.length > 0) {
-              showOffice = filterLocations.some(loc => loc.replace(/ULP\s+/i, '').trim().toUpperCase() === ulpName);
+            if (filterLocations) {
+              if (filterLocations.length === 0) {
+                showOffice = false;
+              } else {
+                showOffice = filterLocations.some(loc => loc.replace(/ULP\s+/i, '').trim().toUpperCase() === ulpName);
+              }
             }
             if (showOffice) {
               L.marker([office.latitude, office.longitude], { icon: ulpIcon, title: office.nama_ulp, zIndexOffset: 3000 })
@@ -655,8 +700,12 @@ const RegionMap: React.FC<RegionMapProps> = ({
           Object.keys(data.points.ulpDesaGroup).forEach(ulpName => {
             const cleanUlp = ulpName.replace(/ULP\s+/i, '').trim().toUpperCase();
             let showGroup = true;
-            if (filterLocations && filterLocations.length > 0) {
-              if (!filterLocations.some(loc => loc.replace(/ULP\s+/i, '').trim().toUpperCase() === cleanUlp)) showGroup = false;
+            if (filterLocations) {
+              if (filterLocations.length === 0) {
+                showGroup = false;
+              } else {
+                if (!filterLocations.some(loc => loc.replace(/ULP\s+/i, '').trim().toUpperCase() === cleanUlp)) showGroup = false;
+              }
             }
 
             if (showGroup) {
@@ -668,13 +717,24 @@ const RegionMap: React.FC<RegionMapProps> = ({
                 if (showDot && !isBerlistrik && !activeFilters.warning) showDot = false;
 
                 if (showDot) {
-                  L.circleMarker([desa.latitude, desa.longitude], { radius: 6, color: 'white', weight: 1, fillColor: isBerlistrik ? '#2ecc71' : '#f39c12', fillOpacity: 0.9 })
-                    .on('click', async (e) => {
-                      const pop = L.popup().setLatLng(e.latlng).setContent('<div class="p-2 text-xs">Loading...</div>').openOn(leafletMap.current!);
-                      const res = await fetch(`${API_URL}/api/locations/map/point-detail/${desa.locationId}`);
-                      const json = await res.json();
-                      if (json.success) pop.setContent(getPointPopupHtml(json.data, isBerlistrik, hideStatus, "ulp"));
-                    })
+                  const marker = L.circleMarker([desa.latitude, desa.longitude], {
+                    radius: 6,
+                    color: 'white',
+                    weight: 1,
+                    fillColor: isBerlistrik ? '#2ecc71' : '#f39c12',
+                    fillOpacity: 0.9
+                  } as any);
+
+                  // Add identity for search lookup
+                  (marker as any).options.title = desa.Desa;
+                  (marker as any).options.desaName = desa.Desa;
+
+                  marker.on('click', async (e) => {
+                    const pop = L.popup().setLatLng(e.latlng).setContent('<div class="p-2 text-xs">Loading...</div>').openOn(leafletMap.current!);
+                    const res = await fetch(`${API_URL}/api/locations/map/point-detail/${desa.locationId}`);
+                    const json = await res.json();
+                    if (json.success) pop.setContent(getPointPopupHtml(json.data, isBerlistrik, hideStatus, "ulp"));
+                  })
                     .addTo(ulpLayerGroup);
                 }
               });
@@ -694,12 +754,16 @@ const RegionMap: React.FC<RegionMapProps> = ({
             const isStable = props.status === "Berlistrik PLN" || props.status === "stable";
             let showDot = true;
             if (searchQuery.trim().length >= 3 && !(props.name || "").toLowerCase().includes(searchQuery.toLowerCase().trim())) showDot = false;
-            if (showDot && filterLocations && filterLocations.length > 0) {
-              const match = filterLocations.some(loc => {
-                const s = loc.toUpperCase();
-                return s === (props.up3 || "").toUpperCase() || s === (props.kabupaten || "").toUpperCase() || s === (props.kecamatan || "").toUpperCase() || s === (props.name || "").toUpperCase();
-              });
-              if (!match) showDot = false;
+            if (showDot && filterLocations) {
+              if (filterLocations.length === 0) {
+                showDot = false;
+              } else {
+                const match = filterLocations.some(loc => {
+                  const s = loc.toUpperCase();
+                  return s === (props.up3 || "").toUpperCase() || s === (props.kabupaten || "").toUpperCase() || s === (props.kecamatan || "").toUpperCase() || s === (props.name || "").toUpperCase();
+                });
+                if (!match) showDot = false;
+              }
             }
             if (showDot && !disableWarning) {
               if (isStable && !activeFilters.stable) showDot = false;
@@ -734,8 +798,12 @@ const RegionMap: React.FC<RegionMapProps> = ({
 
     kabData.forEach(kab => {
       let showLabel = true;
-      if (filterLocations && filterLocations.length > 0) {
-        showLabel = filterLocations.includes(kab.name);
+      if (filterLocations) {
+        if (filterLocations.length === 0) {
+          showLabel = false;
+        } else {
+          showLabel = filterLocations.includes(kab.name);
+        }
       }
 
       if (showLabel) {
@@ -807,13 +875,23 @@ const RegionMap: React.FC<RegionMapProps> = ({
     setTimeout(() => {
       if (pointsLayer.current) {
         pointsLayer.current.eachLayer((layer: any) => {
-          const p = layer.feature?.properties || layer.options?.title || "";
-          if (p === name || p.name === name || p.Desa === name) {
-            layer.openPopup();
+          const props = layer.feature?.properties || {};
+          const options = layer.options || {};
+
+          const layerName = (props.name || props.Desa || options.title || options.desaName || "").toString().toUpperCase();
+          const targetName = name.toString().toUpperCase();
+
+          if (layerName === targetName || layerName.includes(targetName) || targetName.includes(layerName)) {
+            // Trigger click or open popup
+            if (layer.openPopup) {
+              layer.openPopup();
+            } else {
+              layer.fire('click');
+            }
           }
         });
       }
-    }, 500);
+    }, 800);
 
     setSearchQuery("");
     setShowSuggestions(false);

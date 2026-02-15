@@ -3,14 +3,15 @@ const Up3 = require('../models/Up3');
 const Up3Desa = require('../models/Up3Desa');
 const Ulp = require('../models/Ulp');
 const UlpDesa = require('../models/UlpDesa');
+const User = require('../models/User'); // Import User for notifications
 const locationService = require('../services/locationService');
 
 // Konfigurasi pemetaan Wilayah UP3 ke daftar Kabupaten/Kota di Aceh
 const UP3_TO_KABUPATEN = {
     "UP3 Banda Aceh": ["KOTA BANDA ACEH", "ACEH BESAR", "KOTA SABANG"],
-    "UP3 Langsa": ["KOTA LANGSA", "ACEH TIMUR", "ACEH TAMIANG"],
+    "UP3 Langsa": ["KOTA LANGSA", "ACEH TIMUR", "ACEH TAMIANG", "GAYO LUES", "ACEH TENGGARA"],
     "UP3 Sigli": ["PIDIE", "PIDIE JAYA"],
-    "UP3 Lhokseumawe": ["KOTA LHOKSEUMAWE", "ACEH UTARA", "BIREUEN"],
+    "UP3 Lhokseumawe": ["KOTA LHOKSEUMAWE", "ACEH UTARA", "BIREUEN", "BENER MERIAH", "ACEH TENGAH"],
     "UP3 Meulaboh": ["ACEH BARAT", "NAGAN RAYA", "ACEH JAYA", "SIMEULUE"],
     "UP3 Subulussalam": ["KOTA SUBULUSSALAM", "ACEH SINGKIL", "ACEH SELATAN", "ACEH BARAT DAYA"]
 };
@@ -1123,21 +1124,20 @@ exports.updateDusunStatus = async (req, res) => {
         }
 
         // --- NEW: Create Notification ---
-        // --- NEW: Create Notification ---
         try {
-            console.log("Update Dusun Status Body:", req.body); // Debugging
+            console.log("Update Dusun Status for:", dusunName);
 
-            let actorName = req.body.userName;
-            if (!actorName || actorName.trim() === "") {
-                actorName = KABUPATEN_TO_UP3[location.kabupaten.toUpperCase()] || "Admin Wilayah";
-            }
+            const user = await User.findById(req.userId);
+            const actorName = user
+                ? (user.unit ? `${user.unit} - ${user.name}` : user.name)
+                : (KABUPATEN_TO_UP3[location.kabupaten.toUpperCase()] || "Admin Wilayah");
 
             await Notification.create({
                 title: "Pembaruan Status Dusun",
                 message: `Status Dusun ${dusunName} di Desa ${location.desa} telah diubah menjadi ${newStatus}`,
                 type: newStatus === 'Belum Berlistrik' ? 'warning' : 'success',
                 userName: actorName,
-                // Optional: Add reference or metadata if you schema supports it, otherwise reliance on parsing logic is fine for now
+                user: req.userId
             });
         } catch (notifErr) {
             console.error("Failed to create notification:", notifErr);

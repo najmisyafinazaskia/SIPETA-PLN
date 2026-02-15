@@ -46,16 +46,25 @@ class VerificationService {
         }
 
         const user = await User.findById(userId);
+
+        // Buat nama tampilan yang lebih spesifik: "Unit - Nama"
+        const displayName = user
+            ? (user.unit ? `${user.unit} - ${user.name}` : user.name)
+            : "Admin";
+
         const newNotif = new Notification({
             title: "Pembaruan Verifikasi",
-            message: `${user ? user.name : 'Seorang pengguna'} telah mengunggah dokumen baru untuk ${dusunName || 'Dusun (' + dusunId + ')'}`,
+            message: `${displayName} telah mengunggah dokumen baru untuk ${dusunName || 'Dusun (' + dusunId + ')'}`,
             type: "upload",
             user: userId,
-            userName: user ? user.name : "Admin"
+            userName: displayName
         });
         await newNotif.save();
 
-        return { verification, notification: newNotif };
+        // Populate uploadedBy before returning to ensure frontend has latest info
+        const populatedVerification = await Verification.findById(verification._id).populate('uploadedBy', 'name username unit');
+
+        return { verification: populatedVerification, notification: newNotif };
     }
 
     async getVerification(dusunId) {
@@ -91,8 +100,12 @@ class VerificationService {
         await verification.save();
 
         const user = await User.findById(userId);
+        const displayName = user
+            ? (user.unit ? `${user.unit} - ${user.name}` : user.name)
+            : "Admin";
+
         const displayDusunName = dusunName ? `Berita Acara ${dusunName}` : `Dokumen verifikasi untuk ${dusunId}`;
-        let notificationMessage = `Status ${displayDusunName} telah diubah menjadi "${status}" oleh ${user ? user.name : 'Admin'}`;
+        let notificationMessage = `Status ${displayDusunName} telah diubah menjadi "${status}" oleh ${displayName}`;
 
         if (message && (status === 'Tidak Sesuai' || status === 'Sesuai (Perlu Perbaikan)')) {
             notificationMessage += `. Alasan: ${message}`;
@@ -103,7 +116,7 @@ class VerificationService {
             message: notificationMessage,
             type: "update",
             user: userId,
-            userName: user ? user.name : "Admin"
+            userName: displayName
         });
         await newNotif.save();
 
