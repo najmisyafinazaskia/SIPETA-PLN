@@ -7,6 +7,7 @@ const verificationRoutes = require('./routes/verificationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const path = require('path');
+const ensureDbConnected = require('./middleware/dbCheck');
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(ensureDbConnected); // Penjaga koneksi DB untuk semua rute API
 
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
