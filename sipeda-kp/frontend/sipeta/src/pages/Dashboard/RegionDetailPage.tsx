@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon, BoxCubeIcon, BoltIcon, GroupIcon } from "../../icons";
 
-const _rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5055';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
 const API_URL = _rawUrl.replace(/\/+$/, '');
 
 

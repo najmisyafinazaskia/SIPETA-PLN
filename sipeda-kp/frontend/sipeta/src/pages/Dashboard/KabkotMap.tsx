@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, GeoJSON, Marker, useMap, ZoomControl } from "r
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const _rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5055';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
 const API_URL = _rawUrl.replace(/\/+$/, '');
 
 

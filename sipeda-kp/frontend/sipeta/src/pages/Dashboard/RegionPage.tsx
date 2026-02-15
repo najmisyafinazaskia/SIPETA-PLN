@@ -4,8 +4,7 @@ import RegionMap from "./RegionMap";
 import MapFilter from "../../components/ui/MapFilter";
 import SearchableSelect from "../../components/ui/dropdown/SearchableSelect";
 
-const _rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5055';
-const API_URL = _rawUrl.replace(/\/+$/, '');
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 
 
 

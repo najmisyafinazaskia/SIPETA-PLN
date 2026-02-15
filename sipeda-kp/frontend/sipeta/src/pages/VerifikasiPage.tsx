@@ -3,7 +3,7 @@ import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon,
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const _rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5055';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
 const API_URL = _rawUrl.replace(/\/+$/, '');
 
 

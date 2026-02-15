@@ -6,7 +6,7 @@ import MapFilter from "../../components/ui/MapFilter";
 import { useAuth } from "../../context/AuthContext";
 import SearchableSelect from "../../components/ui/SearchableSelect";
 
-const _rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5055';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
 const API_URL = _rawUrl.replace(/\/+$/, '');
 
 

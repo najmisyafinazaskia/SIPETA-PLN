@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import UlpMap from "./UlpMap";
 import MapFilter from "../../components/ui/MapFilter";
 
-const _rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5055';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
 const API_URL = _rawUrl.replace(/\/+$/, '');
 
 
