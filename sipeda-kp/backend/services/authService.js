@@ -19,7 +19,27 @@ class AuthService {
     async login(username, password) {
         // --- CHECK DB CONNECTION ---
         if (mongoose.connection.readyState !== 1) {
-            console.log("⚠️ DB Offline. Using Fallback Login...");
+            console.log("⏳ DB not ready (state: " + mongoose.connection.readyState + "). Attempting to connect...");
+
+            // Jika URI tidak ada, langsung fallback saja
+            if (!process.env.MONGO_URI) {
+                console.error("❌ MONGO_URI is missing in environment variables!");
+            } else {
+                try {
+                    // Tunggu koneksi sampai siap (max 5 detik)
+                    await Promise.race([
+                        mongoose.connect(process.env.MONGO_URI),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000))
+                    ]);
+                    console.log("✅ DB connected after waiting.");
+                } catch (err) {
+                    console.log("⚠️ DB Connection failed or timeout. Using Fallback...");
+                }
+            }
+        }
+
+        // Re-check state after attempt
+        if (mongoose.connection.readyState !== 1) {
             const fallbackUser = FALLBACK_USERS.find(u => u.username === username && u.password === password);
             if (fallbackUser) {
                 const token = jwt.sign({ id: "fallback-id" }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
