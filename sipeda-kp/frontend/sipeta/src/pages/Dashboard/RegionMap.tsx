@@ -714,7 +714,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
             let showOffice = true;
             if (filterLocations) {
               if (filterLocations.length === 0) {
-                showOffice = false;
+                showOffice = true;
               } else {
                 showOffice = filterLocations.some(loc => loc.replace(/ULP\s+/i, '').trim().toUpperCase() === ulpName);
               }
