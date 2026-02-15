@@ -247,6 +247,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
 
@@ -537,8 +538,8 @@ const RegionMap: React.FC<RegionMapProps> = ({
           const name = String(rawName).toUpperCase().trim();
 
           if (filterLocations) {
-            if (filterLocations.length === 0) return true; // Keep boundaries visible even when all points hidden
-
+            // Keep boundaries visible if no locations selected (Show all background)
+            if (filterLocations.length === 0) return true;
             if (markerLevel === 'up3') {
               const myUp3 = KABUPATEN_TO_UP3[name];
               if (!myUp3) return false;
@@ -623,18 +624,25 @@ const RegionMap: React.FC<RegionMapProps> = ({
           Object.keys(data.points.up3DesaGroup).forEach(up3Name => {
             data.points.up3DesaGroup[up3Name].forEach((desa: any) => {
               const isBerlistrik = desa.Status_Listrik === '√' || desa.Status_Listrik === 'Berlistrik';
+              const isMatch = searchQuery.trim().length >= 3 && (desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
+              const isSelected = selectedPointId === desa.locationId;
               let showDot = true;
-              if (searchQuery.trim().length >= 3 && !(desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim())) showDot = false;
-              if (showDot && isBerlistrik && !activeFilters.stable) showDot = false;
-              if (showDot && !isBerlistrik && !activeFilters.warning) showDot = false;
-              if (showDot && filterLocations) {
-                if (filterLocations.length === 0) {
-                  showDot = false;
-                } else {
-                  const cleanUp3 = up3Name.replace(/UP3\s+/i, '').trim().toUpperCase();
-                  if (!filterLocations.some(loc => loc.replace(/UP3\s+/i, '').trim().toUpperCase() === cleanUp3)) showDot = false;
+
+              if (isSelected || isMatch) {
+                showDot = true; // Always show if selected or search match
+              } else {
+                if (isBerlistrik && !activeFilters.stable) showDot = false;
+                if (!isBerlistrik && !activeFilters.warning) showDot = false;
+                if (showDot && filterLocations) {
+                  if (filterLocations.length === 0) {
+                    showDot = false;
+                  } else {
+                    const cleanUp3 = up3Name.replace(/UP3\s+/i, '').trim().toUpperCase();
+                    if (!filterLocations.some(loc => loc.replace(/UP3\s+/i, '').trim().toUpperCase() === cleanUp3)) showDot = false;
+                  }
                 }
               }
+
               if (showDot) {
                 const marker = L.circleMarker([desa.latitude, desa.longitude], {
                   radius: 6,
@@ -711,11 +719,16 @@ const RegionMap: React.FC<RegionMapProps> = ({
             if (showGroup) {
               data.points.ulpDesaGroup[ulpName].forEach((desa: any) => {
                 const isBerlistrik = desa.Status_Listrik === '√' || desa.Status_Listrik === 'Berlistrik';
+                const isMatch = searchQuery.trim().length >= 3 && (desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
+                const isSelected = selectedPointId === desa.locationId;
                 let showDot = true;
-                if (searchQuery.trim().length >= 3 && !(desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim())) showDot = false;
-                if (showDot && isBerlistrik && !activeFilters.stable) showDot = false;
-                if (showDot && !isBerlistrik && !activeFilters.warning) showDot = false;
 
+                if (isSelected || isMatch) {
+                  showDot = true; // Always show if selected or search match
+                } else {
+                  if (isBerlistrik && !activeFilters.stable) showDot = false;
+                  if (!isBerlistrik && !activeFilters.warning) showDot = false;
+                }
                 if (showDot) {
                   const marker = L.circleMarker([desa.latitude, desa.longitude], {
                     radius: 6,
@@ -752,22 +765,28 @@ const RegionMap: React.FC<RegionMapProps> = ({
           pointToLayer: (feature, latlng) => {
             const props = feature.properties || {};
             const isStable = props.status === "Berlistrik PLN" || props.status === "stable";
+            const isMatch = searchQuery.trim().length >= 3 && (props.name || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
+            const isSelected = selectedPointId === props.id;
             let showDot = true;
-            if (searchQuery.trim().length >= 3 && !(props.name || "").toLowerCase().includes(searchQuery.toLowerCase().trim())) showDot = false;
-            if (showDot && filterLocations) {
-              if (filterLocations.length === 0) {
-                showDot = false;
-              } else {
-                const match = filterLocations.some(loc => {
-                  const s = loc.toUpperCase();
-                  return s === (props.up3 || "").toUpperCase() || s === (props.kabupaten || "").toUpperCase() || s === (props.kecamatan || "").toUpperCase() || s === (props.name || "").toUpperCase();
-                });
-                if (!match) showDot = false;
+
+            if (isSelected || isMatch) {
+              showDot = true; // Always show if selected or search match
+            } else {
+              if (filterLocations) {
+                if (filterLocations.length === 0) {
+                  showDot = false;
+                } else {
+                  const match = filterLocations.some(loc => {
+                    const s = loc.toUpperCase();
+                    return s === (props.up3 || "").toUpperCase() || s === (props.kabupaten || "").toUpperCase() || s === (props.kecamatan || "").toUpperCase() || s === (props.name || "").toUpperCase();
+                  });
+                  if (!match) showDot = false;
+                }
               }
-            }
-            if (showDot && !disableWarning) {
-              if (isStable && !activeFilters.stable) showDot = false;
-              if (!isStable && !activeFilters.warning) showDot = false;
+              if (showDot && !disableWarning) {
+                if (isStable && !activeFilters.stable) showDot = false;
+                if (!isStable && !activeFilters.warning) showDot = false;
+              }
             }
             if (!showDot) return (L as any).layerGroup();
             return L.circleMarker(latlng, { radius: 6, fillColor: isStable ? "#2ecc71" : "#f1c40f", color: "white", weight: 2, opacity: 1, fillOpacity: 1, pane: 'markerPane' });
@@ -784,7 +803,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
         }).addTo(leafletMap.current);
       }
     }
-  }, [data, activeFilters, disableWarning, markerLevel, searchQuery, filterLocations, hideStatus]);
+  }, [data, activeFilters, disableWarning, markerLevel, searchQuery, filterLocations, hideStatus, selectedPointId]);
 
   // 3. Handle Kabkot Markers (Restored Name Labels with Green Point)
   useEffect(() => {
@@ -800,7 +819,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
       let showLabel = true;
       if (filterLocations) {
         if (filterLocations.length === 0) {
-          showLabel = false;
+          showLabel = true; // Always show labels if no filters are active
         } else {
           showLabel = filterLocations.includes(kab.name);
         }
@@ -867,6 +886,11 @@ const RegionMap: React.FC<RegionMapProps> = ({
 
     const coords = feature.geometry.coordinates;
     const name = feature.properties.name;
+    const id = feature.properties.id || feature.properties.locationId;
+
+    setSelectedPointId(id);
+    // Clear any previously selected point after a short delay to allow re-render
+    setTimeout(() => setSelectedPointId(null), 2000);
 
     // Center map and zoom
     leafletMap.current.setView([coords[1], coords[0]], 15);
@@ -887,7 +911,8 @@ const RegionMap: React.FC<RegionMapProps> = ({
               layer.openPopup();
             } else {
               // Ensure we pass coordinates for dynamic popups that depend on e.latlng
-              const latlng = layer.getLatLng ? layer.getLatLng() : (layer._latlng || coords);
+              // Leaflet coords are [lat, lng], but GeoJSON coordinates are [lng, lat]
+              const latlng = layer.getLatLng ? layer.getLatLng() : L.latLng(coords[1], coords[0]);
               layer.fire('click', { latlng: latlng });
             }
           }
@@ -895,6 +920,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
       }
     }, 800);
 
+    // Clear search set query but keep selected status
     setSearchQuery("");
     setShowSuggestions(false);
   };
