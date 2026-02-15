@@ -148,10 +148,8 @@ export default function NotificationDropdown() {
         const nextState = !isOpen;
         setIsOpen(nextState);
 
-        if (nextState) {
-            setUnreadCount(0);
-            handleMarkAllAsRead();
-        }
+        // Removed auto-mark-read to prevent sudden graying out
+        // User must manually click "Tandai Baca" or click the item
     };
 
     const handleClearAll = async () => {
