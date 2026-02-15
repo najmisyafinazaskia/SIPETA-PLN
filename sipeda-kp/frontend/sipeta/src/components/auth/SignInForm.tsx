@@ -46,7 +46,10 @@ export default function SignInForm({ onLogin }: SignInFormProps) {
     }
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      // Membersihkan trailing slash agar tidak terjadi double slash //
+      const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+
+      const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
