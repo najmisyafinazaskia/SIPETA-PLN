@@ -339,6 +339,16 @@ const RegionMap: React.FC<RegionMapProps> = ({
       }
     }
 
+    if (markerLevel === 'kecamatan' && data.points.features) {
+      searchSource = data.points.features.map((f: any) => ({
+        ...f,
+        properties: {
+          ...f.properties,
+          id: f.properties.id || f.properties.locationId // Normalize ID for search
+        }
+      }));
+    }
+    luxury_search_source_kecamatan
     // Filter berdasarkan nama yang cocok dengan kata kunci
     const matches = searchSource.filter((f: any) => {
       const name = (f.properties?.name || "").toLowerCase();
@@ -806,7 +816,16 @@ const RegionMap: React.FC<RegionMapProps> = ({
               }
             }
             if (!showDot) return (L as any).layerGroup();
-            return L.circleMarker(latlng, { radius: 6, fillColor: isStable ? "#2ecc71" : "#f1c40f", color: "white", weight: 2, opacity: 1, fillOpacity: 1, pane: 'markerPane' });
+            return L.circleMarker(latlng, {
+              radius: 6,
+              fillColor: isStable ? "#2ecc71" : "#f1c40f",
+              color: "white",
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 1,
+              pane: 'markerPane',
+              locationId: props.id || props.locationId // Attach for robust search popup
+            } as any);
           },
           onEachFeature: (feature, layer) => {
             const props = feature.properties;
