@@ -897,34 +897,66 @@ const RegionMap: React.FC<RegionMapProps> = ({
     });
   }, [kabData, zoomLevel, markerLevel, filterLocations]);
 
-  // 4. Handle auto-opening popup for selected point
+  // 4. Handle auto-opening popup for selected point (Hyper-Robust Version)
   useEffect(() => {
     if (!selectedPointId || !leafletMap.current || loading) return;
 
-    const tryOpenPopup = () => {
+    console.log("Auto-popup effector triggered for ID:", selectedPointId);
+
+    const tryOpenPopupRecursive = (retryCount = 0) => {
+      if (!leafletMap.current) return;
       let found = false;
-      leafletMap.current?.eachLayer((layer: any) => {
+
+      const searchInLayer = (layer: any) => {
         if (found) return;
+
         const props = layer.feature?.properties || {};
         const options = layer.options || {};
 
-        const lId = (props.id || props.locationId || options.locationId || options.id || "").toString();
+        // Match against multiple possible ID locations
+        const lId = (props.id || props.locationId || options.locationId || options.id || layer.locationId || "").toString();
         const targetId = selectedPointId.toString();
 
-        if (targetId && lId && targetId === lId) {
-          console.log("Found selected marker, opening popup:", lId);
-          if (layer.openPopup) {
-            layer.openPopup();
-          } else {
-            layer.fire('click', { latlng: layer.getLatLng() });
+        if (targetId && lId && (targetId === lId)) {
+          console.log(`[MAP] Match found at retry ${retryCount} for ID: ${lId}`);
+
+          if (layer.fire) {
+            // Get coordinates: from layer itself, or as fallback from search metadata
+            const latlng = layer.getLatLng ? layer.getLatLng() : leafletMap.current?.getCenter();
+
+            // Highlight marker temporarily for visual feedback
+            if (layer.setStyle) {
+              const originalRadius = layer.options.radius || 6;
+              layer.setStyle({ radius: 12, weight: 4, color: '#fff' });
+              setTimeout(() => layer.setStyle({ radius: originalRadius, weight: 1, color: 'white' }), 1000);
+            }
+
+            layer.fire('click', { latlng: latlng });
+            found = true;
           }
-          found = true;
         }
-      });
+
+        // Deep search into groups/GeoJSON
+        if (!found && layer.eachLayer) {
+          layer.eachLayer((child: any) => searchInLayer(child));
+        }
+      };
+
+      searchInLayer(leafletMap.current);
+
+      if (!found && retryCount < 8) {
+        // Exponential-ish backoff or just steady retries
+        const nextDelay = 300 + (retryCount * 200);
+        setTimeout(() => tryOpenPopupRecursive(retryCount + 1), nextDelay);
+      } else if (found) {
+        // Reset selected ID after successful open to prevent loops, 
+        // BUT we might want to keep it so the marker stays visible even if filters hide it.
+        // For now, let's keep it until next search.
+      }
     };
 
-    // Delay to ensure layers are rendered
-    const timeout = setTimeout(tryOpenPopup, 1000);
+    // Wait for the flyTo animation (1.5s) to finish before the first attempt
+    const timeout = setTimeout(() => tryOpenPopupRecursive(0), 1600);
     return () => clearTimeout(timeout);
   }, [selectedPointId, data, loading]);
 
@@ -947,8 +979,8 @@ const RegionMap: React.FC<RegionMapProps> = ({
   return (
     <div className="relative w-full h-full bg-[#0f172a] overflow-hidden rounded-xl shadow-2xl border border-white/10 group/map">
       {/* Version Indicator for Debugging */}
-      <div className="absolute bottom-2 left-2 z-[1001] pointer-events-none opacity-20 group-hover/map:opacity-80 transition-opacity">
-        <span className="text-[8px] font-black text-white/40 uppercase tracking-tighter">MAP v2.1.2-R</span>
+      <div className="absolute bottom-2 left-2 z-[1001] pointer-events-none opacity-40 group-hover/map:opacity-100 transition-opacity">
+        <span className="text-[8px] font-black text-white/50 uppercase tracking-widest bg-black/40 px-2 py-1 rounded-md backdrop-blur-sm border border-white/10">MAP v2.1.3-RL</span>
       </div>
       {loading && (
         <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
