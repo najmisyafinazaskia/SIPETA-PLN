@@ -1019,8 +1019,10 @@ const Accordion = ({
       </button>
 
       {!onClick && (
-        <div className={`overflow-hidden transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${isOpen ? "max-h-[3000px] opacity-100 pt-3 opacity-100" : "max-h-0 opacity-0"}`}>
-          {children}
+        <div className={`grid transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${isOpen ? "grid-rows-[1fr] opacity-100 pt-3" : "grid-rows-[0fr] opacity-0 pt-0"}`}>
+          <div className="overflow-hidden">
+            {children}
+          </div>
         </div>
       )}
     </div>
@@ -1033,6 +1035,12 @@ export default function VerifikasiPage() {
     const params = new URLSearchParams(window.location.search);
     return params.get("search") || "";
   });
+  const [localSearchValue, setLocalSearchValue] = useState(searchTerm);
+
+  // Sync LOCAL input if URL changes (e.g. Back button)
+  useEffect(() => {
+    setLocalSearchValue(searchTerm);
+  }, [searchTerm]);
   const [allData, setAllData] = useState<Kabupaten[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1191,30 +1199,28 @@ export default function VerifikasiPage() {
 
 
 
-  // Sync searchTerm STATE from URL (Handle Browser Back Button)
-  useEffect(() => {
-    const urlSearch = searchParams.get("search") || "";
-    if (urlSearch !== searchTerm) {
-      setSearchTerm(urlSearch);
-    }
-  }, [searchParams]);
-
-  // Sync searchTerm to URL with debounce
+  // Sync localSearchValue to searchTerm with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      const currentUrlSearch = searchParams.get("search") || "";
-      if (currentUrlSearch !== searchTerm) {
-        const newParams = new URLSearchParams(searchParams);
-        if (searchTerm) {
-          newParams.set("search", searchTerm);
-        } else {
-          newParams.delete("search");
-        }
-        setSearchParams(newParams, { replace: true });
+      if (localSearchValue !== searchTerm) {
+        setSearchTerm(localSearchValue);
       }
     }, 300);
-
     return () => clearTimeout(timer);
+  }, [localSearchValue]);
+
+  // Sync searchTerm to URL
+  useEffect(() => {
+    const currentUrlSearch = searchParams.get("search") || "";
+    if (currentUrlSearch !== searchTerm) {
+      const newParams = new URLSearchParams(searchParams);
+      if (searchTerm) {
+        newParams.set("search", searchTerm);
+      } else {
+        newParams.delete("search");
+      }
+      setSearchParams(newParams, { replace: true });
+    }
   }, [searchTerm, searchParams, setSearchParams]);
 
 
@@ -1236,36 +1242,37 @@ export default function VerifikasiPage() {
     setSearchParams(newParams);
   };
 
-  // Create flat results for easier search when many identical names exist
+  // HELPER: Unified Robust Search Logic
+  const getSearchParts = (term: string) => {
+    // Bersihkan karakter seperti { } [ ] yang mungkin diketik user
+    const cleaned = term.toLowerCase().replace(/[{}[\]]/g, "");
+    return cleaned.split(",").map(p => p.trim()).filter(Boolean);
+  };
+
+  const isLocationMatch = (kab: string, kec: string, desa: any, searchParts: string[]) => {
+    if (searchParts.length === 0) return true;
+
+    const dName = desa?.name?.toLowerCase() || "";
+    const kName = kec?.toLowerCase() || "";
+    const bName = kab?.toLowerCase() || "";
+    const dusunNames = desa?.dusun?.map((d: any) => d?.name?.toLowerCase()).join(" ") || "";
+
+    const searchableText = `${dName} ${kName} ${bName} ${dusunNames}`;
+
+    // Setiap "bagian" (yang dipisah koma) harus ada di dalam hierarchy
+    return searchParts.every(part => searchableText.includes(part));
+  };
+
+  // 1. Create flat results for easier search when many identical names exist
   const flatResults = useMemo(() => {
     if (!searchTerm || searchTerm.trim().length < 2) return [];
     const results: any[] = [];
-    const parts = searchTerm.toLowerCase().split(",").map(p => p.trim()).filter(Boolean);
-    const mainQuery = parts[0];
+    const parts = getSearchParts(searchTerm);
 
     allData?.forEach(kab => {
-      const kabMatchAny = kab?.name?.toLowerCase().includes(mainQuery);
-
       kab?.kecamatan?.forEach(kec => {
-        const kecMatchAny = kec?.name?.toLowerCase().includes(mainQuery);
-
         kec?.desa?.forEach(desa => {
-          const desaMatch = desa?.name?.toLowerCase().includes(mainQuery);
-
-          let isFinalMatch = false;
-
-          // HIERARCHICAL SEARCH (Desa, Kecamatan, Kabupaten)
-          if (parts.length > 1) {
-            const matchesDesa = desa?.name?.toLowerCase().includes(parts[0]);
-            const matchesKec = kec?.name?.toLowerCase().includes(parts[1] || "");
-            const matchesKab = parts.length > 2 ? kab?.name?.toLowerCase().includes(parts[2]) : true;
-
-            isFinalMatch = matchesDesa && matchesKec && matchesKab;
-          } else {
-            // SIMPLE SEARCH (Check if query matches any level)
-            const hasMatchingDusun = desa?.dusun?.some(d => d?.name?.toLowerCase().includes(mainQuery));
-            isFinalMatch = desaMatch || hasMatchingDusun || kecMatchAny || kabMatchAny;
-          }
+          const isFinalMatch = isLocationMatch(kab.name, kec.name, desa, parts);
 
           // Apply Status Filter to Search Results
           const currentStatus = verifiedDesaMap[desa.id];
@@ -1294,7 +1301,7 @@ export default function VerifikasiPage() {
     return results.sort((a, b) => a.desa.name.localeCompare(b.desa.name));
   }, [searchTerm, allData, verifiedDesaMap, statusFilter]);
 
-  // Recursively filter data
+  // 2. Recursively filter data (For Tree View)
   const filteredData = useMemo(() => {
     const sortHierarchy = (data: Kabupaten[]) => {
       return [...data]
@@ -1329,28 +1336,34 @@ export default function VerifikasiPage() {
 
     let result = allData;
 
-    if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase();
+    if (searchTerm || statusFilter !== "Semua") {
+      const parts = getSearchParts(searchTerm);
 
       const filterKabupaten = (kab: Kabupaten): Kabupaten | null => {
         const kecMatches = kab.kecamatan.map(kec => {
           const desaMatches = kec.desa.map(desa => {
-            const dusunMatches = desa.dusun.filter(dusun =>
-              dusun.name.toLowerCase().includes(lowerSearch)
-            );
+            // 1. Check Search Match
+            const matchesSearch = isLocationMatch(kab.name, kec.name, desa, parts);
+            if (!matchesSearch) return null;
 
-            if (dusunMatches.length > 0) return { ...desa, dusun: dusunMatches };
-            if (desa.name.toLowerCase().includes(lowerSearch)) return desa;
-            return null;
+            // 2. Check Status Match
+            const currentStatus = verifiedDesaMap[desa.id];
+            if (statusFilter !== "Semua") {
+              if (statusFilter === "Belum Diunggah") {
+                if (currentStatus) return null;
+              } else if (currentStatus !== statusFilter) {
+                return null;
+              }
+            }
+
+            return desa;
           }).filter(Boolean) as Desa[];
 
           if (desaMatches.length > 0) return { ...kec, desa: desaMatches };
-          if (kec.name.toLowerCase().includes(lowerSearch)) return kec;
           return null;
         }).filter(Boolean) as Kecamatan[];
 
         if (kecMatches.length > 0) return { ...kab, kecamatan: kecMatches };
-        if (kab.name.toLowerCase().includes(lowerSearch)) return kab;
         return null;
       };
 
@@ -1475,12 +1488,15 @@ export default function VerifikasiPage() {
                     type="text"
                     placeholder="Cari desa, kecamatan, atau kabupaten/kota..."
                     className="w-full pl-14 pr-12 py-4.5 rounded-2xl bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-sm font-bold placeholder:text-gray-400 dark:text-white shadow-sm focus:shadow-xl focus:shadow-blue-500/5"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    value={localSearchValue}
+                    onChange={(e) => setLocalSearchValue(e.target.value)}
                   />
-                  {searchTerm && (
+                  {localSearchValue && (
                     <button
-                      onClick={() => setSearchTerm("")}
+                      onClick={() => {
+                        setLocalSearchValue("");
+                        setSearchTerm("");
+                      }}
                       className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 transition-colors"
                     >
                       <XIcon size={16} />
