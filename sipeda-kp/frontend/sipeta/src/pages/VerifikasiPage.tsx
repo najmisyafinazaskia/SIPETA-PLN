@@ -368,7 +368,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         setFilePath(null);
         setLastUpload(null);
         setUploader(null);
-        setStatus("Menunggu Verifikasi");
+        setStatus("Belum Diunggah");
         setMessage(null);
 
         // REMOVED: setVerifiedDesaMap deletion here.
@@ -514,7 +514,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         setFilePath(null);
         setLastUpload(null);
         setUploader(null);
-        setStatus("Menunggu Verifikasi");
+        setStatus("Belum Diunggah");
         setMessage(null);
         setShowDeleteModal(false);
         showAlert("Berhasil!", "Dokumen berhasil dihapus", "success");
@@ -563,11 +563,17 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
           color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800',
           icon: <AlertCircleIcon size={14} />
         };
-      default:
+      case 'Menunggu Verifikasi':
         return {
           label: 'Menunggu Verifikasi',
           color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
           icon: <ClockIcon size={14} />
+        };
+      default:
+        return {
+          label: 'Belum Diunggah',
+          color: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700',
+          icon: <UploadCloudIcon size={14} />
         };
     }
   };
@@ -957,7 +963,7 @@ const Accordion = ({
             isVerified ? (
               getStatusLabel(status || "")
             ) : (
-              <span className="text-[10px] font-black uppercase text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">Belum Verifikasi</span>
+              <span className="text-[10px] font-black uppercase text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">Belum Unggah</span>
             )
           )}
           {onClick && level === 2 && (
@@ -1449,7 +1455,7 @@ export default function VerifikasiPage() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-[10px] font-black uppercase text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">Belum Verifikasi</span>
+                            <span className="text-[10px] font-black uppercase text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">Belum Unggah</span>
                           )}
                           <ChevronRightIcon size={16} className="text-gray-300" />
                         </div>
