@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, TrashIcon, CheckCircle2Icon, XCircleIcon, AlertCircleIcon, ImageIcon, DownloadIcon, XIcon } from "lucide-react";
+import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, TrashIcon, CheckCircle2Icon, XCircleIcon, AlertCircleIcon, ImageIcon, DownloadIcon, XIcon, RotateCwIcon } from "lucide-react";
 import { useSearchParams, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ModernAlert from "../components/ui/ModernAlert";
@@ -1025,7 +1025,7 @@ export default function VerifikasiPage() {
       kab.kecamatan.forEach(kec => {
         kec.desa.forEach(desa => {
           c.Semua++;
-          const status = verifiedDesaMap[desa.id];
+          const status = verifiedDesaMap[String(desa.id)];
           if (!status) {
             c["Belum Diunggah"]++;
           } else if (status === 'Terverifikasi') {
@@ -1053,7 +1053,9 @@ export default function VerifikasiPage() {
         // console.log("[DEBUG] Raw Verification Data from Server:", data); // Removed for production
         const map: Record<string, string> = {};
         data.forEach((v: any) => {
-          map[v.dusunId] = v.status || "Menunggu Verifikasi";
+          // Normalize ID to string to prevent any Type Mismatch
+          const idKey = String(v.dusunId);
+          map[idKey] = v.status || "Menunggu Verifikasi";
         });
         // console.log("[DEBUG] Constructed Verification Map:", map); // Removed for production
         setVerifiedDesaMap(map);
@@ -1233,8 +1235,8 @@ export default function VerifikasiPage() {
               kab: kab.name,
               kec: kec.name,
               desa: desa,
-              isVerified: !!verifiedDesaMap[desa.id],
-              status: verifiedDesaMap[desa.id]
+              isVerified: !!verifiedDesaMap[String(desa.id)],
+              status: verifiedDesaMap[String(desa.id)]
             });
           }
         });
@@ -1265,7 +1267,7 @@ export default function VerifikasiPage() {
       return data.map(kab => {
         const filteredKec = kab.kecamatan.map(kec => {
           const filteredDesa = kec.desa.filter(desa => {
-            const status = verifiedDesaMap[desa.id];
+            const status = verifiedDesaMap[String(desa.id)];
             if (statusFilter === "Belum Diunggah") return !status;
             return status === statusFilter;
           });
@@ -1345,9 +1347,19 @@ export default function VerifikasiPage() {
               </div>
             </div>
           ) : (
-            <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
-              Berita Acara Wilayah (v2.1)
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-0">
+                Berita Acara Wilayah
+              </h1>
+              <button
+                onClick={fetchVerifications}
+                disabled={isLoading}
+                className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors"
+                title="Refresh Data"
+              >
+                <RotateCwIcon size={18} className={isLoading ? "animate-spin" : ""} />
+              </button>
+            </div>
           )}
         </div>
 
@@ -1520,8 +1532,8 @@ export default function VerifikasiPage() {
                                   title={`Desa ${desa.name}`}
                                   level={2}
                                   onClick={() => navigateToDesa({ desa })}
-                                  isVerified={!!verifiedDesaMap[desa.id]}
-                                  status={verifiedDesaMap[desa.id]}
+                                  isVerified={!!verifiedDesaMap[String(desa.id)]}
+                                  status={verifiedDesaMap[String(desa.id)]}
                                 >
                                   <div />
                                 </Accordion>
