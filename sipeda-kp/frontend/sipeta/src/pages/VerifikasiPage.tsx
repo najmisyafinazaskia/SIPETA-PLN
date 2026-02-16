@@ -1517,7 +1517,11 @@ export default function VerifikasiPage() {
                               {kec.desa.map((desa) => (
                                 <Accordion
                                   key={desa.id}
-                                  title={`Desa ${desa.name}`}
+                                  title={
+                                    (desa.name.toLowerCase().includes('arongan') || desa.name.toLowerCase().includes('blang dalam'))
+                                      ? `DEBUG: ${desa.name} [ID:${desa.id}] [MapStatus:${verifiedDesaMap[desa.id]}]`
+                                      : `Desa ${desa.name}`
+                                  }
                                   level={2}
                                   onClick={() => navigateToDesa({ desa })}
                                   isVerified={!!verifiedDesaMap[desa.id]}
