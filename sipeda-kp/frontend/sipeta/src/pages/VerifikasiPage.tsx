@@ -1050,14 +1050,14 @@ export default function VerifikasiPage() {
       const res = await fetch(`${API_URL}/api/verification?t=${new Date().getTime()}`);
       if (res.ok) {
         const data = await res.json();
-        console.log("[DEBUG] Raw Verification Data from Server:", data);
+        // console.log("[DEBUG] Raw Verification Data from Server:", data); // Removed for production
         const map: Record<string, string> = {};
         data.forEach((v: any) => {
           // Normalize ID to string to avoid ObjectId vs String mismatches
           const idKey = String(v.dusunId);
           map[idKey] = v.status || "Menunggu Verifikasi";
         });
-        console.log("[DEBUG] Constructed Verification Map:", map);
+        // console.log("[DEBUG] Constructed Verification Map:", map); // Removed for production
         setVerifiedDesaMap(map);
       }
     } catch (err) { console.error(err); }
@@ -1088,6 +1088,13 @@ export default function VerifikasiPage() {
     };
     fetchHierarchy();
     fetchVerifications();
+
+    // Polling every 30 seconds to sync data between users
+    const interval = setInterval(() => {
+      fetchVerifications();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Sync selectedDesa to URL params to support refreshing and deep linking
