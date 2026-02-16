@@ -308,7 +308,12 @@ const ReplaceConfirmationModal = ({
 };
 
 
-const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string, desaName: string, onUpdate: () => void }) => {
+const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap }: {
+  desaId: string,
+  desaName: string,
+  onUpdate: () => void,
+  setVerifiedDesaMap: React.Dispatch<React.SetStateAction<Record<string, string>>>
+}) => {
   const { user } = useAuth();
   const [file, setFile] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
@@ -354,6 +359,12 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
         setUploader(uUnit ? `${uUnit} - ${uName}` : uName);
         setStatus(data.status || "Menunggu Verifikasi");
         setMessage(data.message || null);
+
+        // Update global map immediately
+        setVerifiedDesaMap(prev => ({
+          ...prev,
+          [desaId]: data.status || "Menunggu Verifikasi"
+        }));
       } else {
         // Reset if no data found
         setFile(null);
@@ -362,9 +373,16 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate }: { desaId: string,
         setUploader(null);
         setStatus("Menunggu Verifikasi");
         setMessage(null);
+
+        // Update global map (remove status or set to default)
+        setVerifiedDesaMap(prev => {
+          const newMap = { ...prev };
+          delete newMap[desaId];
+          return newMap;
+        });
       }
     } catch (err) { console.error(err); }
-  }, [desaId, API_URL]);
+  }, [desaId, API_URL, setVerifiedDesaMap]);
 
   // Fetch initial state
   React.useEffect(() => {
@@ -1463,7 +1481,12 @@ export default function VerifikasiPage() {
           ) : (
             /* DESA DETAIL VIEW */
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <DesaVerificationPanel desaId={selectedDesa.desa.id} desaName={selectedDesa.desa.name} onUpdate={fetchVerifications} />
+              <DesaVerificationPanel
+                desaId={selectedDesa.desa.id}
+                desaName={selectedDesa.desa.name}
+                onUpdate={fetchVerifications}
+                setVerifiedDesaMap={setVerifiedDesaMap}
+              />
             </div>
           )}
         </div>
