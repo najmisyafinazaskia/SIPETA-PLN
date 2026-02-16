@@ -933,12 +933,16 @@ const Accordion = ({
 
 
 export default function VerifikasiPage() {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("search") || "";
+  });
   const [allData, setAllData] = useState<Kabupaten[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const location = useLocation();
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   const [verifiedDesaMap, setVerifiedDesaMap] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState("Semua");
@@ -1050,23 +1054,28 @@ export default function VerifikasiPage() {
   }, [location.search, allData]);
 
 
-  // Handle 'search' query param initialization
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const search = params.get("search");
 
-    // CASE 1: URL has search, State doesn't match -> Update State
-    if (search !== null && search !== searchTerm) {
-      setSearchTerm(search);
-    }
-    // CASE 2: URL has NO search, State has search, and we are NOT in detail view (Detail view hides search bar usually, but if we go back we want clean slate)
-    // If selectedDesa is present, we ignore search term clearing potentially, 
-    // BUT the user wants "Back" to go to "Gambar 1" (Full List).
-    // So if URL has no search & no desa, we must clear search.
-    else if (search === null && searchTerm !== "") {
-      setSearchTerm("");
-    }
-  }, [location.search, searchTerm]); // Removed selectedDesa from dep to rely on URL params
+
+  // Sync searchTerm to URL with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        if (searchTerm) {
+          newParams.set("search", searchTerm);
+        } else {
+          newParams.delete("search");
+        }
+        // Only update if changed prevents redundant replaces
+        if (newParams.toString() !== prev.toString()) {
+          return newParams;
+        }
+        return prev;
+      }, { replace: true });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, setSearchParams]);
 
 
 
@@ -1311,6 +1320,7 @@ export default function VerifikasiPage() {
                     <SearchIcon size={20} />
                   </div>
                   <input
+                    ref={searchInputRef}
                     type="text"
                     placeholder="Cari desa, kecamatan, atau kabupaten/kota..."
                     className="w-full pl-14 pr-12 py-4.5 rounded-2xl bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-sm font-bold placeholder:text-gray-400 dark:text-white shadow-sm focus:shadow-xl focus:shadow-blue-500/5"
