@@ -41,6 +41,52 @@ interface Kabupaten {
 
 // --- COMPONENTS ---
 
+// --- HELPERS ---
+const getStatusConfig = (status: string) => {
+  switch (status) {
+    case 'Terverifikasi':
+      return {
+        label: 'Terverifikasi',
+        color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
+        icon: <CheckCircle2Icon size={14} />
+      };
+    case 'Tidak Sesuai':
+      return {
+        label: 'Tidak Sesuai',
+        color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
+        icon: <XCircleIcon size={14} />
+      };
+    case 'Sesuai (Perlu Perbaikan)':
+      return {
+        label: 'Perlu Perbaikan',
+        color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800',
+        icon: <AlertCircleIcon size={14} />
+      };
+    case 'Menunggu Verifikasi':
+      return {
+        label: 'Menunggu',
+        color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+        icon: <ClockIcon size={14} />
+      };
+    default:
+      return {
+        label: 'Belum Unggah',
+        color: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700',
+        icon: <UploadCloudIcon size={14} />
+      };
+  }
+};
+
+const getStatusLabel = (status: string) => {
+  const config = getStatusConfig(status);
+  return (
+    <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-md border flex items-center gap-1 ${config.color}`}>
+      {config.icon}
+      {config.label}
+    </span>
+  );
+};
+
 const DeleteConfirmationModal = ({
   isOpen,
   onClose,
