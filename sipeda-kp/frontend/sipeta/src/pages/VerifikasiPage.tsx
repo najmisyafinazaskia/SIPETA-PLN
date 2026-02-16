@@ -1025,7 +1025,7 @@ export default function VerifikasiPage() {
       kab.kecamatan.forEach(kec => {
         kec.desa.forEach(desa => {
           c.Semua++;
-          const status = verifiedDesaMap[String(desa.id)];
+          const status = verifiedDesaMap[desa.id];
           if (!status) {
             c["Belum Diunggah"]++;
           } else if (status === 'Terverifikasi') {
@@ -1053,11 +1053,15 @@ export default function VerifikasiPage() {
         // console.log("[DEBUG] Raw Verification Data from Server:", data); // Removed for production
         const map: Record<string, string> = {};
         data.forEach((v: any) => {
-          // Normalize ID to string to prevent any Type Mismatch
-          const idKey = String(v.dusunId);
-          map[idKey] = v.status || "Menunggu Verifikasi";
+          // Double-entry strategy to handle any ID type mismatch (String vs Number vs Object)
+          // This guarantees lookup success without runtime conversion risks in render
+          const status = v.status || "Menunggu Verifikasi";
+          // Ensure we catch both raw ID and stringified ID
+          if (v.dusunId) {
+            map[v.dusunId] = status;
+            map[String(v.dusunId)] = status;
+          }
         });
-        // console.log("[DEBUG] Constructed Verification Map:", map); // Removed for production
         setVerifiedDesaMap(map);
       }
     } catch (err) { console.error(err); }
@@ -1235,8 +1239,8 @@ export default function VerifikasiPage() {
               kab: kab.name,
               kec: kec.name,
               desa: desa,
-              isVerified: !!verifiedDesaMap[String(desa.id)],
-              status: verifiedDesaMap[String(desa.id)]
+              isVerified: !!verifiedDesaMap[desa.id],
+              status: verifiedDesaMap[desa.id]
             });
           }
         });
@@ -1267,7 +1271,7 @@ export default function VerifikasiPage() {
       return data.map(kab => {
         const filteredKec = kab.kecamatan.map(kec => {
           const filteredDesa = kec.desa.filter(desa => {
-            const status = verifiedDesaMap[String(desa.id)];
+            const status = verifiedDesaMap[desa.id];
             if (statusFilter === "Belum Diunggah") return !status;
             return status === statusFilter;
           });
@@ -1522,8 +1526,8 @@ export default function VerifikasiPage() {
                                   title={`Desa ${desa.name}`}
                                   level={2}
                                   onClick={() => navigateToDesa({ desa })}
-                                  isVerified={!!verifiedDesaMap[String(desa.id)]}
-                                  status={verifiedDesaMap[String(desa.id)]}
+                                  isVerified={!!verifiedDesaMap[desa.id]}
+                                  status={verifiedDesaMap[desa.id]}
                                 >
                                   <div />
                                 </Accordion>
