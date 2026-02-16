@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, TrashIcon, CheckCircle2Icon, XCircleIcon, AlertCircleIcon, ImageIcon, DownloadIcon, XIcon, RotateCwIcon } from "lucide-react";
+import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, TrashIcon, CheckCircle2Icon, XCircleIcon, AlertCircleIcon, ImageIcon, DownloadIcon, XIcon } from "lucide-react";
 import { useSearchParams, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ModernAlert from "../components/ui/ModernAlert";
@@ -1347,19 +1347,9 @@ export default function VerifikasiPage() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-0">
-                Berita Acara Wilayah
-              </h1>
-              <button
-                onClick={fetchVerifications}
-                disabled={isLoading}
-                className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors"
-                title="Refresh Data"
-              >
-                <RotateCwIcon size={18} className={isLoading ? "animate-spin" : ""} />
-              </button>
-            </div>
+            <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
+              Berita Acara Wilayah
+            </h1>
           )}
         </div>
 
