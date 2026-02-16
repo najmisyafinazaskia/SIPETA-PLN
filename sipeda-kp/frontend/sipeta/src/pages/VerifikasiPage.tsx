@@ -1053,9 +1053,7 @@ export default function VerifikasiPage() {
         // console.log("[DEBUG] Raw Verification Data from Server:", data); // Removed for production
         const map: Record<string, string> = {};
         data.forEach((v: any) => {
-          // Normalize ID to string to avoid ObjectId vs String mismatches
-          const idKey = String(v.dusunId);
-          map[idKey] = v.status || "Menunggu Verifikasi";
+          map[v.dusunId] = v.status || "Menunggu Verifikasi";
         });
         // console.log("[DEBUG] Constructed Verification Map:", map); // Removed for production
         setVerifiedDesaMap(map);
@@ -1220,8 +1218,8 @@ export default function VerifikasiPage() {
               kab: kab.name,
               kec: kec.name,
               desa: desa,
-              isVerified: !!verifiedDesaMap[String(desa.id)],
-              status: verifiedDesaMap[String(desa.id)]
+              isVerified: !!verifiedDesaMap[desa.id],
+              status: verifiedDesaMap[desa.id]
             });
           }
         });
@@ -1252,7 +1250,7 @@ export default function VerifikasiPage() {
       return data.map(kab => {
         const filteredKec = kab.kecamatan.map(kec => {
           const filteredDesa = kec.desa.filter(desa => {
-            const status = verifiedDesaMap[String(desa.id)];
+            const status = verifiedDesaMap[desa.id];
             if (statusFilter === "Belum Diunggah") return !status;
             return status === statusFilter;
           });
@@ -1507,8 +1505,8 @@ export default function VerifikasiPage() {
                                   title={`Desa ${desa.name}`}
                                   level={2}
                                   onClick={() => navigateToDesa({ desa })}
-                                  isVerified={!!verifiedDesaMap[String(desa.id)]}
-                                  status={verifiedDesaMap[String(desa.id)]}
+                                  isVerified={!!verifiedDesaMap[desa.id]}
+                                  status={verifiedDesaMap[desa.id]}
                                 >
                                   <div />
                                 </Accordion>
