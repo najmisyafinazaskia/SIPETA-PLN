@@ -1580,18 +1580,20 @@ export default function VerifikasiPage() {
                               level={1}
                               defaultOpen={!!searchTerm || !!isKecSelected}
                             >
-                              {kec.desa.map((desa) => (
-                                <Accordion
-                                  key={desa.id}
-                                  title={`Desa ${desa.name}`}
-                                  level={2}
-                                  onClick={() => navigateToDesa({ desa })}
-                                  isVerified={!!verifiedDesaMap[desa.id]}
-                                  status={verifiedDesaMap[desa.id]}
-                                >
-                                  <div />
-                                </Accordion>
-                              ))}
+                              <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                {kec.desa.map((desa) => (
+                                  <Accordion
+                                    key={desa.id}
+                                    title={`Desa ${desa.name}`}
+                                    level={2}
+                                    onClick={() => navigateToDesa({ desa })}
+                                    isVerified={!!verifiedDesaMap[desa.id]}
+                                    status={verifiedDesaMap[desa.id]}
+                                  >
+                                    <div />
+                                  </Accordion>
+                                ))}
+                              </div>
                             </Accordion>
                           );
                         })}
