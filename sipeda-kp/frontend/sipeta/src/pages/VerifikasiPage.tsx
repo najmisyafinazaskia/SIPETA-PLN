@@ -1050,10 +1050,14 @@ export default function VerifikasiPage() {
       const res = await fetch(`${API_URL}/api/verification?t=${new Date().getTime()}`);
       if (res.ok) {
         const data = await res.json();
+        console.log("[DEBUG] Raw Verification Data from Server:", data);
         const map: Record<string, string> = {};
         data.forEach((v: any) => {
-          map[v.dusunId] = v.status || "Menunggu Verifikasi";
+          // Normalize ID to string to avoid ObjectId vs String mismatches
+          const idKey = String(v.dusunId);
+          map[idKey] = v.status || "Menunggu Verifikasi";
         });
+        console.log("[DEBUG] Constructed Verification Map:", map);
         setVerifiedDesaMap(map);
       }
     } catch (err) { console.error(err); }
@@ -1209,8 +1213,8 @@ export default function VerifikasiPage() {
               kab: kab.name,
               kec: kec.name,
               desa: desa,
-              isVerified: !!verifiedDesaMap[desa.id],
-              status: verifiedDesaMap[desa.id]
+              isVerified: !!verifiedDesaMap[String(desa.id)],
+              status: verifiedDesaMap[String(desa.id)]
             });
           }
         });
@@ -1241,7 +1245,7 @@ export default function VerifikasiPage() {
       return data.map(kab => {
         const filteredKec = kab.kecamatan.map(kec => {
           const filteredDesa = kec.desa.filter(desa => {
-            const status = verifiedDesaMap[desa.id];
+            const status = verifiedDesaMap[String(desa.id)];
             if (statusFilter === "Belum Diunggah") return !status;
             return status === statusFilter;
           });
@@ -1496,8 +1500,8 @@ export default function VerifikasiPage() {
                                   title={`Desa ${desa.name}`}
                                   level={2}
                                   onClick={() => navigateToDesa({ desa })}
-                                  isVerified={!!verifiedDesaMap[desa.id]}
-                                  status={verifiedDesaMap[desa.id]}
+                                  isVerified={!!verifiedDesaMap[String(desa.id)]}
+                                  status={verifiedDesaMap[String(desa.id)]}
                                 >
                                   <div />
                                 </Accordion>
