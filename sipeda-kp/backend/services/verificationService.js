@@ -19,32 +19,34 @@ class VerificationService {
 
         console.log('[UPLOAD] File berhasil diunggah ke Supabase:', uploadResult.path);
 
-        let verification = await Verification.findOne({ dusunId });
+        // Gunakan findOneAndUpdate dengan upsert agar atomik dan mencegah race condition
+        const filter = { dusunId };
+        const update = {
+            fileName: file.originalname,
+            filePath: uploadResult.path,
+            publicId: uploadResult.publicId,
+            uploadedBy: userId,
+            status: 'Menunggu Verifikasi', // Selalu reset ke status awal setelah upload baru
+            message: null // Clear message lama
+        };
 
-        if (verification) {
-            // Hapus file lama di Supabase jika ada
-            if (verification.publicId) {
-                await storageService.deleteFile(verification.publicId);
+        // Jika ada file lama, hapus dulu dari cloud storage (opsional, tapi bagus untuk kebersihan)
+        // Kita cari dulu dokumen lama untuk mendapatkan publicId-nya
+        const existingVerification = await Verification.findOne({ dusunId });
+        if (existingVerification && existingVerification.publicId) {
+            try {
+                await storageService.deleteFile(existingVerification.publicId);
+            } catch (err) {
+                console.error("[UPLOAD] Gagal menghapus file lama:", err.message);
+                // Lanjutkan saja, jangan block upload baru
             }
-
-            verification.fileName = file.originalname;
-            verification.filePath = uploadResult.path;
-            verification.publicId = uploadResult.publicId;
-            verification.uploadedBy = userId;
-            verification.status = 'Menunggu Verifikasi';
-            verification.message = null; // Clear previous message
-            await verification.save();
-        } else {
-            verification = new Verification({
-                dusunId,
-                fileName: file.originalname,
-                filePath: uploadResult.path,
-                publicId: uploadResult.publicId,
-                uploadedBy: userId,
-                status: 'Menunggu Verifikasi'
-            });
-            await verification.save();
         }
+
+        const verification = await Verification.findOneAndUpdate(filter, update, {
+            new: true, // Return dokumen baru setelah update
+            upsert: true, // Jika belum ada, buat baru
+            setDefaultsOnInsert: true // Gunakan default schema
+        });
 
         const user = await User.findById(userId);
 
