@@ -415,12 +415,29 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
       const isJson = res.headers.get('content-type')?.includes('application/json');
       const data = isJson ? await res.json() : null;
 
-      if (res.ok) {
-        // Refresh data to get the populated uploader name properly
-        await fetchStatus();
+      if (res.ok && data?.data) {
+        // Use returned data to update state immediately without refetching (avoids race condition)
+        const v = data.data;
+        setFile(v.fileName);
+        setFilePath(v.filePath);
+        setLastUpload(new Date(v.updatedAt).toLocaleString());
+        
+        // Handle uploader name from response if populated
+        const uName = v.uploadedBy?.name || user?.name || "Admin";
+        const uUnit = v.uploadedBy?.unit || user?.unit;
+        setUploader(uUnit ? `${uUnit} - ${uName}` : uName);
+        
+        setStatus(v.status || "Menunggu Verifikasi");
+        setMessage(v.message || null);
+
+        // Update global map immediately
+        setVerifiedDesaMap(prev => ({
+          ...prev,
+          [desaId]: v.status || "Menunggu Verifikasi"
+        }));
+
         setIsEditing(false);
         showAlert("Berhasil!", "Dokumen Desa berhasil diunggah!", "success");
-        onUpdate();
       } else {
         const errorMsg = data?.message || `Gagal mengunggah dokumen (Status: ${res.status})`;
         showAlert("Gagal!", errorMsg, "error");
@@ -465,7 +482,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
           [desaId]: newStatus
         }));
 
-        onUpdate();
+        // onUpdate() removed
 
         // Visual delay to let notifications process
         setLoadingNotif(true);
@@ -515,7 +532,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
           return newMap;
         });
 
-        onUpdate();
+        // onUpdate() removed
       } else {
         const data = await res.json();
         showAlert("Gagal!", data.message || "Gagal menghapus dokumen", "error");
