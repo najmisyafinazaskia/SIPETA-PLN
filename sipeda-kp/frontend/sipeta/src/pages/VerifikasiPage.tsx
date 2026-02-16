@@ -945,7 +945,17 @@ export default function VerifikasiPage() {
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   const [verifiedDesaMap, setVerifiedDesaMap] = useState<Record<string, string>>({});
-  const [statusFilter, setStatusFilter] = useState("Semua");
+  const statusFilter = searchParams.get("status") || "Semua";
+
+  const setStatusFilter = (status: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (status && status !== "Semua") {
+      newParams.set("status", status);
+    } else {
+      newParams.delete("status");
+    }
+    setSearchParams(newParams, { replace: true });
+  };
 
   // Sync selectedDesa to URL params to support refreshing and deep linking
   // while ensuring fresh navigation (without params) starts at the list view
@@ -1056,40 +1066,46 @@ export default function VerifikasiPage() {
 
 
 
+  // Sync searchTerm STATE from URL (Handle Browser Back Button)
+  useEffect(() => {
+    const urlSearch = searchParams.get("search") || "";
+    if (urlSearch !== searchTerm) {
+      setSearchTerm(urlSearch);
+    }
+  }, [searchParams]);
+
   // Sync searchTerm to URL with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      setSearchParams(prev => {
-        const newParams = new URLSearchParams(prev);
+      const currentUrlSearch = searchParams.get("search") || "";
+      if (currentUrlSearch !== searchTerm) {
+        const newParams = new URLSearchParams(searchParams);
         if (searchTerm) {
           newParams.set("search", searchTerm);
         } else {
           newParams.delete("search");
         }
-        // Only update if changed prevents redundant replaces
-        if (newParams.toString() !== prev.toString()) {
-          return newParams;
-        }
-        return prev;
-      }, { replace: true });
+        setSearchParams(newParams, { replace: true });
+      }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, setSearchParams]);
+  }, [searchTerm, searchParams, setSearchParams]);
+
+
 
 
 
   // Helper to navigate ensures URL is the only thing we change
+
   const navigateToDesa = (desaData: { desa: { name: string } } | null) => {
-    setSearchParams(prev => {
-      const newParams = new URLSearchParams(prev);
-      if (desaData) {
-        newParams.set("desa", desaData.desa.name);
-      } else {
-        newParams.delete("desa");
-      }
-      return newParams;
-    });
+    const newParams = new URLSearchParams(searchParams);
+    if (desaData) {
+      newParams.set("desa", desaData.desa.name);
+    } else {
+      newParams.delete("desa");
+    }
+    setSearchParams(newParams);
   };
 
   // Create flat results for easier search when many identical names exist
@@ -1126,7 +1142,18 @@ export default function VerifikasiPage() {
             isFinalMatch = desaMatch || hasMatchingDusun || kecMatchAny || kabMatchAny;
           }
 
-          if (isFinalMatch) {
+          // Apply Status Filter to Search Results
+          const currentStatus = verifiedDesaMap[desa.id];
+          let matchesStatus = true;
+          if (statusFilter !== "Semua") {
+            if (statusFilter === "Belum Diunggah") {
+              matchesStatus = !currentStatus;
+            } else {
+              matchesStatus = currentStatus === statusFilter;
+            }
+          }
+
+          if (isFinalMatch && matchesStatus) {
             results.push({
               kab: kab.name,
               kec: kec.name,
@@ -1140,7 +1167,7 @@ export default function VerifikasiPage() {
     });
 
     return results.sort((a, b) => a.desa.name.localeCompare(b.desa.name));
-  }, [searchTerm, allData, verifiedDesaMap]);
+  }, [searchTerm, allData, verifiedDesaMap, statusFilter]);
 
   // Recursively filter data
   const filteredData = useMemo(() => {
