@@ -1322,7 +1322,7 @@ export default function VerifikasiPage() {
             </div>
           ) : (
             <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
-              Berita Acara Wilayah
+              Berita Acara Wilayah (v2.1)
             </h1>
           )}
         </div>
