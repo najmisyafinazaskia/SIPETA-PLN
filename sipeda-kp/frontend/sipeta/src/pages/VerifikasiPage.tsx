@@ -1081,15 +1081,15 @@ export default function VerifikasiPage() {
 
   // Helper to navigate ensures URL is the only thing we change
   const navigateToDesa = (desaData: { desa: { name: string } } | null) => {
-
-    // If selecting a desa (going deep)
-    if (desaData) {
-      setSearchParams({ desa: desaData.desa.name });
-    } else {
-      // Going BACK -> Hard reset to base path using native browser navigation
-      // This forces a full page reload to guarantee no state persistence
-      window.location.href = '/dashboard/verifikasi';
-    }
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      if (desaData) {
+        newParams.set("desa", desaData.desa.name);
+      } else {
+        newParams.delete("desa");
+      }
+      return newParams;
+    });
   };
 
   // Create flat results for easier search when many identical names exist
@@ -1225,13 +1225,12 @@ export default function VerifikasiPage() {
         <div className="p-8 pb-4">
           {selectedDesa ? (
             <div className="flex flex-col gap-4">
-              <a
-                href={`/dashboard/verifikasi?t=${Date.now()}`}
-                target="_self"
-                className="w-fit flex items-center gap-2 py-2 text-xl font-bold text-[#0052CC] hover:-translate-x-1 transition-transform cursor-pointer"
+              <button
+                onClick={() => navigateToDesa(null)}
+                className="w-fit flex items-center gap-2 py-2 text-xl font-bold text-[#0052CC] hover:-translate-x-1 transition-transform cursor-pointer bg-transparent border-none p-0"
               >
                 <ArrowLeftIcon size={16} className="group-hover:-translate-x-1 transition-transform" /> Kembali
-              </a>
+              </button>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
                   <span>{selectedDesa.kab}</span>
