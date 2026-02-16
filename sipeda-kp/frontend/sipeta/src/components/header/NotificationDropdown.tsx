@@ -238,8 +238,8 @@ export default function NotificationDropdown() {
                     <path d="M12 22C13.1 22 14 21.1 14 20H10C10 21.1 10.9 22 12 22ZM18 16V11C18 7.93 16.37 5.36 13.5 4.68V4C13.5 3.17 12.83 2.5 12 2.5C11.17 2.5 10.5 3.17 10.5 4V4.68C7.64 5.36 6 7.92 6 11V16L4 18V19H20V18L18 16ZM16 17H8V11C8 8.52 9.51 6.5 12 6.5C14.49 6.5 16 8.52 16 11V17Z" />
                 </svg>
                 {unreadCount > 0 && (
-                    <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse">
-                        {unreadCount}
+                    <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center w-5 h-5 text-[10px] font-black text-white bg-red-500 rounded-full border-[2px] border-white dark:border-gray-900 shadow-sm animate-pulse">
+                        {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                 )}
             </button>

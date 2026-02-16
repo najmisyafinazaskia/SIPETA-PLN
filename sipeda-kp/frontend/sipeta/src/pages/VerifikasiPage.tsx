@@ -1147,16 +1147,6 @@ export default function VerifikasiPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Diagnostic: Catch global errors to find "Blank Screen" cause
-  useEffect(() => {
-    const handleError = (event: ErrorEvent) => {
-      // Prevent default browser error handling which might be suppressed
-      console.error("Caught runtime error:", event.error);
-      alert(`Runtime Error: ${event.message}\nFile: ${event.filename}\nLine: ${event.lineno}`);
-    };
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []);
 
   // Sync selectedDesa to URL params to support refreshing and deep linking
   // while ensuring fresh navigation (without params) starts at the list view
