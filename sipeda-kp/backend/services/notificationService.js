@@ -7,7 +7,7 @@ class NotificationService {
             deletedBy: { $ne: userId }
         })
             .sort({ createdAt: -1 })
-            .limit(20);
+            .limit(500);
     }
 
     async createNotification(data, userId) {
