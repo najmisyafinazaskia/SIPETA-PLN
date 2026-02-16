@@ -157,6 +157,12 @@ const AppSidebar: React.FC = () => {
                               <li key={sub.name}>
                                 <Link
                                   to={sub.path}
+                                  onClick={(e) => {
+                                    if (sub.path === "/dashboard/verifikasi") {
+                                      e.preventDefault();
+                                      window.location.href = sub.path;
+                                    }
+                                  }}
                                   className={`flex items-center w-full py-2 px-4 transition-all rounded-lg text-sm font-bold
                                     ${isActive(sub.path)
                                       ? "text-blue-600 bg-blue-50 dark:bg-blue-600/10 dark:text-blue-400"

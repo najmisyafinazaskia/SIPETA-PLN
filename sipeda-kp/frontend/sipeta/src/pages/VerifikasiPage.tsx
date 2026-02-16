@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, TrashIcon, CheckCircle2Icon, XCircleIcon, AlertCircleIcon, ImageIcon, DownloadIcon, XIcon } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ModernAlert from "../components/ui/ModernAlert";
 
@@ -937,19 +937,15 @@ export default function VerifikasiPage() {
   const [allData, setAllData] = useState<Kabupaten[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedDesa, setSelectedDesa] = useState<{ kab: string, kec: string, desa: Desa } | null>(null);
+
+  const location = useLocation();
+
   const [verifiedDesaMap, setVerifiedDesaMap] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState("Semua");
 
   // Sync selectedDesa to URL params to support refreshing and deep linking
   // while ensuring fresh navigation (without params) starts at the list view
-  useEffect(() => {
-    if (selectedDesa) {
-      setSearchParams({ desa: selectedDesa.desa.name });
-    } else if (searchParams.get("desa")) {
-      setSearchParams({});
-    }
-  }, [selectedDesa, setSearchParams, searchParams]);
+
 
   const counts = useMemo(() => {
     const c = {
@@ -1025,24 +1021,67 @@ export default function VerifikasiPage() {
     fetchVerifications();
   }, []);
 
-  // Auto-select Desa from query param
-  useEffect(() => {
-    const targetDesaName = searchParams.get("desa");
-    if (targetDesaName && allData.length > 0) {
-      if (selectedDesa?.desa.name.toLowerCase() === targetDesaName.toLowerCase()) return;
+  // Sync selectedDesa to URL params to support refreshing and deep linking
+  // while ensuring fresh navigation (without params) starts at the list view
+  // REFACTOR: Use URL as Single Source of Truth
+  const selectedDesa = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const desaParam = params.get("desa");
 
-      for (const kab of allData) {
-        for (const kec of kab.kecamatan) {
-          const foundDesa = kec.desa.find(d => d.name.toLowerCase() === targetDesaName.toLowerCase());
-          if (foundDesa) {
-            setSelectedDesa({ kab: kab.name, kec: kec.name, desa: foundDesa });
-            setSearchTerm("");
-            return;
-          }
+    if (!desaParam || allData.length === 0) return null;
+
+    const normalize = (name: string) => name.toLowerCase().replace(/^(desa|gampong|kelurahan)\s+/g, '').trim();
+    const target = normalize(desaParam);
+
+    for (const kab of allData) {
+      for (const kec of kab.kecamatan) {
+        // Robust matching
+        const d = kec.desa.find(d => {
+          const dName = normalize(d.name);
+          return dName === target || dName.includes(target) || target.includes(dName);
+        });
+
+        if (d) {
+          return { kab: kab.name, kec: kec.name, desa: d };
         }
       }
     }
-  }, [searchParams, allData, selectedDesa]);
+    return null;
+  }, [location.search, allData]);
+
+
+  // Handle 'search' query param initialization
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const search = params.get("search");
+
+    // CASE 1: URL has search, State doesn't match -> Update State
+    if (search !== null && search !== searchTerm) {
+      setSearchTerm(search);
+    }
+    // CASE 2: URL has NO search, State has search, and we are NOT in detail view (Detail view hides search bar usually, but if we go back we want clean slate)
+    // If selectedDesa is present, we ignore search term clearing potentially, 
+    // BUT the user wants "Back" to go to "Gambar 1" (Full List).
+    // So if URL has no search & no desa, we must clear search.
+    else if (search === null && searchTerm !== "") {
+      setSearchTerm("");
+    }
+  }, [location.search, searchTerm]); // Removed selectedDesa from dep to rely on URL params
+
+
+
+  // Helper to navigate ensures URL is the only thing we change
+  const navigateToDesa = (desaData: { desa: { name: string } } | null) => {
+
+    // If selecting a desa (going deep)
+    if (desaData) {
+      setSearchParams({ desa: desaData.desa.name });
+    } else {
+      // Going BACK -> Hard reset to base path using native browser navigation
+      // This forces a full page reload to guarantee no state persistence
+      window.location.href = '/dashboard/verifikasi';
+    }
+  };
 
   // Create flat results for easier search when many identical names exist
   const flatResults = useMemo(() => {
@@ -1177,12 +1216,13 @@ export default function VerifikasiPage() {
         <div className="p-8 pb-4">
           {selectedDesa ? (
             <div className="flex flex-col gap-4">
-              <button
-                onClick={() => setSelectedDesa(null)}
-                className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+              <a
+                href={`/dashboard/verifikasi?t=${Date.now()}`}
+                target="_self"
+                className="w-fit flex items-center gap-2 py-2 text-xl font-bold text-[#0052CC] hover:-translate-x-1 transition-transform cursor-pointer"
               >
-                <ArrowLeftIcon size={16} /> Kembali
-              </button>
+                <ArrowLeftIcon size={16} className="group-hover:-translate-x-1 transition-transform" /> Kembali
+              </a>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
                   <span>{selectedDesa.kab}</span>
@@ -1296,7 +1336,7 @@ export default function VerifikasiPage() {
                     flatResults.map((res: any, idx: number) => (
                       <button
                         key={idx}
-                        onClick={() => setSelectedDesa({ kab: res.kab, kec: res.kec, desa: res.desa })}
+                        onClick={() => navigateToDesa({ desa: res.desa })}
                         className="w-full flex items-center justify-between p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-900 transition-all group"
                       >
                         <div className="flex items-center gap-4 text-left">
@@ -1368,7 +1408,7 @@ export default function VerifikasiPage() {
                                   key={desa.id}
                                   title={`Desa ${desa.name}`}
                                   level={2}
-                                  onClick={() => setSelectedDesa({ kab: kab.name, kec: kec.name, desa })}
+                                  onClick={() => navigateToDesa({ desa })}
                                   isVerified={!!verifiedDesaMap[desa.id]}
                                   status={verifiedDesaMap[desa.id]}
                                 >

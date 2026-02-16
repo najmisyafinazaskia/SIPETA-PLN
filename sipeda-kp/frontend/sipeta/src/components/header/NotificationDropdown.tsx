@@ -195,7 +195,11 @@ export default function NotificationDropdown() {
             // Attempt to extract location name from "untuk [LocationName]" or "Berita Acara [LocationName]"
             const match = notif.message.match(/(untuk|Berita Acara)\s+(.+?)(?=\s+telah|$)/i);
             if (match && match[2]) {
-                const locationName = match[2].trim();
+                let locationName = match[2].trim();
+                // Remove specific prefixes to ensure better matching with data
+                // We strip common prefixes to normalize the name
+                locationName = locationName.replace(/^(Desa|Gampong|Kelurahan)\s+/i, '');
+
                 navigate(`/dashboard/verifikasi?desa=${encodeURIComponent(locationName)}`);
                 setIsOpen(false);
             } else {

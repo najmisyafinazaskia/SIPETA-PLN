@@ -1,3 +1,4 @@
+// Force rebuild: 2026-02-16T13:58:00
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
