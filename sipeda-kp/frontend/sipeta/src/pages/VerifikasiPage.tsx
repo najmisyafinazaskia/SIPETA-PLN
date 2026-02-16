@@ -360,11 +360,8 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         setStatus(data.status || "Menunggu Verifikasi");
         setMessage(data.message || null);
 
-        // Update global map immediately
-        setVerifiedDesaMap(prev => ({
-          ...prev,
-          [desaId]: data.status || "Menunggu Verifikasi"
-        }));
+        // REMOVED: setVerifiedDesaMap here to avoid stale read overwriting optimistic update.
+        // The global map should only be updated by mutations (upload/status change) or the initial bulk fetch.
       } else {
         // Reset if no data found
         setFile(null);
@@ -374,12 +371,9 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         setStatus("Menunggu Verifikasi");
         setMessage(null);
 
-        // Update global map (remove status or set to default)
-        setVerifiedDesaMap(prev => {
-          const newMap = { ...prev };
-          delete newMap[desaId];
-          return newMap;
-        });
+        // REMOVED: setVerifiedDesaMap deletion here.
+        // If fetch returns 404, we just show empty state locally.
+        // We do NOT want to wipe the global map entry if it was just added optimistically.
       }
     } catch (err) { console.error(err); }
   }, [desaId, API_URL, setVerifiedDesaMap]);
