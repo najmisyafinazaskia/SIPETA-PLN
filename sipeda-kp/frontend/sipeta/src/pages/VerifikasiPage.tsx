@@ -421,13 +421,13 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         const uUnit = v.uploadedBy?.unit || user?.unit;
         setUploader(uUnit ? `${uUnit} - ${uName}` : uName);
 
-        setStatus(v.status || "Menunggu Verifikasi");
+        setStatus("Menunggu Verifikasi");
         setMessage(v.message || null);
 
         // Update global map immediately
         setVerifiedDesaMap(prev => ({
           ...prev,
-          [desaId]: v.status || "Menunggu Verifikasi"
+          [desaId]: "Menunggu Verifikasi"
         }));
 
         setIsEditing(false);
