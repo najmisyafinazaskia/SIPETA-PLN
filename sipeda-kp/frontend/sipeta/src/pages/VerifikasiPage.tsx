@@ -1383,7 +1383,7 @@ export default function VerifikasiPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-full mx-auto space-y-6 px-4 md:px-6">
       <div className="rounded-3xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03] font-outfit relative">
 
         {/* 1. Header & Navigation */}
@@ -1392,9 +1392,9 @@ export default function VerifikasiPage() {
             <div className="flex flex-col gap-4">
               <button
                 onClick={() => navigateToDesa(null)}
-                className="w-fit flex items-center gap-2 py-2 text-xl font-bold text-[#0052CC] hover:-translate-x-1 transition-transform cursor-pointer bg-transparent border-none p-0"
+                className="w-fit flex items-center gap-2 py-2 text-sm font-bold text-[#0052CC] hover:-translate-x-1 transition-transform cursor-pointer bg-transparent border-none p-0"
               >
-                <ArrowLeftIcon size={16} className="group-hover:-translate-x-1 transition-transform" /> Kembali
+                <ArrowLeftIcon size={14} className="group-hover:-translate-x-1 transition-transform" /> Kembali
               </button>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
@@ -1409,7 +1409,7 @@ export default function VerifikasiPage() {
             </div>
           ) : (
             <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
-              Berita Acara Wilayah
+              Berita Acara
             </h1>
           )}
         </div>
