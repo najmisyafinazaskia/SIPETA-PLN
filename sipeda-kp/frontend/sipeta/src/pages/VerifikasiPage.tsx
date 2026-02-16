@@ -1100,12 +1100,24 @@ export default function VerifikasiPage() {
   // REFACTOR: Use URL as Single Source of Truth
   const selectedDesa = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    const desaParam = params.get("desa");
+    const desaIdParam = params.get("id"); // Primary identifier
+    const desaParam = params.get("desa"); // Fallback identifier
 
-    if (!desaParam || allData.length === 0) return null;
+    if ((!desaIdParam && !desaParam) || allData.length === 0) return null;
 
+    // IF ID IS PRESENT, SEARCH BY ID (More Precise)
+    if (desaIdParam) {
+      for (const kab of allData) {
+        for (const kec of kab.kecamatan) {
+          const found = kec.desa.find(d => String(d.id) === desaIdParam);
+          if (found) return { kab, kec, desa: found };
+        }
+      }
+    }
+
+    // FALLBACK TO NAME SEARCH (For backward compatibility or shared links)
     const normalize = (name: string) => name.toLowerCase().replace(/^(desa|gampong|kelurahan)\s+/g, '').trim();
-    const target = normalize(desaParam);
+    const target = normalize(desaParam || "");
 
     for (const kab of allData) {
       for (const kec of kab.kecamatan) {
@@ -1158,12 +1170,15 @@ export default function VerifikasiPage() {
 
   // Helper to navigate ensures URL is the only thing we change
 
-  const navigateToDesa = (desaData: { desa: { name: string } } | null) => {
+  // Helper to navigate ensures URL is the only thing we change
+  const navigateToDesa = (desaData: { desa: { id: any, name: string } } | null) => {
     const newParams = new URLSearchParams(searchParams);
     if (desaData) {
       newParams.set("desa", desaData.desa.name);
+      newParams.set("id", String(desaData.desa.id)); // Add ID to URL
     } else {
       newParams.delete("desa");
+      newParams.delete("id");
     }
     setSearchParams(newParams);
   };
