@@ -1113,9 +1113,9 @@ export default function VerifikasiPage() {
 
     // IF ID IS PRESENT, SEARCH BY ID (More Precise)
     if (desaIdParam) {
-      for (const kab of allData) {
-        for (const kec of kab.kecamatan) {
-          const found = kec.desa.find(d => String(d.id) === desaIdParam);
+      for (const kab of allData || []) {
+        for (const kec of kab?.kecamatan || []) {
+          const found = kec?.desa?.find(d => String(d?.id) === desaIdParam);
           if (found) return { kab, kec, desa: found };
         }
       }
@@ -1196,30 +1196,27 @@ export default function VerifikasiPage() {
     const parts = searchTerm.toLowerCase().split(",").map(p => p.trim()).filter(Boolean);
     const mainQuery = parts[0];
 
-    allData.forEach(kab => {
-      const kabMatchAny = kab.name.toLowerCase().includes(mainQuery);
+    allData?.forEach(kab => {
+      const kabMatchAny = kab?.name?.toLowerCase().includes(mainQuery);
 
-      kab.kecamatan.forEach(kec => {
-        const kecMatchAny = kec.name.toLowerCase().includes(mainQuery);
+      kab?.kecamatan?.forEach(kec => {
+        const kecMatchAny = kec?.name?.toLowerCase().includes(mainQuery);
 
-        kec.desa.forEach(desa => {
-          const desaMatch = desa.name.toLowerCase().includes(mainQuery);
+        kec?.desa?.forEach(desa => {
+          const desaMatch = desa?.name?.toLowerCase().includes(mainQuery);
 
           let isFinalMatch = false;
 
           // HIERARCHICAL SEARCH (Desa, Kecamatan, Kabupaten)
           if (parts.length > 1) {
-            // First part is Desa
-            const matchesDesa = desa.name.toLowerCase().includes(parts[0]);
-            // Second part is Kecamatan
-            const matchesKec = kec.name.toLowerCase().includes(parts[1] || "");
-            // Third part is Kabupaten (if exists)
-            const matchesKab = parts.length > 2 ? kab.name.toLowerCase().includes(parts[2]) : true;
+            const matchesDesa = desa?.name?.toLowerCase().includes(parts[0]);
+            const matchesKec = kec?.name?.toLowerCase().includes(parts[1] || "");
+            const matchesKab = parts.length > 2 ? kab?.name?.toLowerCase().includes(parts[2]) : true;
 
             isFinalMatch = matchesDesa && matchesKec && matchesKab;
           } else {
             // SIMPLE SEARCH (Check if query matches any level)
-            const hasMatchingDusun = desa.dusun.some(d => d.name.toLowerCase().includes(mainQuery));
+            const hasMatchingDusun = desa?.dusun?.some(d => d?.name?.toLowerCase().includes(mainQuery));
             isFinalMatch = desaMatch || hasMatchingDusun || kecMatchAny || kabMatchAny;
           }
 
