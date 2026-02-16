@@ -348,7 +348,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
   // Defined outside useEffect to be reusable
   const fetchStatus = React.useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/verification/${desaId}`);
+      const res = await fetch(`${API_URL}/api/verification/${desaId}?t=${new Date().getTime()}`);
       if (res.ok) {
         const data = await res.json();
         setFile(data.fileName);
@@ -421,12 +421,12 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         setFile(v.fileName);
         setFilePath(v.filePath);
         setLastUpload(new Date(v.updatedAt).toLocaleString());
-        
+
         // Handle uploader name from response if populated
         const uName = v.uploadedBy?.name || user?.name || "Admin";
         const uUnit = v.uploadedBy?.unit || user?.unit;
         setUploader(uUnit ? `${uUnit} - ${uName}` : uName);
-        
+
         setStatus(v.status || "Menunggu Verifikasi");
         setMessage(v.message || null);
 
