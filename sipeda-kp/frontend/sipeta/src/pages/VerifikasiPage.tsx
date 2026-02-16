@@ -458,6 +458,13 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         if (newStatus === 'Terverifikasi') {
           setShowSuccessModal(true);
         }
+
+        // Update global map immediately
+        setVerifiedDesaMap(prev => ({
+          ...prev,
+          [desaId]: newStatus
+        }));
+
         onUpdate();
 
         // Visual delay to let notifications process
@@ -500,6 +507,14 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         setMessage(null);
         setShowDeleteModal(false);
         showAlert("Berhasil!", "Dokumen berhasil dihapus", "success");
+
+        // Use functional state update to ensure we have the latest map
+        setVerifiedDesaMap(prev => {
+          const newMap = { ...prev };
+          delete newMap[desaId];
+          return newMap;
+        });
+
         onUpdate();
       } else {
         const data = await res.json();
@@ -1014,7 +1029,8 @@ export default function VerifikasiPage() {
   // Function to fetch all verified IDs
   const fetchVerifications = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/verification`);
+      // Add timestamp to prevent caching
+      const res = await fetch(`${API_URL}/api/verification?t=${new Date().getTime()}`);
       if (res.ok) {
         const data = await res.json();
         const map: Record<string, string> = {};
