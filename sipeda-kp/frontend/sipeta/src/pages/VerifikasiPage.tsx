@@ -1511,7 +1511,7 @@ export default function VerifikasiPage() {
               <DesaVerificationPanel
                 desaId={selectedDesa.desa.id}
                 desaName={selectedDesa.desa.name}
-                onUpdate={fetchVerifications}
+                onUpdate={() => { }} // Disable full re-fetch to prevent race conditions
                 setVerifiedDesaMap={setVerifiedDesaMap}
               />
             </div>
