@@ -1042,7 +1042,7 @@ export default function VerifikasiPage() {
         // Robust matching
         const d = kec.desa.find(d => {
           const dName = normalize(d.name);
-          return dName === target || dName.includes(target) || target.includes(dName);
+          return dName === target;
         });
 
         if (d) {
