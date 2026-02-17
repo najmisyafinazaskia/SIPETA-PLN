@@ -438,62 +438,32 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
       return;
     }
 
-    // Validasi Ukuran File (Sekarang bisa sampai 100MB dengan Direct Upload)
-    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+    // Batasan Vercel Serverless Function adalah 4.5MB
+    const MAX_FILE_SIZE = 4.5 * 1024 * 1024;
     if (selectedFile.size > MAX_FILE_SIZE) {
-      showAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 100MB", "warning");
+      showAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 4.5MB (Batasan Vercel)", "warning");
       if (e.target) e.target.value = '';
       return;
     }
 
     setIsLoading(true);
     try {
+      const formData = new FormData();
+      formData.append("document", selectedFile);
+      formData.append("dusunName", desaName);
+
       const token = localStorage.getItem("token");
-
-      // STEP 1: Dapatkan Signed Upload URL dari Backend
-      const urlParams = new URLSearchParams({ fileName: selectedFile.name });
-      const getUrlRes = await fetch(`${API_URL}/api/verification/get-upload-url?${urlParams}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-
-      if (!getUrlRes.ok) {
-        const errorData = await getUrlRes.json().catch(() => ({}));
-        throw new Error(errorData.message || "Gagal mendapatkan izin upload dari server.");
-      }
-
-      const { signedUrl, path: storagePath, publicUrl } = await getUrlRes.json();
-
-      // STEP 2: Unggah langsung ke Supabase (Melewati batas 4.5MB Vercel)
-      const uploadRes = await fetch(signedUrl, {
-        method: "PUT",
-        body: selectedFile,
-        headers: { "Content-Type": selectedFile.type }
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error("Gagal mengunggah file ke cloud storage.");
-      }
-
-      // STEP 3: Finalisasi di Backend (Update MongoDB & Kirim Notifikasi)
-      const finalizeRes = await fetch(`${API_URL}/api/verification/finalize-upload/${desaId}`, {
+      const res = await fetch(`${API_URL}/api/verification/upload/${desaId}`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({
-          dusunName: desaName,
-          fileInfo: {
-            fileName: selectedFile.name,
-            filePath: publicUrl,
-            publicId: storagePath
-          }
-        })
+        body: formData
       });
 
-      const data = await finalizeRes.json();
+      const data = await res.json();
 
-      if (finalizeRes.ok && data?.data) {
+      if (res.ok && data?.data) {
         const v = data.data;
         setFile(v.fileName);
         setFilePath(v.filePath);
@@ -512,12 +482,12 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         }));
 
         setIsEditing(false);
-        showAlert("Berhasil!", "Dokumen berhasil diunggah langsung ke Cloud Storage!", "success");
+        showAlert("Berhasil!", "Dokumen berhasil diunggah", "success");
       } else {
-        throw new Error(data?.message || "Gagal menyimpan metadata dokumen.");
+        throw new Error(data?.message || "Gagal mengunggah dokumen");
       }
     } catch (err: any) {
-      console.error("Direct Upload Error:", err);
+      console.error("Upload Error:", err);
       showAlert("Gagal!", err.message || "Terjadi kesalahan saat mengunggah", "error");
     } finally {
       setIsLoading(false);
@@ -622,41 +592,6 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
     fileInputRef.current?.click();
   };
 
-  // Status configuration helper
-  const getStatusConfig = (s: string) => {
-    switch (s) {
-      case 'Terverifikasi':
-        return {
-          label: 'Terverifikasi',
-          color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
-          icon: <CheckCircle2Icon size={14} />
-        };
-      case 'Tidak Sesuai':
-        return {
-          label: 'Tidak Sesuai',
-          color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
-          icon: <XCircleIcon size={14} />
-        };
-      case 'Sesuai (Perlu Perbaikan)':
-        return {
-          label: 'Sesuai (Perlu Perbaikan)',
-          color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800',
-          icon: <AlertCircleIcon size={14} />
-        };
-      case 'Menunggu Verifikasi':
-        return {
-          label: 'Menunggu Verifikasi',
-          color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
-          icon: <ClockIcon size={14} />
-        };
-      default:
-        return {
-          label: 'Belum Diunggah',
-          color: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700',
-          icon: <UploadCloudIcon size={14} />
-        };
-    }
-  };
 
   const statusConfig = getStatusConfig(status);
 
@@ -792,7 +727,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
                       )}
                     </div>
                   ) : (
-                    <span className="text-xs text-gray-400 italic mt-1">Silakan unggah berita acara desa (Maks. 100MB)</span>
+                    <span className="text-xs text-gray-400 italic mt-1">Silakan unggah berita acara desa (Maks. 4.5MB)</span>
                   )}
                 </div>
               </div>

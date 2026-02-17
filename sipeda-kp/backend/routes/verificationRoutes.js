@@ -22,23 +22,22 @@ const upload = multer({
     }
 });
 
+// --- 1. Rute Standard ---
 router.get('/', verificationController.getAllVerifications);
 router.get('/:dusunId', verificationController.getVerification);
 router.get('/download/:dusunId', verificationController.downloadFile);
-router.get('/get-upload-url', verifyToken, verificationController.getUploadUrl);
-router.post('/finalize-upload/:dusunId', verifyToken, verificationController.finalizeDirectUpload);
+
+// Rute Upload Tradisional (Mendukung file hingga batasan Vercel)
 router.post('/upload/:dusunId', verifyToken, (req, res, next) => {
     upload.single('document')(req, res, (err) => {
         if (err) {
             console.error('❌ Multer Error:', err);
-            return res.status(500).json({
-                message: "Gagal memproses file",
-                error: err.message
-            });
+            return res.status(500).json({ message: "Gagal memproses file", error: err.message });
         }
         next();
     });
 }, verificationController.uploadFile);
+
 router.put('/status/:dusunId', verifyToken, verificationController.updateStatus);
 router.delete('/:dusunId', verifyToken, verificationController.deleteVerification);
 
