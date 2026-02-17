@@ -1124,6 +1124,17 @@ export default function VerifikasiPage() {
   const [activeKecamatan, setActiveKecamatan] = useState<{ name: string; kab: string } | null>(null);
   const [isBulkLoading, setIsBulkLoading] = useState(false);
 
+  const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success"
+  });
+
+  const showAlert = (title: string, message: string, type: "success" | "error" | "warning" | "info" = "success") => {
+    setAlertConfig({ isOpen: true, title, message, type });
+  };
+
   const handleBulkUpload = async (file: File) => {
     if (!activeKecamatan) return;
     setIsBulkLoading(true);
@@ -1145,14 +1156,14 @@ export default function VerifikasiPage() {
         setShowBulkModal(false);
         setActiveKecamatan(null);
         fetchVerifications();
-        alert(`Berhasil mengunggah dokumen untuk seluruh desa di Kecamatan ${activeKecamatan.name}`);
+        showAlert("Berhasil!", `Dokumen untuk seluruh desa di Kecamatan ${activeKecamatan.name} telah diunggah.`, "success");
       } else {
         const data = await res.json();
-        alert(data.message || "Gagal upload massal");
+        showAlert("Gagal!", data.message || "Gagal upload massal", "error");
       }
     } catch (err) {
       console.error(err);
-      alert("Error menghubungi server");
+      showAlert("Error!", "Terjadi kesalahan saat menghubungi server", "error");
     } finally {
       setIsBulkLoading(false);
     }
@@ -1754,6 +1765,14 @@ export default function VerifikasiPage() {
         isLoading={isBulkLoading}
         onClose={() => setShowBulkModal(false)}
         onConfirm={handleBulkUpload}
+      />
+
+      <ModernAlert
+        isOpen={alertConfig.isOpen}
+        onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
       />
     </div>
   );
