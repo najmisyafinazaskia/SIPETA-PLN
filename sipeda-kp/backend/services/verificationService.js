@@ -268,23 +268,24 @@ class VerificationService {
             fileName: file.originalname,
             notification: newNotif
         };
+    }
 
     async getFilePath(dusunId) {
-            const verification = await Verification.findOne({ dusunId });
-            if (!verification) throw new Error("Data tidak ditemukan");
+        const verification = await Verification.findOne({ dusunId });
+        if (!verification) throw new Error("Data tidak ditemukan");
 
-            if (verification.filePath.startsWith('http')) {
-                return {
-                    absolutePath: verification.filePath,
-                    fileName: verification.fileName,
-                    publicId: verification.publicId,
-                    isRemote: true
-                };
-            }
-            const absolutePath = path.join(__dirname, '..', verification.filePath);
-            if (!fs.existsSync(absolutePath)) throw new Error("File fisik tidak ditemukan di server");
-            return { absolutePath, fileName: verification.fileName, isRemote: false };
+        if (verification.filePath.startsWith('http')) {
+            return {
+                absolutePath: verification.filePath,
+                fileName: verification.fileName,
+                publicId: verification.publicId,
+                isRemote: true
+            };
         }
+        const absolutePath = path.join(__dirname, '..', verification.filePath);
+        if (!fs.existsSync(absolutePath)) throw new Error("File fisik tidak ditemukan di server");
+        return { absolutePath, fileName: verification.fileName, isRemote: false };
     }
+}
 
 module.exports = new VerificationService();
