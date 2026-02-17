@@ -441,7 +441,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
     // Batasan Vercel Serverless Function adalah 4.5MB
     const MAX_FILE_SIZE = 4.5 * 1024 * 1024;
     if (selectedFile.size > MAX_FILE_SIZE) {
-      showAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 4.5MB (Batasan Vercel)", "warning");
+      showAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 4.5MB", "warning");
       if (e.target) e.target.value = '';
       return;
     }
