@@ -31,17 +31,33 @@ app.use(ensureDbConnected); // Penjaga koneksi DB untuk semua rute API
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Database (WAJIB pakai Atlas / external)
-mongoose.connect(process.env.MONGO_URI, {
-  maxPoolSize: 50,
-  serverSelectionTimeoutMS: 60000,
-  connectTimeoutMS: 60000,
-  socketTimeoutMS: 45000,
-})
-  .then(() => console.log('✅ MongoDB Connected to Atlas'))
-  .catch(err => {
+// Database Connection Handling for Vercel (Serverless)
+let cachedDb = null;
+
+async function connectToDatabase() {
+  if (cachedDb && mongoose.connection.readyState === 1) {
+    return cachedDb;
+  }
+
+  console.log('🔄 Attemping new MongoDB connection...');
+  try {
+    const db = await mongoose.connect(process.env.MONGO_URI, {
+      maxPoolSize: 10, // Dikurangi untuk serverless agar tidak menghabiskan koneksi Atlas
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+    });
+    cachedDb = db;
+    console.log('✅ MongoDB Connected to Atlas');
+    return db;
+  } catch (err) {
     console.error('❌ MongoDB Connection Error:', err.message);
-  });
+    // Kita tidak lempar error di sini agar server/fungsi tetap nyala, 
+    // middleware dbCheck yang akan menangani request jika koneksi gagal.
+  }
+}
+
+// Jalankan koneksi awal
+connectToDatabase();
 
 // Routes
 app.use('/api/auth', authRoutes);

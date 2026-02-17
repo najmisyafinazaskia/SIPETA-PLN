@@ -3,52 +3,34 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 
-// --- FALLBACK USERS ---
-const FALLBACK_USERS = [
-    { username: "sipeta_up2k_01", password: "SipetaUp2k#01!", name: "Admin UP2K 01", role: "superadmin", unit: "UP2K" },
-    { username: "sipeta_up2k_02", password: "SipetaUp2k#02!", name: "Admin UP2K 02", role: "superadmin", unit: "UP2K" },
-    { username: "sipeta_up3_bna", password: "SipetaBNA#26!", name: "Admin UP3 Banda Aceh", role: "admin", unit: "Banda Aceh" },
-    { username: "sipeta_up3_lgs", password: "SipetaLGS#26!", name: "Admin UP3 Langsa", role: "admin", unit: "Langsa" },
-    { username: "sipeta_up3_sgi", password: "SipetaSGI#26!", name: "Admin UP3 Sigli", role: "admin", unit: "Sigli" },
-    { username: "sipeta_up3_lsm", password: "SipetaLSM#26!", name: "Admin UP3 Lhokseumawe", role: "admin", unit: "Lhokseumawe" },
-    { username: "sipeta_up3_mbo", password: "SipetaMBO#26!", name: "Admin UP3 Meulaboh", role: "admin", unit: "Meulaboh" },
-    { username: "sipeta_up3_sbl", password: "SipetaSBL#26!", name: "Admin UP3 Subulussalam", role: "admin", unit: "Subulussalam" }
-];
-
 class AuthService {
     async login(username, password) {
         // --- CHECK DB CONNECTION ---
+        // Di Vercel (Serverless), state koneksi bisa bervariasi. 
+        // Kita pastikan koneksi siap semaksimal mungkin sebelum lanjut.
         if (mongoose.connection.readyState !== 1) {
-            console.log("⏳ DB not ready (state: " + mongoose.connection.readyState + "). Attempting to connect...");
+            console.log("⏳ Database sedang bersiap (Cold Start)...");
 
-            // Jika URI tidak ada, langsung fallback saja
             if (!process.env.MONGO_URI) {
-                console.error("❌ MONGO_URI is missing in environment variables!");
-            } else {
-                try {
-                    // Tunggu koneksi sampai siap (max 5 detik)
-                    await Promise.race([
-                        mongoose.connect(process.env.MONGO_URI),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000))
-                    ]);
-                    console.log("✅ DB connected after waiting.");
-                } catch (err) {
-                    console.log("⚠️ DB Connection failed or timeout. Using Fallback...");
-                }
+                throw new Error("Konfigurasi Database (MONGO_URI) belum diatur di Environment Variables.");
+            }
+
+            try {
+                // Tunggu koneksi sampai siap (max 10 detik untuk Vercel Cold Start)
+                await Promise.race([
+                    mongoose.connect(process.env.MONGO_URI),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 10000))
+                ]);
+                console.log("✅ Database berhasil terhubung.");
+            } catch (err) {
+                console.error("❌ Database Connection Error:", err.message);
+                throw new Error("Layanan sedang sibuk atau Database offline. Silakan coba kembali dalam beberapa detik (Warming up).");
             }
         }
 
-        // Re-check state after attempt
+        // Jika setelah ditunggu tetap tidak konek (Error di luar timeout)
         if (mongoose.connection.readyState !== 1) {
-            const fallbackUser = FALLBACK_USERS.find(u => u.username === username && u.password === password);
-            if (fallbackUser) {
-                const token = jwt.sign({ id: "fallback-id" }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
-                return {
-                    token,
-                    user: { ...fallbackUser, id: "fallback-id", isVerified: true }
-                };
-            }
-            throw new Error("Database offline dan kredensial tidak cocok.");
+            throw new Error("Gagal terhubung ke database. Harap periksa koneksi internet server.");
         }
 
         const user = await User.findOne({

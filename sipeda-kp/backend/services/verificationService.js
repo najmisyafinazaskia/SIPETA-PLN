@@ -9,6 +9,13 @@ const storageService = require('./storageService');
 class VerificationService {
     async uploadFile(userId, dusunId, dusunName, file) {
         console.log(`[UPLOAD] Memulai upload untuk Dusun: ${dusunName} (${dusunId})`);
+
+        // --- GUARD: Blokir Fallback ID agar tidak merusak database ---
+        if (userId === "fallback-id") {
+            console.error('[UPLOAD] Percobaan upload menggunakan session fallback ditolak.');
+            throw new Error("Sesi Anda tidak valid (Session Fallback). Silakan Keluar (Logout) dan Masuk kembali untuk melanjutkan.");
+        }
+
         if (!file) {
             console.error('[UPLOAD] File tidak ditemukan di request');
             throw new Error("File wajib diunggah.");
@@ -92,6 +99,11 @@ class VerificationService {
     }
 
     async updateStatus(userId, dusunId, status, message, dusunName) {
+        // --- GUARD: Blokir Fallback ID ---
+        if (userId === "fallback-id") {
+            throw new Error("Sesi Anda tidak valid. Silakan Keluar (Logout) dan Masuk kembali untuk memproses verifikasi.");
+        }
+
         const validStatuses = ['Menunggu Verifikasi', 'Terverifikasi', 'Tidak Sesuai', 'Sesuai (Perlu Perbaikan)'];
         if (!validStatuses.includes(status)) throw new Error("Status tidak valid");
 

@@ -14,18 +14,20 @@ const ensureDbConnected = async (req, res, next) => {
         }
 
         try {
-            // Tunggu maksimal 8 detik untuk koneksi
+            // Tunggu maksimal 10 detik untuk koneksi (Vercel Cold Start bisa lambat)
             await Promise.race([
                 mongoose.connect(process.env.MONGO_URI),
-                new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 8000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 10000))
             ]);
             console.log("✅ DB Connected successfully through middleware.");
             next();
         } catch (err) {
             console.error("❌ DB Connection failed through middleware:", err.message);
-            // Tetap lanjut ke next() agar fallback logic di service bisa jalan (khusus login)
-            // Tapi untuk rute data lain, next() mungkin akan tetap mengembalikan data kosong.
-            next();
+            // Jangan gunakan next() jika database mati total agar tidak terjadi data corruption/fallback
+            return res.status(503).json({
+                message: "Layanan sedang dalam proses warming up (Cold Start). Mohon segarkan halaman dalam 5 detik.",
+                error: "DATABASE_CONNECTION_TIMEOUT"
+            });
         }
     } else {
         next();
