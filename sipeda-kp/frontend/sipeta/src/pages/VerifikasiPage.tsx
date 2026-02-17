@@ -305,13 +305,15 @@ const BulkUploadKecamatanModal = ({
   onClose,
   onConfirm,
   isLoading,
-  kecamatanName
+  kecamatanName,
+  onShowAlert
 }: {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (file: File) => void;
   isLoading: boolean;
   kecamatanName: string;
+  onShowAlert?: (title: string, message: string, type: "success" | "error" | "warning" | "info") => void;
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -328,7 +330,9 @@ const BulkUploadKecamatanModal = ({
       // Batasan Vercel Serverless Function adalah 4.5MB
       const MAX_FILE_SIZE = 4.5 * 1024 * 1024;
       if (file.size > MAX_FILE_SIZE) {
-        alert("File Terlalu Besar: Ukuran file tidak boleh melebihi 4.5MB");
+        if (onShowAlert) {
+          onShowAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 4.5MB", "warning");
+        }
         if (e.target) e.target.value = '';
         return;
       }
@@ -1873,10 +1877,11 @@ export default function VerifikasiPage() {
       </div>
       <BulkUploadKecamatanModal
         isOpen={showBulkModal}
-        kecamatanName={activeKecamatan?.name || ""}
-        isLoading={isBulkLoading}
         onClose={() => setShowBulkModal(false)}
         onConfirm={handleBulkUpload}
+        isLoading={isBulkLoading}
+        kecamatanName={activeKecamatan?.name || ""}
+        onShowAlert={showAlert}
       />
 
       <BulkDeleteKecamatanModal
