@@ -37,6 +37,8 @@ const upload = multer({
 router.get('/', verificationController.getAllVerifications);
 router.get('/:dusunId', verificationController.getVerification);
 router.get('/download/:dusunId', verificationController.downloadFile);
+router.get('/get-upload-url', verifyToken, verificationController.getUploadUrl);
+router.post('/finalize-upload/:dusunId', verifyToken, verificationController.finalizeDirectUpload);
 router.post('/upload/:dusunId', verifyToken, (req, res, next) => {
     upload.single('document')(req, res, (err) => {
         if (err) {

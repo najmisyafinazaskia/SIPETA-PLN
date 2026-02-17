@@ -438,39 +438,66 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
       return;
     }
 
-    // Validasi Ukuran File (Maks 5MB)
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    // Validasi Ukuran File (Sekarang bisa sampai 100MB dengan Direct Upload)
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
     if (selectedFile.size > MAX_FILE_SIZE) {
-      showAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 5MB", "warning");
-      if (e.target) e.target.value = ''; // Reset input agar bisa pilih ulang
+      showAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 100MB", "warning");
+      if (e.target) e.target.value = '';
       return;
     }
 
     setIsLoading(true);
-    const formData = new FormData();
-    formData.append("dusunName", desaName);
-    formData.append("document", selectedFile);
-
     try {
-      const res = await fetch(`${API_URL}/api/verification/upload/${desaId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: formData
+      const token = localStorage.getItem("token");
+
+      // STEP 1: Dapatkan Signed Upload URL dari Backend
+      const urlParams = new URLSearchParams({ fileName: selectedFile.name });
+      const getUrlRes = await fetch(`${API_URL}/api/verification/get-upload-url?${urlParams}`, {
+        headers: { "Authorization": `Bearer ${token}` }
       });
 
-      const isJson = res.headers.get('content-type')?.includes('application/json');
-      const data = isJson ? await res.json() : null;
+      if (!getUrlRes.ok) {
+        throw new Error("Gagal mendapatkan izin upload dari server.");
+      }
 
-      if (res.ok && data?.data) {
-        // Use returned data to update state immediately without refetching (avoids race condition)
+      const { signedUrl, path: storagePath, publicUrl } = await getUrlRes.json();
+
+      // STEP 2: Unggah langsung ke Supabase (Melewati batas 4.5MB Vercel)
+      const uploadRes = await fetch(signedUrl, {
+        method: "PUT",
+        body: selectedFile,
+        headers: { "Content-Type": selectedFile.type }
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Gagal mengunggah file ke cloud storage.");
+      }
+
+      // STEP 3: Finalisasi di Backend (Update MongoDB & Kirim Notifikasi)
+      const finalizeRes = await fetch(`${API_URL}/api/verification/finalize-upload/${desaId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          dusunName: desaName,
+          fileInfo: {
+            fileName: selectedFile.name,
+            filePath: publicUrl,
+            publicId: storagePath
+          }
+        })
+      });
+
+      const data = await finalizeRes.json();
+
+      if (finalizeRes.ok && data?.data) {
         const v = data.data;
         setFile(v.fileName);
         setFilePath(v.filePath);
         setLastUpload(new Date(v.updatedAt).toLocaleString());
 
-        // Handle uploader name from response if populated
         const uName = v.uploadedBy?.name || user?.name || "Admin";
         const uUnit = v.uploadedBy?.unit || user?.unit;
         setUploader(uUnit ? `${uUnit} - ${uName}` : uName);
@@ -478,21 +505,19 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         setStatus("Menunggu Verifikasi");
         setMessage(v.message || null);
 
-        // Update global map immediately
         setVerifiedDesaMap(prev => ({
           ...prev,
           [desaId]: "Menunggu Verifikasi"
         }));
 
         setIsEditing(false);
-        showAlert("Berhasil!", "Dokumen Desa berhasil diunggah!", "success");
+        showAlert("Berhasil!", "Dokumen berhasil diunggah langsung ke Cloud Storage!", "success");
       } else {
-        const errorMsg = data?.message || `Gagal mengunggah dokumen (Status: ${res.status})`;
-        showAlert("Gagal!", errorMsg, "error");
+        throw new Error(data?.message || "Gagal menyimpan metadata dokumen.");
       }
     } catch (err: any) {
-      console.error("Upload Error:", err);
-      showAlert("Error!", `Gagal menghubungi server: ${err.message}`, "error");
+      console.error("Direct Upload Error:", err);
+      showAlert("Gagal!", err.message || "Terjadi kesalahan saat mengunggah", "error");
     } finally {
       setIsLoading(false);
     }
@@ -766,7 +791,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
                       )}
                     </div>
                   ) : (
-                    <span className="text-xs text-gray-400 italic mt-1">Silakan unggah berita acara desa (Maks. 5MB)</span>
+                    <span className="text-xs text-gray-400 italic mt-1">Silakan unggah berita acara desa (Maks. 100MB)</span>
                   )}
                 </div>
               </div>

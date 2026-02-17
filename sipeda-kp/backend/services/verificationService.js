@@ -77,6 +77,58 @@ class VerificationService {
         return { verification: populatedVerification, notification: newNotif };
     }
 
+    async getUploadUrl(fileName) {
+        return await storageService.createSignedUploadUrl(fileName);
+    }
+
+    async finalizeDirectUpload(userId, dusunId, dusunName, fileInfo) {
+        console.log(`[FINALIZE] Memfinalisasi upload untuk Dusun: ${dusunName} (${dusunId})`);
+
+        if (userId === "fallback-id") {
+            throw new Error("Sesi tidak valid.");
+        }
+
+        const filter = { dusunId };
+        const update = {
+            fileName: fileInfo.fileName,
+            filePath: fileInfo.filePath, // Public URL
+            publicId: fileInfo.publicId, // Storage path
+            uploadedBy: userId,
+            status: 'Menunggu Verifikasi',
+            message: null
+        };
+
+        const existingVerification = await Verification.findOne({ dusunId });
+        if (existingVerification && existingVerification.publicId) {
+            try {
+                await storageService.deleteFile(existingVerification.publicId);
+            } catch (err) {
+                console.error("[FINALIZE] Gagal menghapus file lama:", err.message);
+            }
+        }
+
+        const verification = await Verification.findOneAndUpdate(filter, update, {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true
+        });
+
+        const user = await User.findById(userId);
+        const displayName = user ? (user.unit ? `${user.unit} - ${user.name}` : user.name) : "Admin";
+
+        const newNotif = new Notification({
+            title: "Pembaruan Verifikasi",
+            message: `${displayName} telah mengunggah dokumen baru untuk ${dusunName || 'Dusun (' + dusunId + ')'}`,
+            type: "upload",
+            user: userId,
+            userName: displayName
+        });
+        await newNotif.save();
+
+        const populatedVerification = await Verification.findById(verification._id).populate('uploadedBy', 'name username unit');
+        return { verification: populatedVerification, notification: newNotif };
+    }
+
     async getVerification(dusunId) {
         return await Verification.findOne({ dusunId }).populate('uploadedBy', 'name');
     }

@@ -15,6 +15,33 @@ exports.uploadFile = async (req, res) => {
     }
 };
 
+exports.getUploadUrl = async (req, res) => {
+    try {
+        const { fileName } = req.query;
+        if (!fileName) return res.status(400).json({ message: "Nama file wajib ada" });
+        const result = await verificationService.getUploadUrl(fileName);
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.finalizeDirectUpload = async (req, res) => {
+    try {
+        const { dusunId } = req.params;
+        const { dusunName, fileInfo } = req.body;
+        const result = await verificationService.finalizeDirectUpload(req.userId, dusunId, dusunName, fileInfo);
+        res.status(200).json({
+            message: "File berhasil diverifikasi dan disimpan",
+            data: result.verification,
+            notification: result.notification
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
 exports.getVerification = async (req, res) => {
     try {
         const verification = await verificationService.getVerification(req.params.dusunId);

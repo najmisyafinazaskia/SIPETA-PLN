@@ -33,6 +33,29 @@ class StorageService {
         };
     }
 
+    async createSignedUploadUrl(fileName, folder = 'verifications') {
+        const fileExt = path.extname(fileName);
+        const nameOnly = path.parse(fileName).name;
+        const storagePath = `${folder}/${nameOnly}-${Date.now()}${fileExt}`;
+
+        // Create a signed upload URL that lasts for 15 minutes
+        const { data, error } = await supabase.storage
+            .from('SIPETA')
+            .createSignedUploadUrl(storagePath);
+
+        if (error) {
+            console.error('❌ Supabase Signed URL Error:', error);
+            throw new Error(`Gagal membuat upload URL: ${error.message}`);
+        }
+
+        return {
+            signedUrl: data.signedUrl,
+            token: data.token, // Some Supabase versions might return token separately or in URL
+            path: storagePath,
+            publicUrl: supabase.storage.from('SIPETA').getPublicUrl(storagePath).data.publicUrl
+        };
+    }
+
     async deleteFile(publicId) {
         if (!publicId) return;
 
