@@ -1815,18 +1815,21 @@ export default function VerifikasiPage() {
                       >
                         {kab.kecamatan.map((kec) => {
                           const isKecSelected = selectedDesa && (selectedDesa as any).kec === kec.name;
+                          const hasUnuploadedDesa = kec.desa.some(d => !verifiedDesaMap[d.id]);
+                          const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+
                           return (
                             <Accordion
                               key={kec.id}
                               title={`Kec. ${kec.name}`}
                               level={1}
                               defaultOpen={!!searchTerm || !!isKecSelected}
-                              onActionClick={user?.role === 'admin' || user?.role === 'superadmin' ? () => {
+                              onActionClick={isAdmin && hasUnuploadedDesa ? () => {
                                 setActiveKecamatan({ name: kec.name, kab: kab.name });
                                 setShowBulkModal(true);
                               } : undefined}
                               actionIcon={<UploadCloudIcon size={14} strokeWidth={3} />}
-                              onSecondaryActionClick={user?.role === 'admin' || user?.role === 'superadmin' && kec.desa.some(d => !!verifiedDesaMap[d.id]) ? () => {
+                              onSecondaryActionClick={isAdmin && !hasUnuploadedDesa ? () => {
                                 setActiveKecamatan({ name: kec.name, kab: kab.name });
                                 setShowBulkDeleteModal(true);
                               } : undefined}
