@@ -38,10 +38,10 @@ class StorageService {
         const nameOnly = path.parse(fileName).name;
         const storagePath = `${folder}/${nameOnly}-${Date.now()}${fileExt}`;
 
-        // Create a signed upload URL that lasts for 15 minutes
+        // Create a signed upload URL that lasts for 60 seconds
         const { data, error } = await supabase.storage
             .from('SIPETA')
-            .createSignedUploadUrl(storagePath);
+            .createSignedUploadUrl(storagePath, 60);
 
         if (error) {
             console.error('❌ Supabase Signed URL Error:', error);

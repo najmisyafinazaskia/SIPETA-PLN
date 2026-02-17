@@ -457,7 +457,8 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
       });
 
       if (!getUrlRes.ok) {
-        throw new Error("Gagal mendapatkan izin upload dari server.");
+        const errorData = await getUrlRes.json().catch(() => ({}));
+        throw new Error(errorData.message || "Gagal mendapatkan izin upload dari server.");
       }
 
       const { signedUrl, path: storagePath, publicUrl } = await getUrlRes.json();
