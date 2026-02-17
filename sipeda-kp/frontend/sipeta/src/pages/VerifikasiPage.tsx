@@ -438,6 +438,14 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
       return;
     }
 
+    // Validasi Ukuran File (Maks 5MB)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      showAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 5MB", "warning");
+      if (e.target) e.target.value = ''; // Reset input agar bisa pilih ulang
+      return;
+    }
+
     setIsLoading(true);
     const formData = new FormData();
     formData.append("dusunName", desaName);
@@ -758,7 +766,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
                       )}
                     </div>
                   ) : (
-                    <span className="text-xs text-gray-400 italic mt-1">Silahkan unggah berita acara desa</span>
+                    <span className="text-xs text-gray-400 italic mt-1">Silakan unggah berita acara desa (Maks. 5MB)</span>
                   )}
                 </div>
               </div>
