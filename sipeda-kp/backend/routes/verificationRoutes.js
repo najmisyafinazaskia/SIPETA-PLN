@@ -38,6 +38,16 @@ router.post('/upload/:dusunId', verifyToken, (req, res, next) => {
     });
 }, verificationController.uploadFile);
 
+router.post('/upload-kecamatan', verifyToken, (req, res, next) => {
+    upload.single('document')(req, res, (err) => {
+        if (err) {
+            console.error('❌ Multer Error:', err);
+            return res.status(500).json({ message: "Gagal memproses file", error: err.message });
+        }
+        next();
+    });
+}, verificationController.uploadKecamatan);
+
 router.put('/status/:dusunId', verifyToken, verificationController.updateStatus);
 router.delete('/:dusunId', verifyToken, verificationController.deleteVerification);
 

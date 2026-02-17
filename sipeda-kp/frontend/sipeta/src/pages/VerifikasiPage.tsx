@@ -300,6 +300,108 @@ const VerificationSuccessModal = ({
   );
 };
 
+const BulkUploadKecamatanModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  isLoading,
+  kecamatanName
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (file: File) => void;
+  isLoading: boolean;
+  kecamatanName: string;
+}) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) setSelectedFile(null);
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Batasan Vercel Serverless Function adalah 4.5MB
+      const MAX_FILE_SIZE = 4.5 * 1024 * 1024;
+      if (file.size > MAX_FILE_SIZE) {
+        alert("File Terlalu Besar: Ukuran file tidak boleh melebihi 4.5MB");
+        if (e.target) e.target.value = '';
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 mb-2">
+            <UploadCloudIcon size={32} />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">Upload Berita Acara Massal</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-bold leading-relaxed px-2">
+              Dokumen ini akan diterapkan ke <span className="text-blue-600 font-black">SELURUH DESA</span> di Kecamatan <span className="text-blue-600 font-black">{kecamatanName}</span>.
+            </p>
+          </div>
+
+          <div className="w-full mt-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept="application/pdf,image/jpeg,image/png"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className={`w-full flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed rounded-2xl transition-all font-bold 
+                ${selectedFile
+                  ? "border-blue-500 bg-blue-50/50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                  : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:bg-gray-50"}`}
+            >
+              {selectedFile ? (
+                <>
+                  <FileTextIcon size={24} className="animate-bounce" />
+                  <span className="text-sm truncate max-w-full italic">{selectedFile.name}</span>
+                </>
+              ) : (
+                <>
+                  <UploadCloudIcon size={24} className="opacity-50" />
+                  <span className="text-sm">Klik untuk pilih file</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full mt-4">
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-black text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors uppercase text-xs tracking-wider"
+            >
+              Batal
+            </button>
+            <button
+              onClick={() => selectedFile && onConfirm(selectedFile)}
+              disabled={isLoading || !selectedFile}
+              className="px-4 py-3 rounded-xl font-black text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 uppercase text-xs tracking-wider"
+            >
+              {isLoading ? <Loader2 size={18} className="animate-spin" /> : "PROSES"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // 1.5 DESA VERIFICATION PANEL (Moved from DusunItem)
 const ReplaceConfirmationModal = ({
   isOpen,
@@ -909,6 +1011,8 @@ const Accordion = ({
   level = 0,
   defaultOpen = false,
   onClick,
+  onActionClick,
+  actionIcon,
   isVerified,
   status
 }: {
@@ -917,6 +1021,8 @@ const Accordion = ({
   level?: number,
   defaultOpen?: boolean,
   onClick?: () => void,
+  onActionClick?: (e: React.MouseEvent) => void,
+  actionIcon?: React.ReactNode,
   isVerified?: boolean,
   status?: string
 }) => {
@@ -974,6 +1080,19 @@ const Accordion = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {onActionClick && actionIcon && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                onActionClick(e);
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all border border-blue-100 dark:bg-blue-900/20 dark:border-blue-800 mr-2"
+              title="Unggah Massal (Kecamatan)"
+            >
+              {actionIcon}
+              <span className="text-[10px] font-black uppercase">Massal</span>
+            </div>
+          )}
           {level === 2 && (
             isVerified ? (
               getStatusLabel(status || "")
@@ -1000,6 +1119,45 @@ const Accordion = ({
 
 
 export default function VerifikasiPage() {
+  const { user } = useAuth();
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [activeKecamatan, setActiveKecamatan] = useState<{ name: string; kab: string } | null>(null);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
+
+  const handleBulkUpload = async (file: File) => {
+    if (!activeKecamatan) return;
+    setIsBulkLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("document", file);
+      formData.append("kabupaten", activeKecamatan.kab);
+      formData.append("kecamatan", activeKecamatan.name);
+
+      const res = await fetch(`${API_URL}/api/verification/upload-kecamatan`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formData,
+      });
+
+      if (res.ok) {
+        setShowBulkModal(false);
+        setActiveKecamatan(null);
+        fetchVerifications();
+        alert(`Berhasil mengunggah dokumen untuk seluruh desa di Kecamatan ${activeKecamatan.name}`);
+      } else {
+        const data = await res.json();
+        alert(data.message || "Gagal upload massal");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error menghubungi server");
+    } finally {
+      setIsBulkLoading(false);
+    }
+  };
+
   const [searchTerm, setSearchTerm] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("search") || "";
@@ -1548,6 +1706,11 @@ export default function VerifikasiPage() {
                               title={`Kec. ${kec.name}`}
                               level={1}
                               defaultOpen={!!searchTerm || !!isKecSelected}
+                              onActionClick={user?.role === 'admin' || user?.role === 'superadmin' ? () => {
+                                setActiveKecamatan({ name: kec.name, kab: kab.name });
+                                setShowBulkModal(true);
+                              } : undefined}
+                              actionIcon={<UploadCloudIcon size={14} strokeWidth={3} />}
                             >
                               <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 {kec.desa.map((desa) => (
@@ -1585,6 +1748,13 @@ export default function VerifikasiPage() {
           )}
         </div>
       </div>
+      <BulkUploadKecamatanModal
+        isOpen={showBulkModal}
+        kecamatanName={activeKecamatan?.name || ""}
+        isLoading={isBulkLoading}
+        onClose={() => setShowBulkModal(false)}
+        onConfirm={handleBulkUpload}
+      />
     </div>
   );
 }
