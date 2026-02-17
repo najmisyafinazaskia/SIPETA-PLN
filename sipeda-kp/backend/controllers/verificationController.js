@@ -28,6 +28,19 @@ exports.uploadKecamatan = async (req, res) => {
     }
 };
 
+exports.deleteKecamatan = async (req, res) => {
+    try {
+        const { kabupaten, kecamatan } = req.body;
+        if (!kabupaten || !kecamatan) {
+            return res.status(400).json({ message: "Kabupaten dan Kecamatan wajib diisi" });
+        }
+        const result = await verificationService.deleteKecamatan(req.userId, kabupaten, kecamatan);
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(error.message.includes('tidak ditemukan') ? 404 : 500).json({ message: error.message });
+    }
+};
+
 exports.getUploadUrl = async (req, res) => {
     try {
         const { fileName } = req.query;

@@ -402,6 +402,59 @@ const BulkUploadKecamatanModal = ({
   );
 };
 
+const BulkDeleteKecamatanModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  isLoading,
+  kecamatanName
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+  kecamatanName: string;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 mb-2">
+            <TrashIcon size={32} />
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">Hapus Berita Acara Massal</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-bold leading-relaxed px-2">
+              Tindakan ini akan <span className="text-red-600 font-black">MENGHAPUS SELURUH</span> dokumen yang ada di Kecamatan <span className="text-red-600 font-black">{kecamatanName}</span>.
+              Data yang dihapus tidak dapat dikembalikan.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full mt-4">
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-black text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors uppercase text-xs tracking-wider"
+            >
+              Batal
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-black text-white bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 uppercase text-xs tracking-wider"
+            >
+              {isLoading ? <Loader2 size={18} className="animate-spin" /> : "YA, HAPUS SEMUA"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // 1.5 DESA VERIFICATION PANEL (Moved from DusunItem)
 const ReplaceConfirmationModal = ({
   isOpen,
@@ -1013,6 +1066,8 @@ const Accordion = ({
   onClick,
   onActionClick,
   actionIcon,
+  onSecondaryActionClick,
+  secondaryActionIcon,
   isVerified,
   status
 }: {
@@ -1023,6 +1078,8 @@ const Accordion = ({
   onClick?: () => void,
   onActionClick?: (e: React.MouseEvent) => void,
   actionIcon?: React.ReactNode,
+  onSecondaryActionClick?: (e: React.MouseEvent) => void,
+  secondaryActionIcon?: React.ReactNode,
   isVerified?: boolean,
   status?: string
 }) => {
@@ -1080,6 +1137,19 @@ const Accordion = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {onSecondaryActionClick && secondaryActionIcon && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                onSecondaryActionClick(e);
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all border border-red-100 dark:bg-red-900/20 dark:border-red-800 mr-1"
+              title="Hapus Massal (Kecamatan)"
+            >
+              {secondaryActionIcon}
+              <span className="text-[10px] font-black uppercase">Hapus</span>
+            </div>
+          )}
           {onActionClick && actionIcon && (
             <div
               onClick={(e) => {
@@ -1121,6 +1191,7 @@ const Accordion = ({
 export default function VerifikasiPage() {
   const { user } = useAuth();
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [activeKecamatan, setActiveKecamatan] = useState<{ name: string; kab: string } | null>(null);
   const [isBulkLoading, setIsBulkLoading] = useState(false);
 
@@ -1160,6 +1231,39 @@ export default function VerifikasiPage() {
       } else {
         const data = await res.json();
         showAlert("Gagal!", data.message || "Gagal upload massal", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert("Error!", "Terjadi kesalahan saat menghubungi server", "error");
+    } finally {
+      setIsBulkLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!activeKecamatan) return;
+    setIsBulkLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/verification/delete-kecamatan`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          kabupaten: activeKecamatan.kab,
+          kecamatan: activeKecamatan.name
+        }),
+      });
+
+      if (res.ok) {
+        setShowBulkDeleteModal(false);
+        setActiveKecamatan(null);
+        fetchVerifications();
+        showAlert("Dihapus!", `Seluruh dokumen di Kecamatan ${activeKecamatan.name} telah berhasil dihapus.`, "success");
+      } else {
+        const data = await res.json();
+        showAlert("Gagal!", data.message || "Gagal hapus massal", "error");
       }
     } catch (err) {
       console.error(err);
@@ -1722,6 +1826,11 @@ export default function VerifikasiPage() {
                                 setShowBulkModal(true);
                               } : undefined}
                               actionIcon={<UploadCloudIcon size={14} strokeWidth={3} />}
+                              onSecondaryActionClick={user?.role === 'admin' || user?.role === 'superadmin' && kec.desa.some(d => !!verifiedDesaMap[d.id]) ? () => {
+                                setActiveKecamatan({ name: kec.name, kab: kab.name });
+                                setShowBulkDeleteModal(true);
+                              } : undefined}
+                              secondaryActionIcon={<TrashIcon size={14} strokeWidth={3} />}
                             >
                               <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 {kec.desa.map((desa) => (
@@ -1765,6 +1874,14 @@ export default function VerifikasiPage() {
         isLoading={isBulkLoading}
         onClose={() => setShowBulkModal(false)}
         onConfirm={handleBulkUpload}
+      />
+
+      <BulkDeleteKecamatanModal
+        isOpen={showBulkDeleteModal}
+        kecamatanName={activeKecamatan?.name || ""}
+        isLoading={isBulkLoading}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleBulkDelete}
       />
 
       <ModernAlert

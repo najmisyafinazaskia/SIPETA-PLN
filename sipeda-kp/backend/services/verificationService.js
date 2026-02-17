@@ -141,9 +141,18 @@ class VerificationService {
         const verification = await Verification.findOne({ dusunId });
         if (!verification) throw new Error("Data tidak ditemukan");
 
-        // Hapus file di Supabase
+        // SMART DELETE: Hanya hapus file fisik jika tidak ada desa lain yang menggunakannya
         if (verification.publicId) {
-            await storageService.deleteFile(verification.publicId);
+            const usageCount = await Verification.countDocuments({ publicId: verification.publicId });
+            if (usageCount <= 1) {
+                try {
+                    await storageService.deleteFile(verification.publicId);
+                } catch (err) {
+                    console.error(`[DELETE_FILE_ERR] Gagal hapus file fisico: ${err.message}`);
+                }
+            } else {
+                console.log(`[SMART_DELETE] Skip hapus fisik. File masih digunakan oleh ${usageCount - 1} desa lain.`);
+            }
         }
 
         await Verification.deleteOne({ _id: verification._id });
@@ -266,6 +275,63 @@ class VerificationService {
             message: `Berhasil mengunggah dokumen untuk ${desas.length} desa di Kecamatan ${kecamatan}`,
             count: desas.length,
             fileName: file.originalname,
+            notification: newNotif
+        };
+    }
+
+    async deleteKecamatan(userId, kabupaten, kecamatan) {
+        console.log(`[DELETE_KECAMATAN] Memulai hapus massal untuk Kecamatan: ${kecamatan}`);
+
+        if (userId === "fallback-id") {
+            throw new Error("Sesi Anda tidak valid.");
+        }
+
+        const Location = require('../models/Location');
+        const desas = await Location.find({
+            kabupaten: new RegExp(`^${kabupaten}$`, 'i'),
+            kecamatan: new RegExp(`^${kecamatan}$`, 'i')
+        });
+
+        const dusunIds = desas.map(d => d._id.toString());
+        const verifications = await Verification.find({ dusunId: { $in: dusunIds } });
+
+        if (verifications.length === 0) {
+            throw new Error("Tidak ada dokumen yang ditemukan di kecamatan ini.");
+        }
+
+        // Kumpulkan publicId yang perlu dicek penghapusannya
+        const uniquePublicIds = [...new Set(verifications.map(v => v.publicId).filter(Boolean))];
+
+        // Hapus record di database
+        await Verification.deleteMany({ dusunId: { $in: dusunIds } });
+
+        // SMART DELETE untuk massal
+        for (const pid of uniquePublicIds) {
+            const usageCount = await Verification.countDocuments({ publicId: pid });
+            if (usageCount === 0) {
+                try {
+                    await storageService.deleteFile(pid);
+                } catch (err) {
+                    console.error(`[DELETE_KECAMATAN_FILE_ERR] publicId: ${pid}, Error: ${err.message}`);
+                }
+            }
+        }
+
+        // Notifikasi
+        const user = await User.findById(userId);
+        const displayName = user ? (user.unit ? `${user.unit} - ${user.name}` : user.name) : "Admin";
+        const newNotif = new Notification({
+            title: "Penghapusan Berita Acara Massal",
+            message: `${displayName} telah menghapus seluruh dokumen berita acara di Kecamatan ${kecamatan}`,
+            type: "delete",
+            user: userId,
+            userName: displayName
+        });
+        await newNotif.save();
+
+        return {
+            message: `Berhasil menghapus ${verifications.length} dokumen di Kecamatan ${kecamatan}`,
+            count: verifications.length,
             notification: newNotif
         };
     }

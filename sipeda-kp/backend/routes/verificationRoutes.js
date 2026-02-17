@@ -50,5 +50,6 @@ router.post('/upload-kecamatan', verifyToken, (req, res, next) => {
 
 router.put('/status/:dusunId', verifyToken, verificationController.updateStatus);
 router.delete('/:dusunId', verifyToken, verificationController.deleteVerification);
+router.post('/delete-kecamatan', verifyToken, verificationController.deleteKecamatan);
 
 module.exports = router;
