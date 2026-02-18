@@ -210,6 +210,75 @@ const StatusActionModal = ({
   );
 };
 
+const EditNoteModal = ({
+  isOpen,
+  initialMessage,
+  onClose,
+  onConfirm,
+  isLoading,
+  desaName
+}: {
+  isOpen: boolean;
+  initialMessage: string;
+  onClose: () => void;
+  onConfirm: (message: string) => void;
+  isLoading: boolean;
+  desaName: string;
+}) => {
+  const [message, setMessage] = useState(initialMessage);
+
+  useEffect(() => {
+    if (isOpen) setMessage(initialMessage);
+  }, [isOpen, initialMessage]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-xl w-full p-8 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-blue-500 bg-blue-50 dark:bg-blue-900/20">
+              <EditIcon size={24} />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Catatan Verifikator</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Desa {desaName}</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <label className="text-lg font-bold text-gray-700 dark:text-gray-300">Catatan:</label>
+            <textarea
+              className="w-full p-6 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-lg font-bold min-h-[220px] dark:text-white"
+              placeholder="Masukkan catatan perbaikan..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 w-full mt-2">
+            <button
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-3 rounded-xl font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={() => onConfirm(message)}
+              disabled={isLoading || !message.trim()}
+              className="px-4 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isLoading ? <Loader2 size={18} className="animate-spin" /> : "Simpan Perubahan"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CancelConfirmationModal = ({
   isOpen,
   status,
@@ -572,6 +641,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showReplaceModal, setShowReplaceModal] = useState(false);
+  const [showEditNoteModal, setShowEditNoteModal] = useState(false);
   const [loadingNotif, setLoadingNotif] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, type: "success" | "error" | "warning" | "info" }>({
     isOpen: false,
@@ -855,6 +925,18 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         desaName={desaName}
       />
 
+      <EditNoteModal
+        isOpen={showEditNoteModal}
+        initialMessage={message || ""}
+        onClose={() => setShowEditNoteModal(false)}
+        onConfirm={(msg) => {
+          handleStatusUpdate(status, msg);
+          setShowEditNoteModal(false);
+        }}
+        isLoading={isLoading}
+        desaName={desaName}
+      />
+
       {loadingNotif && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/60 dark:bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-300">
           <div className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-white dark:bg-gray-800 shadow-2xl border border-gray-100 dark:border-gray-700">
@@ -905,220 +987,243 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
               ? 'bg-red-50 border-red-500 text-red-800 dark:bg-red-900/10 dark:text-red-200'
               : 'bg-orange-50 border-orange-500 text-orange-800 dark:bg-orange-900/10 dark:text-orange-200'
               }`}>
-              <h5 className="font-bold uppercase text-xs tracking-wider mb-2 flex items-center gap-2 opacity-80">
-                <AlertCircleIcon size={16} /> CATATAN VERIFIKATOR:
-              </h5>
+                <h5 className="font-bold uppercase text-xs tracking-wider mb-2 flex items-center gap-2 opacity-80">
+                  <AlertCircleIcon size={16} /> CATATAN VERIFIKATOR: 
+                  {isUP2K && (
+                    <button
+                      onClick={() => setShowEditNoteModal(true)}
+                      className="ml-2 flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase rounded-lg transition-all shadow-md active:scale-95 group"
+                    >
+                      <EditIcon size={12} className="group-hover:rotate-12 transition-transform" /> Edit
+                    </button>
+                  )}
+                </h5>
+              </div>
               <p className="text-lg font-bold leading-relaxed whitespace-pre-wrap ml-7">"{message}"</p>
             </div>
           )}
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        {isUP2K && file && !message && status !== 'Terverifikasi' && (
+          <div className="mb-4 animate-in fade-in slide-in-from-left-4 duration-500">
+            <button
+              onClick={() => setShowEditNoteModal(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold rounded-xl border border-blue-100 dark:border-blue-800 transition-all hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:shadow-lg hover:shadow-blue-500/10 text-sm group"
+            >
+              <div className="p-1.5 rounded-lg bg-blue-600 text-white shadow-sm group-hover:scale-110 transition-transform">
+                <EditIcon size={14} />
+              </div>
+              Tambah Catatan Verifikator
+            </button>
+          </div>
+        )}
 
-              <div className="flex items-center gap-4 w-full sm:w-auto">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${file ? "bg-blue-100 text-blue-600 dark:bg-blue-600/20 dark:text-blue-400" : "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500"}`}>
-                  {isLoading ? (
-                    <Loader2 size={24} className="animate-spin" />
-                  ) : file?.toLowerCase().endsWith('.pdf') ? (
-                    <FileTextIcon size={24} />
-                  ) : file ? (
-                    <ImageIcon size={24} />
-                  ) : (
-                    <FileTextIcon size={24} />
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">
-                    {file ? file : "Belum ada dokumen"}
-                  </span>
-                  {lastUpload ? (
-                    <div className="flex flex-col gap-0.5 mt-1.5">
-                      <span className="text-xs flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
-                        <ClockIcon size={12} /> Terakhir diubah: {lastUpload}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${file ? "bg-blue-100 text-blue-600 dark:bg-blue-600/20 dark:text-blue-400" : "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500"}`}>
+                {isLoading ? (
+                  <Loader2 size={24} className="animate-spin" />
+                ) : file?.toLowerCase().endsWith('.pdf') ? (
+                  <FileTextIcon size={24} />
+                ) : file ? (
+                  <ImageIcon size={24} />
+                ) : (
+                  <FileTextIcon size={24} />
+                )}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-gray-900 dark:text-white">
+                  {file ? file : "Belum ada dokumen"}
+                </span>
+                {lastUpload ? (
+                  <div className="flex flex-col gap-0.5 mt-1.5">
+                    <span className="text-xs flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                      <ClockIcon size={12} /> Terakhir diubah: {lastUpload}
+                    </span>
+                    {uploader && (
+                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400 ml-4">
+                        Oleh: {uploader}
                       </span>
-                      {uploader && (
-                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 ml-4">
-                          Oleh: {uploader}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-gray-400 italic mt-1">Silakan unggah berita acara desa (Maks. 4.4MB)</span>
-                  )}
-                </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-400 italic mt-1">Silakan unggah berita acara desa (Maks. 4.4MB)</span>
+                )}
               </div>
+            </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                {isUP3 && (
-                  status === 'Terverifikasi' ? (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800 rounded-xl text-sm font-bold">
-                      <CheckCircle2Icon size={16} /> Dokumen Sudah Terverifikasi
-                    </div>
-                  ) : file && !isEditing ? (
-                    <>
-                      <button
-                        onClick={handleDeleteClick}
-                        disabled={isLoading}
-                        className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-5 py-2.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm font-bold rounded-xl hover:bg-red-100 transition-all disabled:opacity-50"
-                      >
-                        <TrashIcon size={16} /> Hapus
-                      </button>
-                      <button
-                        onClick={() => setShowReplaceModal(true)}
-                        disabled={isLoading}
-                        className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all disabled:opacity-50"
-                      >
-                        <EditIcon size={16} /> Ganti
-                      </button>
-                    </>
-                  ) : (
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              {isUP3 && (
+                status === 'Terverifikasi' ? (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800 rounded-xl text-sm font-bold">
+                    <CheckCircle2Icon size={16} /> Dokumen Sudah Terverifikasi
+                  </div>
+                ) : file && !isEditing ? (
+                  <>
                     <button
-                      onClick={triggerUpload}
+                      onClick={handleDeleteClick}
                       disabled={isLoading}
-                      className="w-full sm:w-auto flex justify-center items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
+                      className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-5 py-2.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm font-bold rounded-xl hover:bg-red-100 transition-all disabled:opacity-50"
                     >
-                      {isLoading ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" /> Sedang Mengunggah...
-                        </>
-                      ) : isEditing ? (
-                        <>
-                          <UploadCloudIcon size={18} /> Unggah File Baru
-                        </>
-                      ) : (
-                        <>
-                          <UploadCloudIcon size={18} /> Unggah Dokumen
-                        </>
-                      )}
+                      <TrashIcon size={16} /> Hapus
                     </button>
-                  )
-                )}
-                {isUP2K && !file && (
-                  <span className="text-sm font-bold text-gray-400 italic">Menunggu Unggahan UP3</span>
-                )}
-              </div>
+                    <button
+                      onClick={() => setShowReplaceModal(true)}
+                      disabled={isLoading}
+                      className="flex-1 sm:flex-none flex justify-center items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all disabled:opacity-50"
+                    >
+                      <EditIcon size={16} /> Ganti
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={triggerUpload}
+                    disabled={isLoading}
+                    className="w-full sm:w-auto flex justify-center items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" /> Sedang Mengunggah...
+                      </>
+                    ) : isEditing ? (
+                      <>
+                        <UploadCloudIcon size={18} /> Unggah File Baru
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloudIcon size={18} /> Unggah Dokumen
+                      </>
+                    )}
+                  </button>
+                )
+              )}
+              {isUP2K && !file && (
+                <span className="text-sm font-bold text-gray-400 italic">Menunggu Unggahan UP3</span>
+              )}
             </div>
           </div>
-
-          {isUP2K && file && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm animate-in slide-in-from-top-2 duration-300">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center">
-                    <CheckCircle2Icon size={18} />
-                  </div>
-                  <h5 className="font-bold text-gray-900 dark:text-white">Kategorikan Dokumen</h5>
-                  <span className="text-[10px] font-black uppercase bg-blue-50 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded border border-blue-100">Role: Super Admin</span>
-                </div>
-
-                {['Terverifikasi', 'Tidak Sesuai', 'Sesuai (Perlu Perbaikan)'].includes(status) ? (
-                  <div className={`flex flex-col sm:flex-row items-center justify-between p-4 border-2 rounded-2xl gap-4 ${status === 'Terverifikasi'
-                    ? 'bg-green-50 dark:bg-green-900/10 border-green-500/20 text-green-700 dark:text-green-400'
-                    : status === 'Tidak Sesuai'
-                      ? 'bg-red-50 dark:bg-red-900/10 border-red-500/20 text-red-700 dark:text-red-400'
-                      : 'bg-orange-50 dark:bg-orange-900/10 border-orange-500/20 text-orange-700 dark:text-orange-400'
-                    }`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full text-white flex items-center justify-center shadow-lg ${status === 'Terverifikasi' ? 'bg-green-500 shadow-green-500/20' :
-                        status === 'Tidak Sesuai' ? 'bg-red-500 shadow-red-500/20' :
-                          'bg-orange-500 shadow-orange-500/20'
-                        }`}>
-                        {status === 'Terverifikasi' ? <CheckCircle2Icon size={20} /> :
-                          status === 'Tidak Sesuai' ? <XCircleIcon size={20} /> :
-                            <AlertCircleIcon size={20} />}
-                      </div>
-                      <span className="text-sm font-black uppercase tracking-tight">
-                        Dokumen {status === 'Terverifikasi' ? 'Sudah Terverifikasi' :
-                          status === 'Tidak Sesuai' ? 'Tidak Sesuai' :
-                            'Perlu Perbaikan'}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setShowCancelModal(true)}
-                      disabled={isLoading}
-                      className="w-full sm:w-auto px-8 py-3 bg-white dark:bg-gray-800 border-2 border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-black uppercase tracking-widest text-xs rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-500 transition-all shadow-sm"
-                    >
-                      Batalkan {status === 'Terverifikasi' ? 'Verifikasi' : 'Status'}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <button
-                      onClick={() => handleStatusUpdate('Terverifikasi')}
-                      disabled={isLoading || status === 'Terverifikasi'}
-                      className={`flex items-center justify-center gap-3 p-4 rounded-xl font-bold text-sm transition-all border-2
-                                              ${status === 'Terverifikasi'
-                          ? 'bg-green-50 border-green-500 text-green-700 dark:bg-green-900/20 dark:border-green-600 dark:text-green-400'
-                          : 'bg-white border-gray-100 text-gray-600 hover:border-green-500 hover:text-green-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}
-                                          `}
-                    >
-                      <CheckCircle2Icon size={20} />
-                      Terverifikasi
-                    </button>
-
-                    <button
-                      onClick={() => setShowActionModal({ open: true, status: 'Tidak Sesuai' })}
-                      disabled={isLoading || status === 'Tidak Sesuai'}
-                      className={`flex items-center justify-center gap-3 p-4 rounded-xl font-bold text-sm transition-all border-2
-                                              ${status === 'Tidak Sesuai'
-                          ? 'bg-red-50 border-red-500 text-red-700 dark:bg-red-900/20 dark:border-red-600 dark:text-red-400'
-                          : 'bg-white border-gray-100 text-gray-600 hover:border-red-500 hover:text-red-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}
-                                          `}
-                    >
-                      <XCircleIcon size={20} />
-                      Tidak Sesuai
-                    </button>
-
-                    <button
-                      onClick={() => setShowActionModal({ open: true, status: 'Sesuai (Perlu Perbaikan)' })}
-                      disabled={isLoading || status === 'Sesuai (Perlu Perbaikan)'}
-                      className={`flex items-center justify-center gap-3 p-4 rounded-xl font-bold text-sm transition-all border-2
-                                              ${status === 'Sesuai (Perlu Perbaikan)'
-                          ? 'bg-orange-50 border-orange-500 text-orange-700 dark:bg-orange-900/20 dark:border-orange-600 dark:text-orange-400'
-                          : 'bg-white border-gray-100 text-gray-600 hover:border-orange-500 hover:text-orange-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}
-                                          `}
-                    >
-                      <AlertCircleIcon size={20} />
-                      Sesuai (Perlu Perbaikan)
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {filePath && (
-            <div className="mt-4 flex flex-col gap-4">
-              <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-500 animate-in fade-in slide-in-from-bottom-4">
-                {(file?.toLowerCase().endsWith('.pdf') || (filePath && filePath.toLowerCase().includes('.pdf'))) ? (
-                  <embed
-                    src={`${API_URL}/api/verification/download/${desaId}?preview=true#toolbar=0`}
-                    type="application/pdf"
-                    className="w-full h-[800px] md:h-[1200px] bg-gray-50 dark:bg-gray-900 border-none rounded-xl"
-                  />
-                ) : (
-                  <div className="flex flex-col gap-4 p-4 bg-gray-50 dark:bg-gray-900/50">
-                    <img
-                      src={`${API_URL}/api/verification/download/${desaId}?preview=true`}
-                      alt="Preview Dokumen"
-                      className="max-w-full h-auto rounded-lg mx-auto shadow-sm"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <a
-                href={`${API_URL}/api/verification/download/${desaId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700"
-              >
-                <DownloadIcon size={18} /> Unduh Dokumen ({file?.split('.').pop()?.toUpperCase() || 'FILE'})
-              </a>
-            </div>
-          )}
         </div>
+
+        {isUP2K && file && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm animate-in slide-in-from-top-2 duration-300">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                  <CheckCircle2Icon size={18} />
+                </div>
+                <h5 className="font-bold text-gray-900 dark:text-white">Kategorikan Dokumen</h5>
+                <span className="text-[10px] font-black uppercase bg-blue-50 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded border border-blue-100">Role: Super Admin</span>
+              </div>
+
+              {['Terverifikasi', 'Tidak Sesuai', 'Sesuai (Perlu Perbaikan)'].includes(status) ? (
+                <div className={`flex flex-col sm:flex-row items-center justify-between p-4 border-2 rounded-2xl gap-4 ${status === 'Terverifikasi'
+                  ? 'bg-green-50 dark:bg-green-900/10 border-green-500/20 text-green-700 dark:text-green-400'
+                  : status === 'Tidak Sesuai'
+                    ? 'bg-red-50 dark:bg-red-900/10 border-red-500/20 text-red-700 dark:text-red-400'
+                    : 'bg-orange-50 dark:bg-orange-900/10 border-orange-500/20 text-orange-700 dark:text-orange-400'
+                  }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full text-white flex items-center justify-center shadow-lg ${status === 'Terverifikasi' ? 'bg-green-500 shadow-green-500/20' :
+                      status === 'Tidak Sesuai' ? 'bg-red-500 shadow-red-500/20' :
+                        'bg-orange-500 shadow-orange-500/20'
+                      }`}>
+                      {status === 'Terverifikasi' ? <CheckCircle2Icon size={20} /> :
+                        status === 'Tidak Sesuai' ? <XCircleIcon size={20} /> :
+                          <AlertCircleIcon size={20} />}
+                    </div>
+                    <span className="text-sm font-black uppercase tracking-tight">
+                      Dokumen {status === 'Terverifikasi' ? 'Sudah Terverifikasi' :
+                        status === 'Tidak Sesuai' ? 'Tidak Sesuai' :
+                          'Perlu Perbaikan'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    disabled={isLoading}
+                    className="w-full sm:w-auto px-8 py-3 bg-white dark:bg-gray-800 border-2 border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-black uppercase tracking-widest text-xs rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-500 transition-all shadow-sm"
+                  >
+                    Batalkan {status === 'Terverifikasi' ? 'Verifikasi' : 'Status'}
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <button
+                    onClick={() => handleStatusUpdate('Terverifikasi')}
+                    disabled={isLoading || status === 'Terverifikasi'}
+                    className={`flex items-center justify-center gap-3 p-4 rounded-xl font-bold text-sm transition-all border-2
+                                              ${status === 'Terverifikasi'
+                        ? 'bg-green-50 border-green-500 text-green-700 dark:bg-green-900/20 dark:border-green-600 dark:text-green-400'
+                        : 'bg-white border-gray-100 text-gray-600 hover:border-green-500 hover:text-green-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}
+                                          `}
+                  >
+                    <CheckCircle2Icon size={20} />
+                    Terverifikasi
+                  </button>
+
+                  <button
+                    onClick={() => setShowActionModal({ open: true, status: 'Tidak Sesuai' })}
+                    disabled={isLoading || status === 'Tidak Sesuai'}
+                    className={`flex items-center justify-center gap-3 p-4 rounded-xl font-bold text-sm transition-all border-2
+                                              ${status === 'Tidak Sesuai'
+                        ? 'bg-red-50 border-red-500 text-red-700 dark:bg-red-900/20 dark:border-red-600 dark:text-red-400'
+                        : 'bg-white border-gray-100 text-gray-600 hover:border-red-500 hover:text-red-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}
+                                          `}
+                  >
+                    <XCircleIcon size={20} />
+                    Tidak Sesuai
+                  </button>
+
+                  <button
+                    onClick={() => setShowActionModal({ open: true, status: 'Sesuai (Perlu Perbaikan)' })}
+                    disabled={isLoading || status === 'Sesuai (Perlu Perbaikan)'}
+                    className={`flex items-center justify-center gap-3 p-4 rounded-xl font-bold text-sm transition-all border-2
+                                              ${status === 'Sesuai (Perlu Perbaikan)'
+                        ? 'bg-orange-50 border-orange-500 text-orange-700 dark:bg-orange-900/20 dark:border-orange-600 dark:text-orange-400'
+                        : 'bg-white border-gray-100 text-gray-600 hover:border-orange-500 hover:text-orange-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'}
+                                          `}
+                  >
+                    <AlertCircleIcon size={20} />
+                    Sesuai (Perlu Perbaikan)
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {filePath && (
+          <div className="mt-4 flex flex-col gap-4">
+            <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-500 animate-in fade-in slide-in-from-bottom-4">
+              {(file?.toLowerCase().endsWith('.pdf') || (filePath && filePath.toLowerCase().includes('.pdf'))) ? (
+                <embed
+                  src={`${API_URL}/api/verification/download/${desaId}?preview=true#toolbar=0`}
+                  type="application/pdf"
+                  className="w-full h-[800px] md:h-[1200px] bg-gray-50 dark:bg-gray-900 border-none rounded-xl"
+                />
+              ) : (
+                <div className="flex flex-col gap-4 p-4 bg-gray-50 dark:bg-gray-900/50">
+                  <img
+                    src={`${API_URL}/api/verification/download/${desaId}?preview=true`}
+                    alt="Preview Dokumen"
+                    className="max-w-full h-auto rounded-lg mx-auto shadow-sm"
+                  />
+                </div>
+              )}
+            </div>
+
+            <a
+              href={`${API_URL}/api/verification/download/${desaId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all border border-gray-200 dark:border-gray-700"
+            >
+              <DownloadIcon size={18} /> Unduh Dokumen ({file?.split('.').pop()?.toUpperCase() || 'FILE'})
+            </a>
+          </div>
+        )}
       </div>
+    </div >
 
       <ModernAlert
         isOpen={alertConfig.isOpen}
