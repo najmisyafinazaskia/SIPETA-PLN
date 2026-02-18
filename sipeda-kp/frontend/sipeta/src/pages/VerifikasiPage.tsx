@@ -987,17 +987,19 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
               ? 'bg-red-50 border-red-500 text-red-800 dark:bg-red-900/10 dark:text-red-200'
               : 'bg-orange-50 border-orange-500 text-orange-800 dark:bg-orange-900/10 dark:text-orange-200'
               }`}>
-              <h5 className="font-bold uppercase text-xs tracking-wider mb-2 flex items-center gap-2 opacity-80">
-                <AlertCircleIcon size={16} /> CATATAN VERIFIKATOR:
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-bold uppercase text-xs tracking-wider flex items-center gap-2 opacity-80">
+                  <AlertCircleIcon size={16} /> CATATAN VERIFIKATOR:
+                </h5>
                 {isUP2K && (
                   <button
                     onClick={() => setShowEditNoteModal(true)}
-                    className="ml-2 flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase rounded-lg transition-all shadow-md active:scale-95 group"
+                    className="flex items-center gap-1.5 px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white text-[10px] font-black uppercase rounded-lg transition-all shadow-md active:scale-95 group"
                   >
                     <EditIcon size={12} className="group-hover:rotate-12 transition-transform" /> Edit
                   </button>
                 )}
-              </h5>
+              </div>
               <p className="text-lg font-bold leading-relaxed whitespace-pre-wrap ml-7">"{message}"</p>
             </div>
           )}
@@ -1006,9 +1008,9 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
             <div className="mb-4 animate-in fade-in slide-in-from-left-4 duration-500">
               <button
                 onClick={() => setShowEditNoteModal(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold rounded-xl border border-blue-100 dark:border-blue-800 transition-all hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:shadow-lg hover:shadow-blue-500/10 text-sm group"
+                className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-bold rounded-xl border border-gray-200 dark:border-gray-700 transition-all hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-lg hover:shadow-gray-500/10 text-sm group"
               >
-                <div className="p-1.5 rounded-lg bg-blue-600 text-white shadow-sm group-hover:scale-110 transition-transform">
+                <div className="p-1.5 rounded-lg bg-gray-500 text-white shadow-sm group-hover:scale-110 transition-transform">
                   <EditIcon size={14} />
                 </div>
                 Tambah Catatan Verifikator
