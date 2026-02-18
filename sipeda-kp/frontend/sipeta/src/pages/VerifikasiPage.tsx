@@ -994,7 +994,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
                 {isUP2K && (
                   <button
                     onClick={() => setShowEditNoteModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white text-[10px] font-black uppercase rounded-lg transition-all shadow-md active:scale-95 group"
+                    className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-black uppercase rounded-lg transition-all border border-gray-200 dark:border-gray-700 shadow-sm active:scale-95 group"
                   >
                     <EditIcon size={12} className="group-hover:rotate-12 transition-transform" /> Edit
                   </button>
@@ -1010,7 +1010,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
                 onClick={() => setShowEditNoteModal(true)}
                 className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-bold rounded-xl border border-gray-200 dark:border-gray-700 transition-all hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-lg hover:shadow-gray-500/10 text-sm group"
               >
-                <div className="p-1.5 rounded-lg bg-gray-500 text-white shadow-sm group-hover:scale-110 transition-transform">
+                <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 shadow-sm group-hover:scale-110 transition-transform border border-gray-200 dark:border-gray-600">
                   <EditIcon size={14} />
                 </div>
                 Tambah Catatan Verifikator
