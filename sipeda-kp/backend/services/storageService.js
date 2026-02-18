@@ -68,6 +68,18 @@ class StorageService {
             // Jangan throw error agar proses utama (delete record) tetap jalan
         }
     }
+
+    async deleteFiles(publicIds) {
+        if (!publicIds || !publicIds.length) return;
+
+        const { error } = await supabase.storage
+            .from('SIPETA')
+            .remove(publicIds);
+
+        if (error) {
+            console.error('❌ Supabase Bulk Delete Error:', error);
+        }
+    }
 }
 
 module.exports = new StorageService();

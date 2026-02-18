@@ -199,8 +199,8 @@ class VerificationService {
         return verification;
     }
 
-    async uploadKecamatan(userId, kabupaten, kecamatan, file) {
-        console.log(`[UPLOAD_KECAMATAN] Memulai upload massal untuk Kecamatan: ${kecamatan}, Kabupaten: ${kabupaten}`);
+    async uploadKecamatan(userId, kabupaten, kecamatan, file, skipExisting = false) {
+        console.log(`[UPLOAD_KECAMATAN] Memulai upload massal untuk Kecamatan: ${kecamatan}, Kabupaten: ${kabupaten}, skipExisting: ${skipExisting}`);
 
         if (userId === "fallback-id") {
             throw new Error("Sesi Anda tidak valid. Silakan Keluar (Logout) dan Masuk kembali.");
@@ -208,13 +208,28 @@ class VerificationService {
 
         const Location = require('../models/Location');
         // Cari semua desa di kecamatan tersebut
-        const desas = await Location.find({
+        let desas = await Location.find({
             kabupaten: new RegExp(`^${kabupaten}$`, 'i'),
             kecamatan: new RegExp(`^${kecamatan}$`, 'i')
         });
 
         if (desas.length === 0) {
             throw new Error("Kecamatan tidak ditemukan atau tidak memiliki desa.");
+        }
+
+        // Jika skipExisting aktif, filter desa yang sudah punya record di database
+        if (skipExisting) {
+            const existingDusunIds = await Verification.distinct('dusunId', {
+                dusunId: { $in: desas.map(d => d._id.toString()) }
+            });
+            desas = desas.filter(d => !existingDusunIds.includes(d._id.toString()));
+
+            if (desas.length === 0) {
+                return {
+                    message: `Seluruh desa di Kecamatan ${kecamatan} sudah memiliki dokumen. Tidak ada yang diperbarui.`,
+                    count: 0
+                };
+            }
         }
 
         if (!file) {
@@ -225,40 +240,48 @@ class VerificationService {
         const uploadResult = await storageService.uploadFile(file);
         console.log('[UPLOAD_KECAMATAN] File berhasil diunggah ke Supabase:', uploadResult.path);
 
-        // 2. Update verifikasi untuk setiap desa
-        for (const desa of desas) {
-            const dusunId = desa._id.toString();
-            const filter = { dusunId };
-            const update = {
-                fileName: file.originalname,
-                filePath: uploadResult.path,
-                publicId: uploadResult.publicId,
-                uploadedBy: userId,
-                status: 'Menunggu Verifikasi',
-                message: null
-            };
+        // 2. Kumpulkan publicId lama untuk dibersihkan nanti (Smart Delete)
+        const dusunIds = desas.map(d => d._id.toString());
+        const existingVerifications = await Verification.find({ dusunId: { $in: dusunIds } });
+        const oldPublicIds = [...new Set(existingVerifications.map(v => v.publicId).filter(pid => pid && pid !== uploadResult.publicId))];
 
-            // Opsional: Hapus file lama jika ada
-            const existingVerification = await Verification.findOne({ dusunId });
-            if (existingVerification && existingVerification.publicId) {
-                // Hanya hapus jika publicId-nya berbeda dengan yang baru (mencegah penghapusan file yang baru diupload jika script error/retry)
-                if (existingVerification.publicId !== uploadResult.publicId) {
-                    try {
-                        await storageService.deleteFile(existingVerification.publicId);
-                    } catch (err) {
-                        console.error(`[UPLOAD_KECAMATAN] Gagal menghapus file lama untuk ${desa.desa}:`, err.message);
+        // 3. Update/Insert verifikasi untuk SETIAP desa menggunakan bulkWrite (Atomic & Fast)
+        const bulkOps = desas.map(desa => ({
+            updateOne: {
+                filter: { dusunId: desa._id.toString() },
+                update: {
+                    $set: {
+                        fileName: file.originalname,
+                        filePath: uploadResult.path,
+                        publicId: uploadResult.publicId,
+                        uploadedBy: userId,
+                        status: 'Menunggu Verifikasi',
+                        message: null
                     }
+                },
+                upsert: true
+            }
+        }));
+
+        await Verification.bulkWrite(bulkOps);
+
+        // 4. SMART CLEANUP: Hapus file lama hanya jika tidak ada desa lain (di kec lain) yang menggunakannya
+        if (oldPublicIds.length > 0) {
+            const pidsToDelete = [];
+            for (const pid of oldPublicIds) {
+                const usageCount = await Verification.countDocuments({ publicId: pid });
+                if (usageCount === 0) {
+                    pidsToDelete.push(pid);
                 }
             }
 
-            await Verification.findOneAndUpdate(filter, update, {
-                new: true,
-                upsert: true,
-                setDefaultsOnInsert: true
-            });
+            if (pidsToDelete.length > 0) {
+                console.log(`[UPLOAD_KECAMATAN] Cleaning up ${pidsToDelete.length} obsolete files from storage.`);
+                await storageService.deleteFiles(pidsToDelete);
+            }
         }
 
-        // 3. Buat notifikasi tunggal
+        // 5. Buat notifikasi tunggal
         const user = await User.findById(userId);
         const displayName = user ? (user.unit ? `${user.unit} - ${user.name}` : user.name) : "Admin";
 
@@ -306,15 +329,17 @@ class VerificationService {
         await Verification.deleteMany({ dusunId: { $in: dusunIds } });
 
         // SMART DELETE untuk massal
+        const pidsToDelete = [];
         for (const pid of uniquePublicIds) {
             const usageCount = await Verification.countDocuments({ publicId: pid });
             if (usageCount === 0) {
-                try {
-                    await storageService.deleteFile(pid);
-                } catch (err) {
-                    console.error(`[DELETE_KECAMATAN_FILE_ERR] publicId: ${pid}, Error: ${err.message}`);
-                }
+                pidsToDelete.push(pid);
             }
+        }
+
+        if (pidsToDelete.length > 0) {
+            console.log(`[DELETE_KECAMATAN] Cleaning up ${pidsToDelete.length} obsolete files.`);
+            await storageService.deleteFiles(pidsToDelete);
         }
 
         // Notifikasi

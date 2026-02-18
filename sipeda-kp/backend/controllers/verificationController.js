@@ -17,11 +17,11 @@ exports.uploadFile = async (req, res) => {
 
 exports.uploadKecamatan = async (req, res) => {
     try {
-        const { kabupaten, kecamatan } = req.body;
+        const { kabupaten, kecamatan, skipExisting } = req.body;
         if (!kabupaten || !kecamatan) {
             return res.status(400).json({ message: "Kabupaten dan Kecamatan wajib diisi" });
         }
-        const result = await verificationService.uploadKecamatan(req.userId, kabupaten, kecamatan, req.file);
+        const result = await verificationService.uploadKecamatan(req.userId, kabupaten, kecamatan, req.file, skipExisting === 'true');
         res.status(200).json(result);
     } catch (error) {
         res.status(error.message.includes('tidak ditemukan') ? 404 : 500).json({ message: error.message });
@@ -120,21 +120,22 @@ exports.downloadFile = async (req, res) => {
             const https = require('https');
 
             https.get(absolutePath, (remoteRes) => {
-                // Jangan lanjutkan jika status bukan 200 (misalnya 404/403)
+                // Hanya layani jika status 200 OK
                 if (remoteRes.statusCode === 200) {
                     const disposition = isPreview ? 'inline' : `attachment; filename="${fileName}"`;
                     res.setHeader('Content-Disposition', disposition);
-                    // Paksa tipe PDF jika memungkinkan agar browser merender, bukan download
                     res.setHeader('Content-Type', fileName.endsWith('.pdf') ? 'application/pdf' : (remoteRes.headers['content-type'] || 'application/octet-stream'));
 
                     remoteRes.pipe(res);
                 } else {
-                    console.error(`[PROXY_FAIL] Status: ${remoteRes.statusCode}`);
-                    res.redirect(absolutePath); // Fallback: Redirect jika gagal proxy
+                    console.error(`[PROXY_FAIL] Status: ${remoteRes.statusCode} for ${absolutePath}`);
+                    // Jika file tidak ditemukan di Supabase, kirim status 404
+                    // Gunakan res.status(404).send() agar browser/iframe menampilkan error default, bukan JSON redirect
+                    res.status(404).send('File tidak ditemukan di cloud storage. Silakan hubungi admin atau unggah ulang.');
                 }
             }).on('error', (e) => {
                 console.error(`[PROXY_ERR] ${e.message}`);
-                res.redirect(absolutePath);
+                res.status(500).send('Terjadi kesalahan saat mengambil file dari storage.');
             });
             return;
         }

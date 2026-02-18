@@ -310,16 +310,20 @@ const BulkUploadKecamatanModal = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (file: File) => void;
+  onConfirm: (file: File, skipExisting: boolean) => void;
   isLoading: boolean;
   kecamatanName: string;
   onShowAlert?: (title: string, message: string, type: "success" | "error" | "warning" | "info") => void;
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [skipExisting, setSkipExisting] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen) setSelectedFile(null);
+    if (isOpen) {
+      setSelectedFile(null);
+      setSkipExisting(false);
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -384,6 +388,38 @@ const BulkUploadKecamatanModal = ({
             </button>
           </div>
 
+          {/* Opsi Skip Existing */}
+          <div className="w-full mt-2 p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/50">
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <div className="relative flex items-center mt-1">
+                <input
+                  type="checkbox"
+                  checked={skipExisting}
+                  onChange={(e) => setSkipExisting(e.target.checked)}
+                  className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-blue-200 transition-all checked:border-blue-600 checked:bg-blue-600 hover:border-blue-400 dark:border-gray-600"
+                />
+                <svg
+                  className="absolute h-5 w-5 pointer-events-none stroke-white opacity-0 peer-checked:opacity-100 transition-opacity p-1"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-xs font-black text-blue-700 dark:text-blue-400 uppercase leading-none mb-1">Proteksi Dokumen Manual</span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold leading-tight">
+                  Hanya unggah untuk desa yang belum memiliki dokumen atau sedang error. Dokumen manual tidak akan ditimpa.
+                </span>
+              </div>
+            </label>
+          </div>
+
           <div className="grid grid-cols-2 gap-3 w-full mt-4">
             <button
               onClick={onClose}
@@ -393,7 +429,7 @@ const BulkUploadKecamatanModal = ({
               Batal
             </button>
             <button
-              onClick={() => selectedFile && onConfirm(selectedFile)}
+              onClick={() => selectedFile && onConfirm(selectedFile, skipExisting)}
               disabled={isLoading || !selectedFile}
               className="px-4 py-3 rounded-xl font-black text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 uppercase text-xs tracking-wider"
             >
@@ -1210,7 +1246,7 @@ export default function VerifikasiPage() {
     setAlertConfig({ isOpen: true, title, message, type });
   };
 
-  const handleBulkUpload = async (file: File) => {
+  const handleBulkUpload = async (file: File, skipExisting: boolean = false) => {
     if (!activeKecamatan) return;
     setIsBulkLoading(true);
     try {
@@ -1218,6 +1254,7 @@ export default function VerifikasiPage() {
       formData.append("document", file);
       formData.append("kabupaten", activeKecamatan.kab);
       formData.append("kecamatan", activeKecamatan.name);
+      formData.append("skipExisting", String(skipExisting));
 
       const res = await fetch(`${API_URL}/api/verification/upload-kecamatan`, {
         method: "POST",
