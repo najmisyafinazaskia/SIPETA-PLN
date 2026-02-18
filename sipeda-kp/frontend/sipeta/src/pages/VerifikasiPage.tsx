@@ -905,10 +905,10 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
               ? 'bg-red-50 border-red-500 text-red-800 dark:bg-red-900/10 dark:text-red-200'
               : 'bg-orange-50 border-orange-500 text-orange-800 dark:bg-orange-900/10 dark:text-orange-200'
               }`}>
-              <h5 className="font-black uppercase text-sm tracking-widest mb-3 flex items-center gap-2 opacity-90">
-                <AlertCircleIcon size={18} /> CATATAN VERIFIKATOR:
+              <h5 className="font-bold uppercase text-xs tracking-wider mb-2 flex items-center gap-2 opacity-80">
+                <AlertCircleIcon size={16} /> CATATAN VERIFIKATOR:
               </h5>
-              <p className="text-xl font-black leading-relaxed whitespace-pre-wrap ml-7 italic">"{message}"</p>
+              <p className="text-lg font-bold leading-relaxed whitespace-pre-wrap ml-7">"{message}"</p>
             </div>
           )}
 
