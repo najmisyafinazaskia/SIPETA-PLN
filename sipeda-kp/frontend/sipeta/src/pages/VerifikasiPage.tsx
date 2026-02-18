@@ -331,11 +331,11 @@ const BulkUploadKecamatanModal = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Batasan Vercel Serverless Function adalah 4.5MB
-      const MAX_FILE_SIZE = 4.5 * 1024 * 1024;
+      // Batasan Vercel Serverless Function adalah 4.5MB (kita gunakan 4.4MB untuk margin overhead)
+      const MAX_FILE_SIZE = 4.4 * 1024 * 1024;
       if (file.size > MAX_FILE_SIZE) {
         if (onShowAlert) {
-          onShowAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 4.5MB", "warning");
+          onShowAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 4.4MB untuk menjamin keberhasilan upload", "warning");
         }
         if (e.target) e.target.value = '';
         return;
@@ -590,34 +590,26 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
   const fetchStatus = React.useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/verification/${desaId}?t=${new Date().getTime()}`);
-      if (res.ok) {
-        const data = await res.json();
-        setFile(data.fileName);
-        setFilePath(data.filePath);
-        setLastUpload(new Date(data.updatedAt).toLocaleString());
-        const uName = data.uploadedBy?.name || "Admin";
-        const uUnit = data.uploadedBy?.unit;
-        setUploader(uUnit ? `${uUnit} - ${uName}` : uName);
-        setStatus(data.status || "Menunggu Verifikasi");
-        setMessage(data.message || null);
-
-        // REMOVED: setVerifiedDesaMap here to avoid stale read overwriting optimistic update.
-        // The global map should only be updated by mutations (upload/status change) or the initial bulk fetch.
-      } else {
-        // Reset if no data found
-        setFile(null);
-        setFilePath(null);
-        setLastUpload(null);
-        setUploader(null);
-        setStatus("Belum Diunggah");
-        setMessage(null);
-
-        // REMOVED: setVerifiedDesaMap deletion here.
-        // If fetch returns 404, we just show empty state locally.
-        // We do NOT want to wipe the global map entry if it was just added optimistically.
+      if (!res.ok) {
+        // Attempt to get error message as text if it's not JSON
+        const errorText = await res.text();
+        console.error("[FETCH_STATUS_ERR]", errorText);
+        return;
       }
-    } catch (err) { console.error(err); }
-  }, [desaId, API_URL, setVerifiedDesaMap]);
+
+      const data = await res.json();
+      setFile(data.fileName);
+      setFilePath(data.filePath);
+      setLastUpload(new Date(data.updatedAt).toLocaleString());
+      const uName = data.uploadedBy?.name || "Admin";
+      const uUnit = data.uploadedBy?.unit;
+      setUploader(uUnit ? `${uUnit} - ${uName}` : uName);
+      setStatus(data.status || "Menunggu Verifikasi");
+      setMessage(data.message || null);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [desaId, API_URL]);
 
   // Fetch initial state
   React.useEffect(() => {
@@ -633,10 +625,10 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
       return;
     }
 
-    // Batasan Vercel Serverless Function adalah 4.5MB
-    const MAX_FILE_SIZE = 4.5 * 1024 * 1024;
+    // Batasan Vercel Serverless Function adalah 4.5MB (kita gunakan 4.4MB untuk margin overhead)
+    const MAX_FILE_SIZE = 4.4 * 1024 * 1024;
     if (selectedFile.size > MAX_FILE_SIZE) {
-      showAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 4.5MB", "warning");
+      showAlert("File Terlalu Besar", "Ukuran file tidak boleh melebihi 4.4MB untuk menjamin keberhasilan upload", "warning");
       if (e.target) e.target.value = '';
       return;
     }
@@ -656,9 +648,24 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         body: formData
       });
 
-      const data = await res.json();
+      if (!res.ok) {
+        let errorMsg = "Gagal mengunggah dokumen";
+        try {
+          const errorData = await res.json();
+          errorMsg = errorData.message || errorMsg;
+        } catch (e) {
+          const text = await res.text();
+          if (text.includes("Request Entity Too Large")) {
+            errorMsg = "File terlalu besar untuk server (Limit 4.5MB di Vercel)";
+          } else {
+            errorMsg = text.substring(0, 100) || "Gagal mengunggah (Format response tidak dikenali)";
+          }
+        }
+        throw new Error(errorMsg);
+      }
 
-      if (res.ok && data?.data) {
+      const data = await res.json();
+      if (data?.data) {
         const v = data.data;
         setFile(v.fileName);
         setFilePath(v.filePath);
@@ -730,8 +737,15 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
         }, 1500);
 
       } else {
-        const data = await res.json();
-        showAlert("Gagal!", data.message || "Gagal memperbarui status", "error");
+        let errorMsg = "Gagal memperbarui status";
+        try {
+          const errorData = await res.json();
+          errorMsg = errorData.message || errorMsg;
+        } catch (e) {
+          const text = await res.text();
+          errorMsg = text.substring(0, 100) || errorMsg;
+        }
+        showAlert("Gagal!", errorMsg, "error");
       }
     } catch (err) {
       showAlert("Error!", "Gagal menghubungi server", "error");
@@ -922,7 +936,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
                       )}
                     </div>
                   ) : (
-                    <span className="text-xs text-gray-400 italic mt-1">Silakan unggah berita acara desa (Maks. 4.5MB)</span>
+                    <span className="text-xs text-gray-400 italic mt-1">Silakan unggah berita acara desa (Maks. 4.4MB)</span>
                   )}
                 </div>
               </div>
@@ -1270,8 +1284,19 @@ export default function VerifikasiPage() {
         fetchVerifications();
         showAlert("Berhasil!", `Dokumen untuk seluruh desa di Kecamatan ${activeKecamatan.name} telah diunggah.`, "success");
       } else {
-        const data = await res.json();
-        showAlert("Gagal!", data.message || "Gagal upload massal", "error");
+        let errorMsg = "Gagal upload massal";
+        try {
+          const errorData = await res.json();
+          errorMsg = errorData.message || errorMsg;
+        } catch (e) {
+          const text = await res.text();
+          if (text.includes("Request Entity Too Large")) {
+            errorMsg = "Payload massal terlalu besar untuk server (Batas 4.5MB)";
+          } else {
+            errorMsg = text.substring(0, 100) || errorMsg;
+          }
+        }
+        showAlert("Gagal!", errorMsg, "error");
       }
     } catch (err) {
       console.error(err);
@@ -1303,8 +1328,15 @@ export default function VerifikasiPage() {
         fetchVerifications();
         showAlert("Dihapus!", `Seluruh dokumen di Kecamatan ${activeKecamatan.name} telah berhasil dihapus.`, "success");
       } else {
-        const data = await res.json();
-        showAlert("Gagal!", data.message || "Gagal hapus massal", "error");
+        let errorMsg = "Gagal hapus massal";
+        try {
+          const errorData = await res.json();
+          errorMsg = errorData.message || errorMsg;
+        } catch (e) {
+          const text = await res.text();
+          errorMsg = text.substring(0, 100) || errorMsg;
+        }
+        showAlert("Gagal!", errorMsg, "error");
       }
     } catch (err) {
       console.error(err);
@@ -1386,20 +1418,24 @@ export default function VerifikasiPage() {
       // Add timestamp to prevent caching
       const res = await fetch(`${API_URL}/api/verification?t=${new Date().getTime()}`);
       if (res.ok) {
-        const data = await res.json();
-        // console.log("[DEBUG] Raw Verification Data from Server:", data); // Removed for production
-        const map: Record<string, string> = {};
-        data.forEach((v: any) => {
-          // Double-entry strategy to handle any ID type mismatch (String vs Number vs Object)
-          // This guarantees lookup success without runtime conversion risks in render
-          const status = v.status || "Menunggu Verifikasi";
-          // Ensure we catch both raw ID and stringified ID
-          if (v.dusunId) {
-            map[v.dusunId] = status;
-            map[String(v.dusunId)] = status;
-          }
-        });
-        setVerifiedDesaMap(map);
+        try {
+          const data = await res.json();
+          // console.log("[DEBUG] Raw Verification Data from Server:", data); // Removed for production
+          const map: Record<string, string> = {};
+          data.forEach((v: any) => {
+            // Double-entry strategy to handle any ID type mismatch (String vs Number vs Object)
+            // This guarantees lookup success without runtime conversion risks in render
+            const status = v.status || "Menunggu Verifikasi";
+            // Ensure we catch both raw ID and stringified ID
+            if (v.dusunId) {
+              map[v.dusunId] = status;
+              map[String(v.dusunId)] = status;
+            }
+          });
+          setVerifiedDesaMap(map);
+        } catch (e) {
+          console.error("JSON Parse Error in fetchVerifications");
+        }
       }
     } catch (err) { console.error(err); }
   };
@@ -1408,8 +1444,12 @@ export default function VerifikasiPage() {
     const fetchHierarchy = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${API_URL}/api/locations/hierarchy`);
-        const json = await res.json();
+      const res = await fetch(`${API_URL}/api/locations/hierarchy`);
+      if (!res.ok) {
+        console.error("Failed to fetch hierarchy:", res.statusText);
+        return;
+      }
+      const json = await res.json();
         if (json.success) {
           // Robust sorting at all levels
           const sortedData = json.data.sort((a: any, b: any) => a.name.localeCompare(b.name)).map((kab: any) => ({
