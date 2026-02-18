@@ -166,7 +166,7 @@ const StatusActionModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
@@ -178,10 +178,10 @@ const StatusActionModal = ({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Deskripsi / Alasan:</label>
+          <div className="space-y-3">
+            <label className="text-base font-bold text-gray-700 dark:text-gray-300">Deskripsi / Alasan:</label>
             <textarea
-              className="w-full p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-sm font-bold min-h-[120px] dark:text-white"
+              className="w-full p-5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-base font-bold min-h-[180px] dark:text-white"
               placeholder={`Masukkan alasan mengapa dokumen ${status.toLowerCase()}...`}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -650,11 +650,12 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
 
       if (!res.ok) {
         let errorMsg = "Gagal mengunggah dokumen";
+        const resClone = res.clone();
         try {
           const errorData = await res.json();
           errorMsg = errorData.message || errorMsg;
         } catch (e) {
-          const text = await res.text();
+          const text = await resClone.text();
           if (text.includes("Request Entity Too Large")) {
             errorMsg = "File terlalu besar untuk server (Limit 4.5MB di Vercel)";
           } else {
@@ -738,11 +739,12 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
 
       } else {
         let errorMsg = "Gagal memperbarui status";
+        const resClone = res.clone();
         try {
           const errorData = await res.json();
           errorMsg = errorData.message || errorMsg;
         } catch (e) {
-          const text = await res.text();
+          const text = await resClone.text();
           errorMsg = text.substring(0, 100) || errorMsg;
         }
         showAlert("Gagal!", errorMsg, "error");
@@ -1285,11 +1287,12 @@ export default function VerifikasiPage() {
         showAlert("Berhasil!", `Dokumen untuk seluruh desa di Kecamatan ${activeKecamatan.name} telah diunggah.`, "success");
       } else {
         let errorMsg = "Gagal upload massal";
+        const resClone = res.clone();
         try {
           const errorData = await res.json();
           errorMsg = errorData.message || errorMsg;
         } catch (e) {
-          const text = await res.text();
+          const text = await resClone.text();
           if (text.includes("Request Entity Too Large")) {
             errorMsg = "Payload massal terlalu besar untuk server (Batas 4.5MB)";
           } else {
@@ -1329,11 +1332,12 @@ export default function VerifikasiPage() {
         showAlert("Dihapus!", `Seluruh dokumen di Kecamatan ${activeKecamatan.name} telah berhasil dihapus.`, "success");
       } else {
         let errorMsg = "Gagal hapus massal";
+        const resClone = res.clone();
         try {
           const errorData = await res.json();
           errorMsg = errorData.message || errorMsg;
         } catch (e) {
-          const text = await res.text();
+          const text = await resClone.text();
           errorMsg = text.substring(0, 100) || errorMsg;
         }
         showAlert("Gagal!", errorMsg, "error");
@@ -1444,12 +1448,12 @@ export default function VerifikasiPage() {
     const fetchHierarchy = async () => {
       try {
         setLoading(true);
-      const res = await fetch(`${API_URL}/api/locations/hierarchy`);
-      if (!res.ok) {
-        console.error("Failed to fetch hierarchy:", res.statusText);
-        return;
-      }
-      const json = await res.json();
+        const res = await fetch(`${API_URL}/api/locations/hierarchy`);
+        if (!res.ok) {
+          console.error("Failed to fetch hierarchy:", res.statusText);
+          return;
+        }
+        const json = await res.json();
         if (json.success) {
           // Robust sorting at all levels
           const sortedData = json.data.sort((a: any, b: any) => a.name.localeCompare(b.name)).map((kab: any) => ({
