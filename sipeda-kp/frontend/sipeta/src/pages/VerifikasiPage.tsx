@@ -212,12 +212,14 @@ const StatusActionModal = ({
 
 const CancelConfirmationModal = ({
   isOpen,
+  status,
   onClose,
   onConfirm,
   isLoading,
   desaName
 }: {
   isOpen: boolean;
+  status: string;
   onClose: () => void;
   onConfirm: () => void;
   isLoading: boolean;
@@ -234,9 +236,11 @@ const CancelConfirmationModal = ({
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Batalkan Verifikasi?</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+              {status === 'Terverifikasi' ? 'Batalkan Verifikasi?' : 'Batalkan Status?'}
+            </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 font-bold">
-              Apakah Anda yakin ingin membatalkan verifikasi untuk desa <span className="text-blue-600">{desaName}</span>?
+              Apakah Anda yakin ingin membatalkan {status === 'Terverifikasi' ? 'verifikasi' : 'status kategori'} untuk desa <span className="text-blue-600">{desaName}</span>?
             </p>
           </div>
 
@@ -832,6 +836,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
 
       <CancelConfirmationModal
         isOpen={showCancelModal}
+        status={status}
         onClose={() => setShowCancelModal(false)}
         onConfirm={() => handleStatusUpdate('Menunggu Verifikasi')}
         isLoading={isLoading}
@@ -900,10 +905,10 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
               ? 'bg-red-50 border-red-500 text-red-800 dark:bg-red-900/10 dark:text-red-200'
               : 'bg-orange-50 border-orange-500 text-orange-800 dark:bg-orange-900/10 dark:text-orange-200'
               }`}>
-              <h5 className="font-bold uppercase text-xs tracking-wider mb-2 flex items-center gap-2 opacity-80">
-                <AlertCircleIcon size={14} /> Catatan Verifikator:
+              <h5 className="font-black uppercase text-sm tracking-widest mb-3 flex items-center gap-2 opacity-90">
+                <AlertCircleIcon size={18} /> CATATAN VERIFIKATOR:
               </h5>
-              <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap ml-6">"{message}"</p>
+              <p className="text-xl font-black leading-relaxed whitespace-pre-wrap ml-7 italic">"{message}"</p>
             </div>
           )}
 
@@ -1006,20 +1011,34 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
                   <span className="text-[10px] font-black uppercase bg-blue-50 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded border border-blue-100">Role: Super Admin</span>
                 </div>
 
-                {status === 'Terverifikasi' ? (
-                  <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-green-50 dark:bg-green-900/10 border-2 border-green-500/20 rounded-2xl gap-4">
-                    <div className="flex items-center gap-3 text-green-700 dark:text-green-400">
-                      <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center shadow-lg shadow-green-500/20">
-                        <CheckCircle2Icon size={20} />
+                {['Terverifikasi', 'Tidak Sesuai', 'Sesuai (Perlu Perbaikan)'].includes(status) ? (
+                  <div className={`flex flex-col sm:flex-row items-center justify-between p-4 border-2 rounded-2xl gap-4 ${status === 'Terverifikasi'
+                    ? 'bg-green-50 dark:bg-green-900/10 border-green-500/20 text-green-700 dark:text-green-400'
+                    : status === 'Tidak Sesuai'
+                      ? 'bg-red-50 dark:bg-red-900/10 border-red-500/20 text-red-700 dark:text-red-400'
+                      : 'bg-orange-50 dark:bg-orange-900/10 border-orange-500/20 text-orange-700 dark:text-orange-400'
+                    }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full text-white flex items-center justify-center shadow-lg ${status === 'Terverifikasi' ? 'bg-green-500 shadow-green-500/20' :
+                        status === 'Tidak Sesuai' ? 'bg-red-500 shadow-red-500/20' :
+                          'bg-orange-500 shadow-orange-500/20'
+                        }`}>
+                        {status === 'Terverifikasi' ? <CheckCircle2Icon size={20} /> :
+                          status === 'Tidak Sesuai' ? <XCircleIcon size={20} /> :
+                            <AlertCircleIcon size={20} />}
                       </div>
-                      <span className="text-sm font-black uppercase tracking-tight">Dokumen Sudah Terverifikasi</span>
+                      <span className="text-sm font-black uppercase tracking-tight">
+                        Dokumen {status === 'Terverifikasi' ? 'Sudah Terverifikasi' :
+                          status === 'Tidak Sesuai' ? 'Tidak Sesuai' :
+                            'Perlu Perbaikan'}
+                      </span>
                     </div>
                     <button
                       onClick={() => setShowCancelModal(true)}
                       disabled={isLoading}
                       className="w-full sm:w-auto px-8 py-3 bg-white dark:bg-gray-800 border-2 border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 font-black uppercase tracking-widest text-xs rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-500 transition-all shadow-sm"
                     >
-                      Batalkan Verifikasi
+                      Batalkan {status === 'Terverifikasi' ? 'Verifikasi' : 'Status'}
                     </button>
                   </div>
                 ) : (
