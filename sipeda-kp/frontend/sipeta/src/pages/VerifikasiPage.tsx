@@ -166,7 +166,7 @@ const StatusActionModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-xl w-full p-8 border border-gray-100 dark:border-gray-700 transform transition-all scale-100 animate-in zoom-in-95 duration-200">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
@@ -178,10 +178,10 @@ const StatusActionModal = ({
             </div>
           </div>
 
-          <div className="space-y-3">
-            <label className="text-base font-bold text-gray-700 dark:text-gray-300">Deskripsi / Alasan:</label>
+          <div className="space-y-4">
+            <label className="text-lg font-bold text-gray-700 dark:text-gray-300">Deskripsi / Alasan:</label>
             <textarea
-              className="w-full p-5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-base font-bold min-h-[180px] dark:text-white"
+              className="w-full p-6 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-lg font-bold min-h-[220px] dark:text-white"
               placeholder={`Masukkan alasan mengapa dokumen ${status.toLowerCase()}...`}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
