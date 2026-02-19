@@ -11,9 +11,9 @@ interface AdminContact {
 
 const adminContacts: AdminContact[] = [
     {
-        nama: "Admin Wilayah 1",
-        jabatan: "Admin UP2K Aceh",
-        noHp: "6281234567890",
+        nama: "Bang Riko",
+        jabatan: "Admin UP2K Banda Aceh",
+        noHp: "6285270511503",
         unit: "UID ACEH"
     },
     {
