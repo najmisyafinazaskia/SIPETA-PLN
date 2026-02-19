@@ -53,12 +53,18 @@ export default function DusunPage() {
     const [customStatus, setCustomStatus] = useState("");
     const [updating, setUpdating] = useState(false);
 
+    const [tempCategory, setTempCategory] = useState<"PLN" | "Belum">("Belum");
+
     // Sync custom status when modal opens
     useEffect(() => {
         if (selectedDusun) {
+            const isPLN = selectedDusun.status === "Berlistrik PLN";
+            setTempCategory(isPLN ? "PLN" : "Belum");
+
             const isDefault = ["Berlistrik PLN", "Belum Berlistrik"].includes(selectedDusun.status);
             setCustomStatus(isDefault ? "" : selectedDusun.status);
         } else {
+            setTempCategory("Belum");
             setCustomStatus("");
         }
     }, [selectedDusun]);
@@ -364,28 +370,25 @@ export default function DusunPage() {
                         <div className="flex flex-col gap-4">
                             <div className="grid grid-cols-2 gap-3">
                                 <button
-                                    onClick={() => handleStatusUpdate("Berlistrik PLN")}
+                                    onClick={() => {
+                                        setTempCategory("PLN");
+                                        setCustomStatus(""); // Clear custom text if moving to PLN
+                                    }}
                                     disabled={updating}
-                                    className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Berlistrik PLN"
+                                    className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${tempCategory === "PLN"
                                         ? "bg-green-600 text-white shadow-lg shadow-green-500/20"
-                                        : "bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-600 border border-gray-100"
+                                        : "bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-600 border border-gray-100 dark:bg-gray-800 dark:border-gray-700"
                                         }`}
                                 >
                                     Berlistrik PLN
                                 </button>
 
                                 <button
-                                    onClick={() => {
-                                        // Jika sedang Berlistrik PLN, pindahkan ke Belum Berlistrik (baseline)
-                                        // Jika sudah Belum Berlistrik (atau punya kustom status), jangan timpa 
-                                        if (selectedDusun.status === "Berlistrik PLN") {
-                                            handleStatusUpdate("Belum Berlistrik");
-                                        }
-                                    }}
+                                    onClick={() => setTempCategory("Belum")}
                                     disabled={updating}
-                                    className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status !== "Berlistrik PLN"
+                                    className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${tempCategory === "Belum"
                                         ? "bg-yellow-500 text-white shadow-lg shadow-yellow-500/20"
-                                        : "bg-gray-50 text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 border border-gray-100"
+                                        : "bg-gray-50 text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 border border-gray-100 dark:bg-gray-800 dark:border-gray-700"
                                         }`}
                                 >
                                     Belum Berlistrik
@@ -402,14 +405,23 @@ export default function DusunPage() {
                                     onChange={(e) => setCustomStatus(e.target.value)}
                                 />
                                 <button
-                                    onClick={() => handleStatusUpdate(customStatus.trim() || "Belum Berlistrik")}
-                                    disabled={updating || (customStatus.trim() === "" && selectedDusun.status === "Belum Berlistrik") || (customStatus.trim() === selectedDusun.status)}
-                                    className={`w-full py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${(customStatus.trim() !== selectedDusun.status && (customStatus.trim() !== "" || selectedDusun.status !== "Belum Berlistrik"))
-                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700"
-                                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                    onClick={() => {
+                                        const finalStatus = tempCategory === "PLN"
+                                            ? "Berlistrik PLN"
+                                            : (customStatus.trim() || "Belum Berlistrik");
+                                        handleStatusUpdate(finalStatus);
+                                    }}
+                                    disabled={updating || (
+                                        tempCategory === (selectedDusun.status === "Berlistrik PLN" ? "PLN" : "Belum") &&
+                                        customStatus.trim() === (["Berlistrik PLN", "Belum Berlistrik"].includes(selectedDusun.status) ? "" : selectedDusun.status)
+                                    )}
+                                    className={`w-full py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${(tempCategory !== (selectedDusun.status === "Berlistrik PLN" ? "PLN" : "Belum") ||
+                                            customStatus.trim() !== (["Berlistrik PLN", "Belum Berlistrik"].includes(selectedDusun.status) ? "" : selectedDusun.status))
+                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700"
+                                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
                                         }`}
                                 >
-                                    {updating ? "Menyimpan..." : "Simpan Keterangan"}
+                                    {updating ? "Menyimpan..." : "Simpan Perubahan"}
                                 </button>
                                 <p className="text-[9px] text-gray-400 font-medium italic text-center">Isi keterangan untuk mendetailkan status, atau kosongkan untuk kembali ke status standar.</p>
                             </div>

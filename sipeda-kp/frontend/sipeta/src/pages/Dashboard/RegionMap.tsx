@@ -180,28 +180,32 @@ const getPointPopupHtml = (props: any, isBerlistrik: boolean, hideStatus: boolea
     const dNameRaw = d.nama || d.name || "N/A";
     const dNameUpper = dNameRaw.toUpperCase();
 
-    // Determine color/logic for display status
-    let displayStatus = d.status;
+    // Determine categorization (Strict)
+    const isActuallyPLN = (d.status === "Berlistrik PLN");
+
+    // Fallback for missing or zero status
+    let baseStatusLabel = isActuallyPLN ? "Berlistrik PLN" : "Belum Berlistrik";
+    let detailStatus = d.status;
+
     const isProblematic = statusText === "0" || statusText === "REFF!" || statusText === "#REF!" || statusText === "DUSUN TIDAK DIKETAHUI" || !d.status;
     const isException = dNameUpper.includes("PERPOLIN") || dNameUpper.includes("PERABIS") || dNameUpper.includes("LHOK SANDENG");
 
     if (isProblematic && !isException) {
-      displayStatus = "Rumah Kebun | Tidak Berlistrik 24 Jam";
+      detailStatus = "Rumah Kebun | Tidak Berlistrik 24 Jam";
     }
 
-    const isBerlistrik = displayStatus.toUpperCase().includes('PLN') && !displayStatus.toUpperCase().includes('BELUM');
-    const displayColor = isBerlistrik ? '#22c55e' : '#eab308';
+    const displayColor = isActuallyPLN ? '#22c55e' : '#eab308';
 
     return `
               <div class="popup-dusun-item">
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                   <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
                     <span class="popup-dusun-name">${dNameRaw}</span>
-                    <span style="font-weight: 800; white-space: nowrap; color: ${displayColor}; font-size: 9px; text-align: right;">${displayStatus}</span>
+                    <span style="font-weight: 800; white-space: nowrap; color: ${displayColor}; font-size: 9px; text-align: right; text-transform: uppercase;">${baseStatusLabel}</span>
                   </div>
-                  ${displayStatus !== "Berlistrik PLN" && displayStatus !== "Belum Berlistrik" ? `
+                  ${detailStatus && detailStatus !== "Berlistrik PLN" && detailStatus !== "Belum Berlistrik" ? `
                     <div style="font-size: 9px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px; width: fit-content;">
-                      ${displayStatus}
+                      ${detailStatus}
                     </div>
                   ` : ''}
                 </div>
