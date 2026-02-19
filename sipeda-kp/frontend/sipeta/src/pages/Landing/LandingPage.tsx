@@ -14,7 +14,7 @@ export default function LandingPage() {
   const [stats, setStats] = useState({
     kab: "23",
     kec: "290",
-    desa: "6.511",
+    desa: "6.500",
     dusun: "20.046"
   });
 
