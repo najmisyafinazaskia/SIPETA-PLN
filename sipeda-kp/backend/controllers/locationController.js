@@ -638,6 +638,13 @@ exports.getUp3DesaGrouped = async (req, res) => {
                 d.status !== 'REFF!' && d.status !== '#REF!' && d.status !== '0' && d.nama !== 'REFF!'
             );
 
+            // Determine status based on dusun_detail
+            const hasWarningDusun = rawDusuns.some(d => {
+                const s = (d.status || "").toUpperCase();
+                if (s === 'REFF!' || s === '#REF!' || s === '0' || d.nama === 'REFF!') return false;
+                return d.status !== "Berlistrik PLN";
+            });
+
             acc[curr.up3].push({
                 locationId: match?._id,
                 Desa: curr.desa,
@@ -646,7 +653,7 @@ exports.getUp3DesaGrouped = async (req, res) => {
                 ULP: curr.ulp || "-",
                 latitude: curr.latitude,
                 longitude: curr.longitude,
-                Status_Listrik: curr.Status_Listrik || "Berlistrik",
+                Status_Listrik: hasWarningDusun ? "Belum Berlistrik" : "Berlistrik PLN",
                 warga: match?.warga || 0,
                 pelanggan: match?.pelanggan || 0,
                 lembaga_warga: match?.sumber_warga || "-",
@@ -911,18 +918,18 @@ exports.getGeoJSON = async (req, res) => {
             if (!geometry && l.location) geometry = l.location;
 
             // Logic for coloring (Safe status determination)
-            const isStrictMode = req.query.strict === 'true';
-            let statusText = "Berlistrik PLN";
+            const rawDusuns = l.dusun_detail || [];
 
-            if (isStrictMode) {
-                const rawDusuns = l.dusun_detail || [];
-                const badDusunsCount = rawDusuns.filter(d => {
-                    const s = (d.status || "").toUpperCase();
-                    if (s === 'REFF!' || s === '#REF!' || s === '0' || d.nama === 'REFF!') return false;
-                    return !(s.includes('PLN') && !s.includes('NON PLN') && !s.includes('BELUM'));
-                }).length;
-                if (badDusunsCount > 0) statusText = "Belum Berlistrik";
-            }
+            // Jika ada minimal satu dusun yang TIDAK "Berlistrik PLN", maka desa dianggap BELUM stabil
+            const hasWarningDusun = rawDusuns.some(d => {
+                const s = (d.status || "").toUpperCase();
+                // Abaikan REFF! atau data sampah
+                if (s === 'REFF!' || s === '#REF!' || s === '0' || d.nama === 'REFF!') return false;
+                // Status yang dianggap "Belum Berlistrik" adalah apapun selain "Berlistrik PLN"
+                return d.status !== "Berlistrik PLN";
+            });
+
+            const statusText = hasWarningDusun ? "Belum Berlistrik" : "Berlistrik PLN";
 
             return {
                 type: "Feature",
@@ -1101,6 +1108,9 @@ exports.getKecamatanPoints = async (req, res) => {
                 });
             }
 
+            // Determine Kecamatan level status
+            const hasWarning = flattenedDusuns.some(d => d.status !== "Berlistrik PLN");
+
             return {
                 type: "Feature",
                 properties: {
@@ -1108,7 +1118,7 @@ exports.getKecamatanPoints = async (req, res) => {
                     name: k.nama_kecamatan,
                     kabupaten: k.kabupaten,
                     kecamatan: k.nama_kecamatan,
-                    status: "Berlistrik PLN",
+                    status: hasWarning ? "Belum Berlistrik" : "Berlistrik PLN",
                     dusuns: flattenedDusuns,
                     warga: wargaMap[k.nama_kecamatan] || 0
                 },
@@ -1295,12 +1305,19 @@ exports.getUlpDesaGrouped = async (req, res) => {
                 d.status !== 'REFF!' && d.status !== '#REF!' && d.status !== '0' && d.nama !== 'REFF!'
             );
 
+            // Determine status based on dusun_detail
+            const hasWarningDusun = rawDusuns.some(d => {
+                const s = (d.status || "").toUpperCase();
+                if (s === 'REFF!' || s === '#REF!' || s === '0' || d.nama === 'REFF!') return false;
+                return d.status !== "Berlistrik PLN";
+            });
+
             acc[namaULP].push({
                 ...desa,
                 locationId: match?._id,
                 latitude: desa.latitude,
                 longitude: desa.longitude,
-                Status_Listrik: desa.Status_Listrik || "Berlistrik",
+                Status_Listrik: hasWarningDusun ? "Belum Berlistrik" : "Berlistrik PLN",
                 Desa: desaName,
                 Kecamatan: kecName,
                 Kabupaten: kabName,

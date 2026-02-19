@@ -74,14 +74,26 @@ export default function DusunPage() {
         setAlertConfig({ isOpen: true, title, message, type });
     };
 
-    // Sync Map Filter with Tabs below
+    // Sync Map Filter with Tabs (Filter -> Tab)
     useEffect(() => {
         if (showStable && !showWarning) {
-            setActiveTab("stable");
+            if (activeTab !== "stable") setActiveTab("stable");
         } else if (!showStable && showWarning) {
-            setActiveTab("warning");
+            if (activeTab !== "warning") setActiveTab("warning");
         }
-    }, [showStable, showWarning]);
+    }, [showStable, showWarning, activeTab]);
+
+    // Sync Tabs with Map Filter (Tab -> Filter)
+    const handleTabChange = (tab: "stable" | "warning") => {
+        setActiveTab(tab);
+        if (tab === "stable") {
+            setShowStable(true);
+            setShowWarning(false);
+        } else {
+            setShowStable(false);
+            setShowWarning(true);
+        }
+    };
 
     // Filter Logic
     const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
@@ -285,7 +297,7 @@ export default function DusunPage() {
                 {/* Tabs Filter */}
                 <div className="flex gap-4 mb-6">
                     <button
-                        onClick={() => setActiveTab("stable")}
+                        onClick={() => handleTabChange("stable")}
                         className={`flex-1 flex justify-between items-center p-4 rounded-2xl border-2 transition-all ${activeTab === "stable" ? "border-green-500 bg-green-50 dark:bg-green-500/10" : "border-transparent bg-gray-50 dark:bg-gray-800"
                             }`}
                     >
@@ -295,7 +307,7 @@ export default function DusunPage() {
                         </span>
                     </button>
                     <button
-                        onClick={() => setActiveTab("warning")}
+                        onClick={() => handleTabChange("warning")}
                         className={`flex-1 flex justify-between items-center p-4 rounded-2xl border-2 transition-all ${activeTab === "warning" ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-500/10" : "border-transparent bg-gray-50 dark:bg-gray-800"
                             }`}
                     >
@@ -393,8 +405,8 @@ export default function DusunPage() {
                                     onClick={() => handleStatusUpdate(customStatus.trim() || "Belum Berlistrik")}
                                     disabled={updating || (customStatus.trim() === "" && selectedDusun.status === "Belum Berlistrik") || (customStatus.trim() === selectedDusun.status)}
                                     className={`w-full py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${(customStatus.trim() !== selectedDusun.status && (customStatus.trim() !== "" || selectedDusun.status !== "Belum Berlistrik"))
-                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700"
-                                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700"
+                                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
                                         }`}
                                 >
                                     {updating ? "Menyimpan..." : "Simpan Keterangan"}
