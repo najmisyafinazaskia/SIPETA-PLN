@@ -661,7 +661,11 @@ const RegionMap: React.FC<RegionMapProps> = ({
                   const pop = L.popup().setLatLng(e.latlng).setContent('<div class="p-2 text-xs">Loading...</div>').openOn(leafletMap.current!);
                   const res = await fetch(`${API_URL}/api/locations/map/point-detail/${desa.locationId}`);
                   const json = await res.json();
-                  if (json.success) pop.setContent(getPointPopupHtml(json.data, isBerlistrik, hideStatus, "up3"));
+                  if (json.success) {
+                    const actualStatus = json.data.status || "";
+                    const isActuallyBerlistrik = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                    pop.setContent(getPointPopupHtml(json.data, isActuallyBerlistrik, hideStatus, "up3"));
+                  }
                 })
                   .addTo(up3LayerGroup);
               }
@@ -740,7 +744,11 @@ const RegionMap: React.FC<RegionMapProps> = ({
                     const pop = L.popup().setLatLng(e.latlng).setContent('<div class="p-2 text-xs">Loading...</div>').openOn(leafletMap.current!);
                     const res = await fetch(`${API_URL}/api/locations/map/point-detail/${desa.locationId}`);
                     const json = await res.json();
-                    if (json.success) pop.setContent(getPointPopupHtml(json.data, isBerlistrik, hideStatus, "ulp"));
+                    if (json.success) {
+                      const actualStatus = json.data.status || "";
+                      const isActuallyBerlistrik = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                      pop.setContent(getPointPopupHtml(json.data, isActuallyBerlistrik, hideStatus, "ulp"));
+                    }
                   })
                     .addTo(ulpLayerGroup);
                 }
@@ -800,7 +808,11 @@ const RegionMap: React.FC<RegionMapProps> = ({
               const pop = L.popup().setLatLng(e.latlng).setContent('<div class="p-2 text-xs">Loading...</div>').openOn(leafletMap.current!);
               const res = await fetch(`${API_URL}/api/locations/map/point-detail/${props.id}`);
               const json = await res.json();
-              if (json.success) pop.setContent(getPointPopupHtml(json.data, props.status === "Berlistrik PLN", hideStatus, markerLevel as any));
+              if (json.success) {
+                const actualStatus = json.data.status || "";
+                const isActuallyBerlistrik = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                pop.setContent(getPointPopupHtml(json.data, isActuallyBerlistrik, hideStatus, markerLevel as any));
+              }
             });
           }
         }).addTo(leafletMap.current);
