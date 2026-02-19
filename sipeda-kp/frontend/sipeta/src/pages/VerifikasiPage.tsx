@@ -225,6 +225,7 @@ const EditNoteModal = ({
   isLoading: boolean;
   desaName: string;
 }) => {
+  const { user } = useAuth();
   const [message, setMessage] = useState(initialMessage);
 
   useEffect(() => {
@@ -232,6 +233,8 @@ const EditNoteModal = ({
   }, [isOpen, initialMessage]);
 
   if (!isOpen) return null;
+
+  const isAddMode = !initialMessage;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
@@ -242,7 +245,11 @@ const EditNoteModal = ({
               <EditIcon size={24} />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{user?.role === 'admin' ? 'Edit Catatan' : 'Edit Catatan Verifikator'}</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                {user?.role === 'admin'
+                  ? (isAddMode ? 'Tambah Catatan' : 'Edit Catatan')
+                  : (isAddMode ? 'Tambah Catatan Verifikator' : 'Edit Catatan Verifikator')}
+              </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">Desa {desaName}</p>
             </div>
           </div>
@@ -251,7 +258,7 @@ const EditNoteModal = ({
             <label className="text-lg font-bold text-gray-700 dark:text-gray-300">Catatan:</label>
             <textarea
               className="w-full p-6 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-lg font-bold min-h-[220px] dark:text-white"
-              placeholder="Masukkan catatan perbaikan..."
+              placeholder={user?.role === 'admin' ? "Masukkan catatan untuk verifikator..." : "Masukkan catatan perbaikan..."}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
