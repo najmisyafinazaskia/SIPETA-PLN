@@ -10,12 +10,6 @@ import ModernAlert from "../../components/ui/ModernAlert";
 const _rawUrl = import.meta.env.VITE_API_URL || '';
 const API_URL = _rawUrl.replace(/\/+$/, '');
 
-
-
-
-
-
-
 interface DusunItem {
     id: string; // Composite ID or just index
     name: string;
@@ -123,13 +117,6 @@ export default function DusunPage() {
                     const dusuns = desa.dusun_detail || [];
                     if (dusuns.length > 0) {
                         dusuns.forEach((d: any, idx: number) => {
-                            // LOGIKA PENENTUAN STATUS DUSUN:
-                            // Status Dusun dihitung secara MANDIRI dan tidak dipengaruhi oleh status Desa (Desa selalu Stable).
-                            // Dusun dianggap bermasalah (warning) jika:
-                            // 1. Status adalah "0", "REFF!", atau mengandung kata "belum"
-                            // 2. Status adalah "Dusun tidak diketahui"
-                            // 3. Lokasi khusus seperti Pulau Bunta/Pulo Bunta (Belum Berlistrik)
-
                             const isProblematic =
                                 d.status === "0" ||
                                 d.status === "REFF!" ||
@@ -178,8 +165,6 @@ export default function DusunPage() {
         try {
             setUpdating(true);
             const token = localStorage.getItem("token");
-            console.log("Updating dusun status. User:", user); // Debug
-
             const response = await fetch(`${API_URL}/api/locations/dusun/update-status`, {
                 method: "PUT",
                 headers: {
@@ -196,7 +181,6 @@ export default function DusunPage() {
             const json = await response.json();
 
             if (json.success) {
-                // Close modal and refresh data
                 setSelectedDusun(null);
                 await fetchData();
                 showAlert("Berhasil!", "Status dusun telah diperbarui.", "success");
@@ -312,44 +296,23 @@ export default function DusunPage() {
                             onClick={() => handleCardClick(item)}
                             className="group p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer"
                         >
-                            <div className="flex flex-col">
-                                <div className="flex justify-between items-start gap-4">
-                                    <span className="text-sm font-black text-[#1C2434] dark:text-white uppercase leading-tight group-hover:text-[#0052CC]">
-                                        {item.name}
-                                    </span>
-                                    {item.type === "warning" && (() => {
-                                        const nameUpper = item.name.toUpperCase();
-
-                                        return null;
-                                    })()}
-                                </div>
-                                <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">
+                            <div className="flex flex-col items-start gap-1">
+                                <span className="text-sm font-black text-[#1C2434] dark:text-white uppercase leading-tight group-hover:text-[#0052CC]">
+                                    {item.name}
+                                </span>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                                     DESA {item.desa} • {item.kec}
                                 </span>
-                                {item.type === "warning" && (() => {
-                                    const nameUpper = item.name.toUpperCase();
-                                    if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS') || nameUpper.includes('LHOK SANDENG')) {
-                                        return (
-                                            <div className="flex flex-col gap-1.5 mt-1.5">
-                                                <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 border border-blue-200 px-2 py-1 rounded-md w-fit">
-                                                    🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025
-                                                </span>
-                                            </div>
-                                        );
-                                    }
-                                    if (nameUpper.includes('LHOK PINEUNG')) {
-                                        return (
-                                            <span className="text-[9px] font-bold text-purple-600 mt-1.5 uppercase tracking-widest bg-purple-50 border border-purple-200 px-2 py-1 rounded-md w-fit">
-                                                📅 SUDAH MASUK PADA ROADMAP 2026
-                                            </span>
-                                        );
-                                    }
-                                    return (
-                                        <span className="text-[9px] font-bold text-orange-600 mt-1.5 uppercase tracking-widest bg-orange-50 border border-orange-200 px-2 py-1 rounded-md w-fit">
-                                            🏠 RUMAH KEBUN | TIDAK BERLISTRIK 24 JAM
-                                        </span>
-                                    );
-                                })()}
+                                {item.status !== "Berlistrik PLN" && item.status !== "Belum Berlistrik" && (
+                                    <span className={`text-[9px] font-bold mt-1.5 uppercase tracking-widest px-2 py-1 rounded-md w-fit border ${item.status.toUpperCase().includes('ROADMAP')
+                                        ? 'text-blue-600 bg-blue-50 border-blue-200'
+                                        : item.status.toUpperCase().includes('KEBUN')
+                                            ? 'text-orange-600 bg-orange-50 border-orange-200'
+                                            : 'text-gray-600 bg-gray-50 border-gray-200'
+                                        }`}>
+                                        {item.status}
+                                    </span>
+                                )}
                             </div>
                             <div className={`w-3 h-3 rounded-full ${item.type === "stable" ? "bg-[#00C851]" : "bg-[#F2C94C] shadow-[0_0_8px_rgba(242,201,76,0.6)]"}`}></div>
                         </div>
@@ -374,61 +337,47 @@ export default function DusunPage() {
                             {selectedDusun.name}, Desa <span className="text-gray-700 dark:text-gray-300 font-bold">{selectedDusun.desa}</span>
                         </p>
 
-                        <div className="flex flex-col gap-2.5">
-                            <button
-                                onClick={() => handleStatusUpdate("Berlistrik PLN")}
-                                disabled={updating}
-                                className={`w-full py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Berlistrik PLN"
-                                    ? "bg-green-100 text-green-700 border-2 border-green-500 cursor-default"
-                                    : "bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-600 border border-gray-200"
-                                    }`}
-                            >
-                                {updating && selectedDusun.status === "Berlistrik PLN" ? "Menyimpan..." : "Berlistrik PLN"}
-                            </button>
+                        <div className="flex flex-col gap-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => handleStatusUpdate("Berlistrik PLN")}
+                                    disabled={updating}
+                                    className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Berlistrik PLN"
+                                        ? "bg-green-600 text-white shadow-lg shadow-green-500/20"
+                                        : "bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-600 border border-gray-100"
+                                        }`}
+                                >
+                                    Berlistrik PLN
+                                </button>
 
-                            <button
-                                onClick={() => handleStatusUpdate("Roadmap 2025")}
-                                disabled={updating}
-                                className={`w-full py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Roadmap 2025"
-                                    ? "bg-blue-100 text-blue-700 border-2 border-blue-500 cursor-default"
-                                    : "bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 border border-gray-200"
-                                    }`}
-                            >
-                                {updating && selectedDusun.status === "Roadmap 2025" ? "Menyimpan..." : "Roadmap 2025"}
-                            </button>
+                                <button
+                                    onClick={() => handleStatusUpdate("Belum Berlistrik")}
+                                    disabled={updating}
+                                    className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Belum Berlistrik"
+                                        ? "bg-yellow-500 text-white shadow-lg shadow-yellow-500/20"
+                                        : "bg-gray-50 text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 border border-gray-100"
+                                        }`}
+                                >
+                                    Belum Berlistrik
+                                </button>
+                            </div>
 
-                            <button
-                                onClick={() => handleStatusUpdate("Roadmap 2026")}
-                                disabled={updating}
-                                className={`w-full py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Roadmap 2026"
-                                    ? "bg-purple-100 text-purple-700 border-2 border-purple-500 cursor-default"
-                                    : "bg-gray-50 text-gray-400 hover:bg-purple-50 hover:text-purple-600 border border-gray-200"
-                                    }`}
-                            >
-                                {updating && selectedDusun.status === "Roadmap 2026" ? "Menyimpan..." : "Roadmap 2026"}
-                            </button>
-
-                            <button
-                                onClick={() => handleStatusUpdate("Rumah Kebun")}
-                                disabled={updating}
-                                className={`w-full py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Rumah Kebun"
-                                    ? "bg-orange-100 text-orange-700 border-2 border-orange-500 cursor-default"
-                                    : "bg-gray-50 text-gray-400 hover:bg-orange-50 hover:text-orange-600 border border-gray-200"
-                                    }`}
-                            >
-                                {updating && selectedDusun.status === "Rumah Kebun" ? "Menyimpan..." : "Rumah Kebun"}
-                            </button>
-
-                            <button
-                                onClick={() => handleStatusUpdate("Belum Berlistrik")}
-                                disabled={updating}
-                                className={`w-full py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Belum Berlistrik"
-                                    ? "bg-yellow-100 text-yellow-700 border-2 border-yellow-500 cursor-default"
-                                    : "bg-gray-50 text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 border border-gray-200"
-                                    }`}
-                            >
-                                {updating && selectedDusun.status === "Belum Berlistrik" ? "Menyimpan..." : "Belum Berlistrik"}
-                            </button>
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Keterangan Khusus / Status Lainnya</label>
+                                <textarea
+                                    className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 dark:bg-white/5 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-gray-700 dark:text-white"
+                                    placeholder="Contoh: Roadmap 2025, Rumah Kebun, dll..."
+                                    rows={3}
+                                    defaultValue={(!["Berlistrik PLN", "Belum Berlistrik"].includes(selectedDusun.status)) ? selectedDusun.status : ""}
+                                    onBlur={(e) => {
+                                        const val = e.target.value.trim();
+                                        if (val && val !== selectedDusun.status) {
+                                            handleStatusUpdate(val);
+                                        }
+                                    }}
+                                />
+                                <p className="text-[9px] text-gray-400 font-medium italic">Klik di luar kotak setelah mengisi untuk menyimpan keterangan.</p>
+                            </div>
                         </div>
 
                         <button
@@ -451,5 +400,4 @@ export default function DusunPage() {
             />
         </div>
     );
-
 }
