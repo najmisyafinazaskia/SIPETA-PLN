@@ -141,6 +141,19 @@ export default function DusunPage() {
 
                             const isWarning = isProblematic || isPulauBunta;
 
+                            // Logika Default Status Baru:
+                            // Jika Warning dan bukan Perpolin/Perabis/Lhok Sandeng, jadikan "Rumah Kebun | Tidak Berlistrik 24 Jam"
+                            let finalStatus = d.status;
+                            const dNameUpper = (d.nama || "").toUpperCase();
+                            const isException = dNameUpper.includes("PERPOLIN") || dNameUpper.includes("PERABIS") || dNameUpper.includes("LHOK SANDENG");
+
+                            if (isWarning && !isException) {
+                                // Hanya ubah jika statusnya masih status default "jelek" (0, REFF, dll)
+                                if (d.status === "0" || d.status === "REFF!" || d.status === "Dusun tidak diketahui" || !d.status) {
+                                    finalStatus = "Rumah Kebun | Tidak Berlistrik 24 Jam";
+                                }
+                            }
+
                             flattenedDusuns.push({
                                 id: desa._id, // Store actual Desa ID here for API
                                 name: d.nama || `Dusun ${idx + 1}`,
@@ -148,7 +161,7 @@ export default function DusunPage() {
                                 desa: desa.desa,
                                 kec: desa.kecamatan,
                                 kab: desa.kabupaten,
-                                status: d.status
+                                status: finalStatus
                             });
                         });
                     }

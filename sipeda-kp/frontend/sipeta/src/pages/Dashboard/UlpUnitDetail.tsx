@@ -385,26 +385,21 @@ export default function UlpUnitDetail() {
                                                         </div>
                                                         {modal.type === "Dusun" && getDusunStatus(item.status) === "warning" && (() => {
                                                             const nameUpper = itemName.toUpperCase();
-                                                            if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS') || nameUpper.includes('LHOK SANDENG')) {
-                                                                return (
-                                                                    <div className="flex flex-col gap-1 mt-1">
-                                                                        <span className="text-[8px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md w-fit">
-                                                                            🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025
-                                                                        </span>
-                                                                    </div>
-                                                                );
+                                                            const isException = nameUpper.includes("PERPOLIN") || nameUpper.includes("PERABIS") || nameUpper.includes("LHOK SANDENG");
+
+                                                            let displayStatus = item.status;
+                                                            const isDefaultWarn = item.status === "0" || item.status === "REFF!" || item.status === "Dusun tidak diketahui" || !item.status;
+
+                                                            if (isDefaultWarn && !isException) {
+                                                                displayStatus = "Rumah Kebun | Tidak Berlistrik 24 Jam";
                                                             }
-                                                            if (nameUpper.includes('LHOK PINEUNG')) {
-                                                                return (
-                                                                    <span className="text-[8px] font-bold text-purple-600 mt-1 uppercase tracking-widest bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md w-fit">
-                                                                        📅 SUDAH MASUK PADA ROADMAP 2026
-                                                                    </span>
-                                                                );
-                                                            }
+
                                                             return (
-                                                                <span className="text-[8px] font-bold text-orange-600 mt-1 uppercase tracking-widest bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md w-fit">
-                                                                    🏠 RUMAH KEBUN | TIDAK BERLISTRIK 24 JAM
-                                                                </span>
+                                                                <div className="flex flex-col gap-1 mt-1">
+                                                                    <span className="text-[8px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md w-fit">
+                                                                        {displayStatus}
+                                                                    </span>
+                                                                </div>
                                                             );
                                                         })()}
                                                         {item.desa && (
