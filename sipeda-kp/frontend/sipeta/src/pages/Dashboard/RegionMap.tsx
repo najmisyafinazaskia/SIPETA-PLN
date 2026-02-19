@@ -623,7 +623,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
         if (data.points.up3DesaGroup) {
           Object.keys(data.points.up3DesaGroup).forEach(up3Name => {
             data.points.up3DesaGroup[up3Name].forEach((desa: any) => {
-              const isBerlistrik = desa.Status_Listrik === '√' || desa.Status_Listrik === 'Berlistrik';
+              const isBerlistrik = desa.Status_Listrik === 'Berlistrik PLN' || desa.status === 'Berlistrik PLN';
               const isMatch = searchQuery.trim().length >= 3 && (desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
               const isSelected = selectedPointId === desa.locationId;
               let showDot = true;
@@ -715,7 +715,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
 
             if (showGroup) {
               data.points.ulpDesaGroup[ulpName].forEach((desa: any) => {
-                const isBerlistrik = desa.Status_Listrik === '√' || desa.Status_Listrik === 'Berlistrik';
+                const isBerlistrik = desa.Status_Listrik === 'Berlistrik PLN' || desa.status === 'Berlistrik PLN';
                 const isMatch = searchQuery.trim().length >= 3 && (desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
                 const isSelected = selectedPointId === desa.locationId;
                 let showDot = true;
@@ -766,7 +766,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
         pointsLayer.current = L.geoJSON({ type: "FeatureCollection", features: allFeatures } as any, {
           pointToLayer: (feature, latlng) => {
             const props = feature.properties || {};
-            const isStable = props.status === "Berlistrik PLN" || props.status === "stable";
+            const isStable = props.status === "Berlistrik PLN";
             const isMatch = searchQuery.trim().length >= 3 && (props.name || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
             const isSelected = selectedPointId === props.id;
             let showDot = true;

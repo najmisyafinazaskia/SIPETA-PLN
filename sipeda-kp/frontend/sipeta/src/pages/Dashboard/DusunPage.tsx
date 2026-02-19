@@ -129,17 +129,9 @@ export default function DusunPage() {
                     const dusuns = desa.dusun_detail || [];
                     if (dusuns.length > 0) {
                         dusuns.forEach((d: any, idx: number) => {
-                            const isProblematic =
-                                d.status === "0" ||
-                                d.status === "REFF!" ||
-                                d.status === "Dusun tidak diketahui" ||
-                                d.status?.toLowerCase().includes("belum") ||
-                                d.status?.toLowerCase().includes("roadmap");
-
-                            const isPulauBunta = desa.desa.toLowerCase().includes("pulau bunta") ||
-                                desa.desa.toLowerCase().includes("pulo bunta");
-
-                            const isWarning = isProblematic || isPulauBunta;
+                            // Dusun dianggap STABLE hanya jika statusnya "Berlistrik PLN"
+                            // Selain itu, masuk ke category WARNING (Belum Terjangkau)
+                            const isWarning = d.status !== "Berlistrik PLN";
 
                             // Logika Default Status Baru:
                             // Jika Warning dan bukan Perpolin/Perabis/Lhok Sandeng, jadikan "Rumah Kebun | Tidak Berlistrik 24 Jam"

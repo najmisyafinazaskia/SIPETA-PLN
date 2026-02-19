@@ -136,14 +136,7 @@ export default function UlpUnitDetail() {
 
     // Helper to determine status
     const getDusunStatus = (status: string) => {
-        const safeStatus = (status || "").toLowerCase();
-        const isProblematic =
-            status === "0" ||
-            status === "REFF!" ||
-            status === "Dusun tidak diketahui" ||
-            safeStatus.includes("belum") ||
-            safeStatus.includes("roadmap");
-        return isProblematic ? "warning" : "stable";
+        return status === "Berlistrik PLN" ? "stable" : "warning";
     };
 
     if (loading) {
