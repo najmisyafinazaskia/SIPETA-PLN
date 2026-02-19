@@ -63,7 +63,7 @@ class LocationService {
     }
 
     async getLocationStats() {
-        let totalStats = { totalKabupatenKota: 23, totalKecamatan: 290, totalDesa: 6511, totalDusun: 20046 };
+        let totalStats = { totalKabupatenKota: 23, totalKecamatan: 290, totalDesa: 6500, totalDusun: 20000 };
         const ulpDesaPath = path.join(__dirname, '../../db_Aceh/ulp_desa.json');
         if (fs.existsSync(ulpDesaPath)) {
             const ulpData = JSON.parse(fs.readFileSync(ulpDesaPath, 'utf8'));
@@ -90,7 +90,7 @@ class LocationService {
         if (dbStats.length > 0) {
             totalStats.totalKabupatenKota = dbStats.length;
             totalStats.totalKecamatan = dbStats.reduce((sum, s) => sum + s.kecamatanCount, 0);
-            totalStats.totalDesa = Math.max(6511, dbStats.reduce((sum, s) => sum + s.desaCount, 0));
+            totalStats.totalDesa = Math.max(6500, dbStats.reduce((sum, s) => sum + s.desaCount, 0));
             totalStats.totalDusun = Math.max(20046, dbStats.reduce((sum, s) => sum + s.dusunCount, 0));
         }
 

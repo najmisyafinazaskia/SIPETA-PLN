@@ -106,7 +106,7 @@ exports.getLocationStats = async (req, res) => {
         let totalStats = {
             totalKabupatenKota: 23,
             totalKecamatan: 290,
-            totalDesa: 6511, // Nilai default dari aset Aceh
+            totalDesa: 6500, // Nilai default dari aset Aceh
             totalDusun: 20046  // Angka spesifik yang Anda inginkan
         };
 
@@ -183,7 +183,7 @@ exports.getLocationStats = async (req, res) => {
             if (stats.length > 0) {
                 totalStats.totalKabupatenKota = stats.length;
                 totalStats.totalKecamatan = stats.reduce((sum, s) => sum + s.kecamatanCount, 0);
-                totalStats.totalDesa = Math.max(6511, stats.reduce((sum, s) => sum + s.desaCount, 0));
+                totalStats.totalDesa = Math.max(6500, stats.reduce((sum, s) => sum + s.desaCount, 0));
                 totalStats.totalDusun = Math.max(20046, stats.reduce((sum, s) => sum + s.dusunCount, 0));
             }
         } catch (dbErr) {
