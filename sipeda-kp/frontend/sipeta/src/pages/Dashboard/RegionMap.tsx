@@ -176,40 +176,25 @@ const getPointPopupHtml = (props: any, isBerlistrik: boolean, hideStatus: boolea
         <div style="display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; padding-right: 4px;">
           ${(props.dusuns && props.dusuns.length > 0) ? props.dusuns.map((d: any) => {
     const statusText = (d.status || "").toUpperCase();
-    const isProblem = statusText.includes('BELUM') || statusText.includes('NON PLN') || statusText.includes('ROADMAP') || statusText === '0' || statusText === 'REFF!' || statusText === '#REF!' || statusText.includes('TIDAK DIKETAHUI');
-    const color = (!isProblem && statusText.includes('PLN')) ? '#22c55e' : '#eab308';
-
-    // Sinkronkan Nama (Handle d.nama dari backend atau d.name)
+    const isDefault = statusText === "BERLISTRIK PLN" || statusText === "BELUM BERLISTRIK";
     const dNameRaw = d.nama || d.name || "N/A";
-    const dNameUpper = dNameRaw.toUpperCase();
 
-    // Logika Label Khusus (Penting: Sesuai DusunPage)
-    let specialLabel = "";
-    let displayStatus = d.status;
-    let displayColor = color;
-
-    if (isProblem) {
-      if (dNameUpper.includes('PERPOLIN') || dNameUpper.includes('PERABIS') || dNameUpper.includes('LHOK SANDENG')) {
-        specialLabel = `
-          <div style="margin-top: 4px;">
-            <div style="font-size: 9px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px; width: fit-content;">🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025</div>
-          </div>
-        `;
-      } else if (dNameUpper.includes('LHOK PINEUNG')) {
-        specialLabel = `<div style="margin-top: 4px; font-size: 9px; font-weight: 800; color: #9333ea; text-transform: uppercase; letter-spacing: 0.5px; background: #f5f3ff; border: 1px solid #ddd6fe; padding: 2px 6px; border-radius: 4px; width: fit-content;">📅 SUDAH MASUK PADA ROADMAP 2026</div>`;
-      } else if (!statusText.includes('ROADMAP')) {
-        specialLabel = `<div style="margin-top: 4px; font-size: 9px; font-weight: 800; color: #ea580c; text-transform: uppercase; letter-spacing: 0.5px;">🏠 RUMAH KEBUN | TIDAK BERLISTRIK 24 JAM</div>`;
-      }
-    }
+    // Determine color for the main status dot/text
+    const isBerlistrik = statusText.includes('PLN') && !statusText.includes('BELUM');
+    const displayColor = isBerlistrik ? '#22c55e' : '#eab308';
 
     return `
               <div class="popup-dusun-item">
-                <div style="display: flex; flex-direction: column; gap: 2px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
                   <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
                     <span class="popup-dusun-name">${dNameRaw}</span>
-                    <span style="font-weight: 800; white-space: nowrap; color: ${displayColor}; font-size: 9px; text-align: right;">${displayStatus}</span>
+                    <span style="font-weight: 800; white-space: nowrap; color: ${displayColor}; font-size: 9px; text-align: right;">${d.status}</span>
                   </div>
-                  ${specialLabel}
+                  ${!isDefault ? `
+                    <div style="font-size: 9px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px; width: fit-content;">
+                      ${d.status}
+                    </div>
+                  ` : ''}
                 </div>
               </div>
             `;

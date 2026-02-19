@@ -316,12 +316,7 @@ export default function DusunPage() {
                                     DESA {item.desa} • {item.kec}
                                 </span>
                                 {item.status !== "Berlistrik PLN" && item.status !== "Belum Berlistrik" && (
-                                    <span className={`text-[9px] font-bold mt-1.5 uppercase tracking-widest px-2 py-1 rounded-md w-fit border ${item.status.toUpperCase().includes('ROADMAP')
-                                        ? 'text-blue-600 bg-blue-50 border-blue-200'
-                                        : item.status.toUpperCase().includes('KEBUN')
-                                            ? 'text-orange-600 bg-orange-50 border-orange-200'
-                                            : 'text-gray-600 bg-gray-50 border-gray-200'
-                                        }`}>
+                                    <span className="text-[9px] font-bold mt-1.5 uppercase tracking-widest px-2 py-1 rounded-md w-fit border text-blue-600 bg-blue-50 border-blue-200">
                                         {item.status}
                                     </span>
                                 )}
