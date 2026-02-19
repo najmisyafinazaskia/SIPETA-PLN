@@ -627,7 +627,8 @@ const RegionMap: React.FC<RegionMapProps> = ({
         if (data.points.up3DesaGroup) {
           Object.keys(data.points.up3DesaGroup).forEach(up3Name => {
             data.points.up3DesaGroup[up3Name].forEach((desa: any) => {
-              const isBerlistrik = desa.Status_Listrik === 'Berlistrik PLN' || desa.status === 'Berlistrik PLN';
+              const isBerlistrikRaw = desa.Status_Listrik === 'Berlistrik PLN' || desa.status === 'Berlistrik PLN';
+              const isBerlistrik = !hideStatus ? true : isBerlistrikRaw;
               const isMatch = searchQuery.trim().length >= 3 && (desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
               const isSelected = selectedPointId === desa.locationId;
               let showDot = true;
@@ -667,7 +668,8 @@ const RegionMap: React.FC<RegionMapProps> = ({
                   const json = await res.json();
                   if (json.success) {
                     const actualStatus = json.data.status || "";
-                    const isActuallyBerlistrik = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                    const isActuallyBerlistrikRaw = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                    const isActuallyBerlistrik = !hideStatus ? true : isActuallyBerlistrikRaw;
                     pop.setContent(getPointPopupHtml(json.data, isActuallyBerlistrik, hideStatus, "up3"));
                   }
                 })
@@ -719,7 +721,8 @@ const RegionMap: React.FC<RegionMapProps> = ({
 
             if (showGroup) {
               data.points.ulpDesaGroup[ulpName].forEach((desa: any) => {
-                const isBerlistrik = desa.Status_Listrik === 'Berlistrik PLN' || desa.status === 'Berlistrik PLN';
+                const isBerlistrikRaw = desa.Status_Listrik === 'Berlistrik PLN' || desa.status === 'Berlistrik PLN';
+                const isBerlistrik = !hideStatus ? true : isBerlistrikRaw;
                 const isMatch = searchQuery.trim().length >= 3 && (desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
                 const isSelected = selectedPointId === desa.locationId;
                 let showDot = true;
@@ -750,7 +753,8 @@ const RegionMap: React.FC<RegionMapProps> = ({
                     const json = await res.json();
                     if (json.success) {
                       const actualStatus = json.data.status || "";
-                      const isActuallyBerlistrik = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                      const isActuallyBerlistrikRaw = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                      const isActuallyBerlistrik = !hideStatus ? true : isActuallyBerlistrikRaw;
                       pop.setContent(getPointPopupHtml(json.data, isActuallyBerlistrik, hideStatus, "ulp"));
                     }
                   })
@@ -770,7 +774,8 @@ const RegionMap: React.FC<RegionMapProps> = ({
         pointsLayer.current = L.geoJSON({ type: "FeatureCollection", features: allFeatures } as any, {
           pointToLayer: (feature, latlng) => {
             const props = feature.properties || {};
-            const isStable = props.status === "Berlistrik PLN";
+            const isStableRaw = props.status === "Berlistrik PLN";
+            const isStable = !hideStatus ? true : isStableRaw;
             const isMatch = searchQuery.trim().length >= 3 && (props.name || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
             const isSelected = selectedPointId === props.id;
             let showDot = true;
@@ -814,7 +819,8 @@ const RegionMap: React.FC<RegionMapProps> = ({
               const json = await res.json();
               if (json.success) {
                 const actualStatus = json.data.status || "";
-                const isActuallyBerlistrik = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                const isActuallyBerlistrikRaw = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                const isActuallyBerlistrik = !hideStatus ? true : isActuallyBerlistrikRaw;
                 pop.setContent(getPointPopupHtml(json.data, isActuallyBerlistrik, hideStatus, markerLevel as any));
               }
             });
