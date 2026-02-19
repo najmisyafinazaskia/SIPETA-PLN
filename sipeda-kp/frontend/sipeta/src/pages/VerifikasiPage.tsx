@@ -242,7 +242,7 @@ const EditNoteModal = ({
               <EditIcon size={24} />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Catatan Verifikator</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{user?.role === 'admin' ? 'Edit Catatan' : 'Edit Catatan Verifikator'}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">Desa {desaName}</p>
             </div>
           </div>
@@ -772,7 +772,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
   };
 
   const handleStatusUpdate = async (newStatus: string, message?: string) => {
-    if (!isUP2K) return;
+    if (!isUP2K && user?.role !== 'admin') return;
     setIsLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/verification/status/${desaId}`, {
@@ -989,9 +989,9 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
               }`}>
               <div className="flex items-center justify-between mb-2">
                 <h5 className="font-bold uppercase text-xs tracking-wider flex items-center gap-2 opacity-80">
-                  <AlertCircleIcon size={16} /> CATATAN VERIFIKATOR:
+                  <AlertCircleIcon size={16} /> {user?.role === 'admin' ? 'CATATAN:' : 'CATATAN VERIFIKATOR:'}
                 </h5>
-                {isUP2K && (
+                {user?.role === 'admin' && (
                   <button
                     onClick={() => setShowEditNoteModal(true)}
                     className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-black uppercase rounded-lg transition-all border border-gray-200 dark:border-gray-700 shadow-sm active:scale-95 group"
@@ -1004,7 +1004,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
             </div>
           )}
 
-          {isUP2K && file && !message && status !== 'Terverifikasi' && (
+          {user?.role === 'admin' && file && !message && status !== 'Terverifikasi' && (
             <div className="mb-4 animate-in fade-in slide-in-from-left-4 duration-500">
               <button
                 onClick={() => setShowEditNoteModal(true)}
@@ -1013,7 +1013,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
                 <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 shadow-sm group-hover:scale-110 transition-transform border border-gray-200 dark:border-gray-600">
                   <EditIcon size={14} />
                 </div>
-                Tambah Catatan Verifikator
+                {user?.role === 'admin' ? 'Tambah Catatan' : 'Tambah Catatan Verifikator'}
               </button>
             </div>
           )}
