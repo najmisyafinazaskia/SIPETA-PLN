@@ -381,13 +381,7 @@ export default function UlpUnitDetail() {
                                                             <span className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
                                                                 {itemName}
                                                             </span>
-                                                            {modal.type === "Dusun" && typeof item !== "string" && getDusunStatus(item.status) === "warning" && (() => {
-                                                                const nameUpper = itemName.toUpperCase();
-                                                                if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS') || nameUpper.includes('LHOK SANDENG') || nameUpper.includes('LHOK PINEUNG')) {
-                                                                    return <span className="text-[9px] font-extrabold text-yellow-600 whitespace-nowrap">BELUM BERLISTRIK PLN</span>;
-                                                                }
-                                                                return null;
-                                                            })()}
+
                                                         </div>
                                                         {modal.type === "Dusun" && getDusunStatus(item.status) === "warning" && (() => {
                                                             const nameUpper = itemName.toUpperCase();
