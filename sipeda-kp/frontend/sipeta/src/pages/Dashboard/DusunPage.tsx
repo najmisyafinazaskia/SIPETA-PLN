@@ -50,7 +50,19 @@ export default function DusunPage() {
     }, [searchParams]);
 
     const [selectedDusun, setSelectedDusun] = useState<DusunItem | null>(null);
+    const [customStatus, setCustomStatus] = useState("");
     const [updating, setUpdating] = useState(false);
+
+    // Sync custom status when modal opens
+    useEffect(() => {
+        if (selectedDusun) {
+            const isDefault = ["Berlistrik PLN", "Belum Berlistrik"].includes(selectedDusun.status);
+            setCustomStatus(isDefault ? "" : selectedDusun.status);
+        } else {
+            setCustomStatus("");
+        }
+    }, [selectedDusun]);
+
     const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, type: "success" | "error" | "warning" | "info" }>({
         isOpen: false,
         title: "",
@@ -368,22 +380,27 @@ export default function DusunPage() {
                                     className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 dark:bg-white/5 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-gray-700 dark:text-white"
                                     placeholder="Contoh: Roadmap 2025, Rumah Kebun, dll..."
                                     rows={3}
-                                    defaultValue={(!["Berlistrik PLN", "Belum Berlistrik"].includes(selectedDusun.status)) ? selectedDusun.status : ""}
-                                    onBlur={(e) => {
-                                        const val = e.target.value.trim();
-                                        if (val && val !== selectedDusun.status) {
-                                            handleStatusUpdate(val);
-                                        }
-                                    }}
+                                    value={customStatus}
+                                    onChange={(e) => setCustomStatus(e.target.value)}
                                 />
-                                <p className="text-[9px] text-gray-400 font-medium italic">Klik di luar kotak setelah mengisi untuk menyimpan keterangan.</p>
+                                <button
+                                    onClick={() => handleStatusUpdate(customStatus.trim())}
+                                    disabled={updating || !customStatus.trim()}
+                                    className={`w-full py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${customStatus.trim() && customStatus.trim() !== selectedDusun.status
+                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700"
+                                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                        }`}
+                                >
+                                    {updating ? "Menyimpan..." : "Simpan Keterangan"}
+                                </button>
+                                <p className="text-[9px] text-gray-400 font-medium italic text-center">Klik tombol di atas untuk menyimpan keterangan khusus.</p>
                             </div>
                         </div>
 
                         <button
                             onClick={() => setSelectedDusun(null)}
                             disabled={updating}
-                            className="mt-6 w-full py-3 text-gray-500 font-bold uppercase text-xs tracking-widest hover:bg-gray-100 rounded-xl transition-colors"
+                            className="mt-4 w-full py-3 text-gray-500 font-bold uppercase text-xs tracking-widest hover:bg-gray-100 rounded-xl transition-colors"
                         >
                             Batal
                         </button>
