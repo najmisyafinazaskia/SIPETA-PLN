@@ -998,7 +998,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
                 <h5 className="font-bold uppercase text-xs tracking-wider flex items-center gap-2 opacity-80">
                   <AlertCircleIcon size={16} /> {user?.role === 'admin' ? 'CATATAN:' : 'CATATAN VERIFIKATOR:'}
                 </h5>
-                {user?.role === 'admin' && (
+                {(user?.role === 'admin' || isUP2K) && (
                   <button
                     onClick={() => setShowEditNoteModal(true)}
                     className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-black uppercase rounded-lg transition-all border border-gray-200 dark:border-gray-700 shadow-sm active:scale-95 group"
@@ -1011,7 +1011,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
             </div>
           )}
 
-          {user?.role === 'admin' && file && !message && status !== 'Terverifikasi' && (
+          {(user?.role === 'admin' || isUP2K) && file && !message && status !== 'Terverifikasi' && (
             <div className="mb-4 animate-in fade-in slide-in-from-left-4 duration-500">
               <button
                 onClick={() => setShowEditNoteModal(true)}
