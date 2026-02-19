@@ -319,9 +319,7 @@ export default function DusunPage() {
                                     </span>
                                     {item.type === "warning" && (() => {
                                         const nameUpper = item.name.toUpperCase();
-                                        if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS') || nameUpper.includes('LHOK SANDENG') || nameUpper.includes('LHOK PINEUNG')) {
-                                            return <span className="text-[9px] font-extrabold text-yellow-600 whitespace-nowrap">BELUM BERLISTRIK PLN</span>;
-                                        }
+
                                         return null;
                                     })()}
                                 </div>

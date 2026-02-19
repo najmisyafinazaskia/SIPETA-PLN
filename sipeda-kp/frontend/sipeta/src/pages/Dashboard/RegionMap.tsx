@@ -190,16 +190,12 @@ const getPointPopupHtml = (props: any, isBerlistrik: boolean, hideStatus: boolea
 
     if (isProblem) {
       if (dNameUpper.includes('PERPOLIN') || dNameUpper.includes('PERABIS') || dNameUpper.includes('LHOK SANDENG')) {
-        displayStatus = "BELUM BERLISTRIK PLN";
-        displayColor = "#eab308";
         specialLabel = `
           <div style="margin-top: 4px;">
             <div style="font-size: 9px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px; width: fit-content;">🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025</div>
           </div>
         `;
       } else if (dNameUpper.includes('LHOK PINEUNG')) {
-        displayStatus = "BELUM BERLISTRIK PLN";
-        displayColor = "#eab308";
         specialLabel = `<div style="margin-top: 4px; font-size: 9px; font-weight: 800; color: #9333ea; text-transform: uppercase; letter-spacing: 0.5px; background: #f5f3ff; border: 1px solid #ddd6fe; padding: 2px 6px; border-radius: 4px; width: fit-content;">📅 SUDAH MASUK PADA ROADMAP 2026</div>`;
       } else if (!statusText.includes('ROADMAP')) {
         specialLabel = `<div style="margin-top: 4px; font-size: 9px; font-weight: 800; color: #ea580c; text-transform: uppercase; letter-spacing: 0.5px;">🏠 RUMAH KEBUN | TIDAK BERLISTRIK 24 JAM</div>`;
