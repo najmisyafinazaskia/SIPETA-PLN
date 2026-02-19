@@ -363,9 +363,15 @@ export default function DusunPage() {
                                 </button>
 
                                 <button
-                                    onClick={() => handleStatusUpdate("Belum Berlistrik")}
+                                    onClick={() => {
+                                        // Jika sedang Berlistrik PLN, pindahkan ke Belum Berlistrik (baseline)
+                                        // Jika sudah Belum Berlistrik (atau punya kustom status), jangan timpa 
+                                        if (selectedDusun.status === "Berlistrik PLN") {
+                                            handleStatusUpdate("Belum Berlistrik");
+                                        }
+                                    }}
                                     disabled={updating}
-                                    className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Belum Berlistrik"
+                                    className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status !== "Berlistrik PLN"
                                         ? "bg-yellow-500 text-white shadow-lg shadow-yellow-500/20"
                                         : "bg-gray-50 text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 border border-gray-100"
                                         }`}
@@ -384,16 +390,16 @@ export default function DusunPage() {
                                     onChange={(e) => setCustomStatus(e.target.value)}
                                 />
                                 <button
-                                    onClick={() => handleStatusUpdate(customStatus.trim())}
-                                    disabled={updating || !customStatus.trim()}
-                                    className={`w-full py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${customStatus.trim() && customStatus.trim() !== selectedDusun.status
-                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700"
-                                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                    onClick={() => handleStatusUpdate(customStatus.trim() || "Belum Berlistrik")}
+                                    disabled={updating || (customStatus.trim() === "" && selectedDusun.status === "Belum Berlistrik") || (customStatus.trim() === selectedDusun.status)}
+                                    className={`w-full py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${(customStatus.trim() !== selectedDusun.status && (customStatus.trim() !== "" || selectedDusun.status !== "Belum Berlistrik"))
+                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700"
+                                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
                                         }`}
                                 >
                                     {updating ? "Menyimpan..." : "Simpan Keterangan"}
                                 </button>
-                                <p className="text-[9px] text-gray-400 font-medium italic text-center">Klik tombol di atas untuk menyimpan keterangan khusus.</p>
+                                <p className="text-[9px] text-gray-400 font-medium italic text-center">Isi keterangan untuk mendetailkan status, atau kosongkan untuk kembali ke status standar.</p>
                             </div>
                         </div>
 
