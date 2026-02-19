@@ -652,7 +652,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
                   radius: 6,
                   color: 'white',
                   weight: 1,
-                  fillColor: isBerlistrik ? '#2ecc71' : '#f39c12',
+                  fillColor: !hideStatus ? '#2ecc71' : (isBerlistrik ? '#2ecc71' : '#f39c12'),
                   fillOpacity: 0.9,
                   locationId: desa.locationId // Attach ID to options
                 } as any);
@@ -735,7 +735,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
                     radius: 6,
                     color: 'white',
                     weight: 1,
-                    fillColor: isBerlistrik ? '#2ecc71' : '#f39c12',
+                    fillColor: !hideStatus ? '#2ecc71' : (isBerlistrik ? '#2ecc71' : '#f39c12'),
                     fillOpacity: 0.9,
                     locationId: desa.locationId // Attach ID to options
                   } as any);
@@ -797,7 +797,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
             if (!showDot) return (L as any).layerGroup();
             return L.circleMarker(latlng, {
               radius: 6,
-              fillColor: isStable ? "#2ecc71" : "#f1c40f",
+              fillColor: !hideStatus ? "#2ecc71" : (isStable ? "#2ecc71" : "#f1c40f"),
               color: "white",
               weight: 2,
               opacity: 1,
