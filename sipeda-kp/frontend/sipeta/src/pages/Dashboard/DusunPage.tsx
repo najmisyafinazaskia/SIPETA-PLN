@@ -374,27 +374,60 @@ export default function DusunPage() {
                             {selectedDusun.name}, Desa <span className="text-gray-700 dark:text-gray-300 font-bold">{selectedDusun.desa}</span>
                         </p>
 
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2.5">
                             <button
                                 onClick={() => handleStatusUpdate("Berlistrik PLN")}
                                 disabled={updating}
-                                className={`w-full py-3 rounded-xl font-bold uppercase text-xs tracking-widest transition-all ${selectedDusun.type === "stable"
+                                className={`w-full py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Berlistrik PLN"
                                     ? "bg-green-100 text-green-700 border-2 border-green-500 cursor-default"
                                     : "bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-600 border border-gray-200"
                                     }`}
                             >
-                                {updating && selectedDusun.type !== "stable" ? "Menyimpan..." : "Berlistrik PLN"}
+                                {updating && selectedDusun.status === "Berlistrik PLN" ? "Menyimpan..." : "Berlistrik PLN"}
+                            </button>
+
+                            <button
+                                onClick={() => handleStatusUpdate("Roadmap 2025")}
+                                disabled={updating}
+                                className={`w-full py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Roadmap 2025"
+                                    ? "bg-blue-100 text-blue-700 border-2 border-blue-500 cursor-default"
+                                    : "bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 border border-gray-200"
+                                    }`}
+                            >
+                                {updating && selectedDusun.status === "Roadmap 2025" ? "Menyimpan..." : "Roadmap 2025"}
+                            </button>
+
+                            <button
+                                onClick={() => handleStatusUpdate("Roadmap 2026")}
+                                disabled={updating}
+                                className={`w-full py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Roadmap 2026"
+                                    ? "bg-purple-100 text-purple-700 border-2 border-purple-500 cursor-default"
+                                    : "bg-gray-50 text-gray-400 hover:bg-purple-50 hover:text-purple-600 border border-gray-200"
+                                    }`}
+                            >
+                                {updating && selectedDusun.status === "Roadmap 2026" ? "Menyimpan..." : "Roadmap 2026"}
+                            </button>
+
+                            <button
+                                onClick={() => handleStatusUpdate("Rumah Kebun")}
+                                disabled={updating}
+                                className={`w-full py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Rumah Kebun"
+                                    ? "bg-orange-100 text-orange-700 border-2 border-orange-500 cursor-default"
+                                    : "bg-gray-50 text-gray-400 hover:bg-orange-50 hover:text-orange-600 border border-gray-200"
+                                    }`}
+                            >
+                                {updating && selectedDusun.status === "Rumah Kebun" ? "Menyimpan..." : "Rumah Kebun"}
                             </button>
 
                             <button
                                 onClick={() => handleStatusUpdate("Belum Berlistrik")}
                                 disabled={updating}
-                                className={`w-full py-3 rounded-xl font-bold uppercase text-xs tracking-widest transition-all ${selectedDusun.type === "warning"
+                                className={`w-full py-3 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${selectedDusun.status === "Belum Berlistrik"
                                     ? "bg-yellow-100 text-yellow-700 border-2 border-yellow-500 cursor-default"
                                     : "bg-gray-50 text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 border border-gray-200"
                                     }`}
                             >
-                                {updating && selectedDusun.type !== "warning" ? "Menyimpan..." : "Belum Berlistrik"}
+                                {updating && selectedDusun.status === "Belum Berlistrik" ? "Menyimpan..." : "Belum Berlistrik"}
                             </button>
                         </div>
 
