@@ -107,7 +107,6 @@ exports.updateStatus = async (req, res) => {
     }
 };
 
-const { cloudinary } = require('../config/cloudinary');
 const https = require('https');
 
 exports.downloadFile = async (req, res) => {
