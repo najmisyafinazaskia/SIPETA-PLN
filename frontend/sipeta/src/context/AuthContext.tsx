@@ -8,6 +8,7 @@ interface User {
     photo?: string;
     phone?: string;
     unit?: string;
+    role?: string;
     lastReadNotificationsAt?: string;
 }
 

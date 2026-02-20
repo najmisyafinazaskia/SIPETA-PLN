@@ -14,6 +14,9 @@ const verificationSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    publicId: {
+        type: String
+    },
     uploadedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
@@ -22,6 +25,9 @@ const verificationSchema = new mongoose.Schema({
         type: String,
         enum: ['Menunggu Verifikasi', 'Terverifikasi', 'Tidak Sesuai', 'Sesuai (Perlu Perbaikan)'],
         default: 'Menunggu Verifikasi'
+    },
+    message: {
+        type: String
     }
 }, { timestamps: true });
 

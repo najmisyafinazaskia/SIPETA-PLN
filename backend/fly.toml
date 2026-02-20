@@ -1,6 +1,6 @@
-# fly.toml app configuration file generated for sipeda-backend on 2024-02-11
+# fly.toml app configuration file generated for sipeta-backend on 2024-02-11
 
-app = "sipeda-backend-aceh"
+app = "sipeta-backend-aceh"
 primary_region = "sin"
 
 [http_service]
@@ -16,5 +16,5 @@ primary_region = "sin"
   memory_mb = 256
 
 [mounts]
-  source = "sipeda_uploads"
+  source = "sipeta_uploads"
   destination = "/app/uploads"

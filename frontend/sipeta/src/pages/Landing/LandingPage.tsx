@@ -1,14 +1,21 @@
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
 
 export default function LandingPage() {
   const [stats, setStats] = useState({
     kab: "23",
     kec: "290",
-    desa: "6.500+",
-    dusun: "20.000+"
+    desa: "6.500",
+    dusun: "20.046"
   });
 
   useEffect(() => {
@@ -211,33 +218,95 @@ export default function LandingPage() {
 
       {/* 3. Statistik Wilayah (Panel Data) */}
       <div className="w-full bg-slate-50/50 py-10 border-y border-gray-100 backdrop-blur-sm relative z-10">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-10 font-outfit">
-            <div className="flex flex-col items-center">
+        <div className="max-w-7xl mx-auto px-6 relative">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-10 font-outfit mb-4">
+            {/* Kabupaten / Kota - Link A */}
+            <a
+              href="https://drive.google.com/file/d/1W06k3JVCslizIz6c4NtLegLcj69OPEZn/view?usp=drive_link"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center hover:scale-105 transition-transform cursor-pointer"
+            >
               <span className="text-4xl font-black text-[#0052CC] mb-1">{stats.kab}</span>
               <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest text-center leading-tight">Kabupaten / Kota</span>
-            </div>
-            {[stats.kec, stats.desa, stats.dusun, '6', '38'].map((val, i) => (
-              <div key={i} className="flex flex-col items-center border-l border-gray-200">
-                <span className="text-4xl font-black text-[#0052CC] mb-1">{val}</span>
-                <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest text-center leading-tight">
-                  {['Kecamatan', 'Desa', 'Dusun', 'UP3 PLN', 'ULP PLN'][i]}
-                </span>
-              </div>
-            ))}
+            </a>
+
+            {/* Kecamatan - Link A */}
+            <a
+              href="https://drive.google.com/file/d/1W06k3JVCslizIz6c4NtLegLcj69OPEZn/view?usp=drive_link"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center border-l border-gray-200 hover:scale-105 transition-transform cursor-pointer"
+            >
+              <span className="text-4xl font-black text-[#0052CC] mb-1">{stats.kec}</span>
+              <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest text-center leading-tight">Kecamatan</span>
+            </a>
+
+            {/* Desa - Link B */}
+            <a
+              href="https://docs.google.com/spreadsheets/d/1adGp-e1kufiMGoqBgyK0-6gxPMclWSeCqaNrSb0QrAY/edit?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center border-l border-gray-200 hover:scale-105 transition-transform cursor-pointer"
+            >
+              <span className="text-4xl font-black text-[#0052CC] mb-1">{stats.desa}</span>
+              <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest text-center leading-tight">Desa</span>
+            </a>
+
+            {/* Dusun - Link B (Spreadsheet) */}
+            <a
+              href="https://docs.google.com/spreadsheets/d/1adGp-e1kufiMGoqBgyK0-6gxPMclWSeCqaNrSb0QrAY/edit?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center border-l border-gray-200 hover:scale-105 transition-transform cursor-pointer"
+            >
+              <span className="text-4xl font-black text-[#0052CC] mb-1">{stats.dusun}</span>
+              <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest text-center leading-tight">Dusun</span>
+            </a>
+
+            {/* UP3 PLN - Link B */}
+            <a
+              href="https://docs.google.com/spreadsheets/d/1adGp-e1kufiMGoqBgyK0-6gxPMclWSeCqaNrSb0QrAY/edit?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center border-l border-gray-200 hover:scale-105 transition-transform cursor-pointer"
+            >
+              <span className="text-4xl font-black text-[#0052CC] mb-1">6</span>
+              <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest text-center leading-tight">UP3 PLN</span>
+            </a>
+
+            {/* ULP PLN - Link B */}
+            <a
+              href="https://docs.google.com/spreadsheets/d/1adGp-e1kufiMGoqBgyK0-6gxPMclWSeCqaNrSb0QrAY/edit?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center border-l border-gray-200 hover:scale-105 transition-transform cursor-pointer"
+            >
+              <span className="text-4xl font-black text-[#0052CC] mb-1">38</span>
+              <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest text-center leading-tight">ULP PLN</span>
+            </a>
           </div>
+
+        </div>
+        {/* Label Update di pojok kiri bawah panel - disejajarkan dengan tombol Mulai di atas (px-6 md:px-20) */}
+        <div className="absolute bottom-4 left-6 md:left-50">
+          <span className="text-[#0052CC] text-[13px] font-bold">
+            Diupdate : 10 Februari 2026
+          </span>
         </div>
       </div>
 
       {/* 4. Footer Biru Statis */}
       <footer className="bg-[#0052CC] text-white py-6 px-6 md:px-20 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-inner">
-            <img src="/images/logo/logo-pln.png" alt="PLN Logo" className="h-7" />
-            <div className="w-[1px] h-5 bg-gray-200"></div>
-            <img src="/images/logo/logoDI.png" alt="DI Logo" className="h-6" />
+          <div className="flex flex-col items-start gap-2">
+            <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-inner">
+              <img src="/images/logo/logo-pln.png" alt="PLN Logo" className="h-7" />
+              <div className="w-[1px] h-5 bg-gray-200"></div>
+              <img src="/images/logo/logoDI.png" alt="DI Logo" className="h-6" />
+            </div>
           </div>
-          <p className="hidden lg:block text-blue-50 text-xs font-bold tracking-tight">
+          <p className="hidden lg:block text-blue-50 text-xs font-bold tracking-tight text-center">
             © 2026 SIPETA PLN UID Provinsi Aceh, Indonesia. All rights reserved.
           </p>
           <div className="flex gap-8 text-[11px] font-black uppercase tracking-[0.2em]">

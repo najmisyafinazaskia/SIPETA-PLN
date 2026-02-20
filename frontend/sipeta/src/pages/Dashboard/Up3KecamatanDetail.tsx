@@ -2,7 +2,16 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon, GroupIcon } from "../../icons";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
+
+
 
 export default function Up3KecamatanDetail() {
     const { name } = useParams();
@@ -10,6 +19,7 @@ export default function Up3KecamatanDetail() {
     const decodedName = decodeURIComponent(name || "");
     const [searchTerm, setSearchTerm] = useState("");
     const [listDesa, setListDesa] = useState<string[]>([]);
+    const [stats, setStats] = useState<any>({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -18,8 +28,9 @@ export default function Up3KecamatanDetail() {
                 setLoading(true);
                 const response = await fetch(`${API_URL}/api/locations/search/${encodeURIComponent(decodedName)}?category=Kecamatan`);
                 const json = await response.json();
-                if (json.success && json.data.desaList) {
-                    setListDesa(json.data.desaList);
+                if (json.success && json.data) {
+                    setListDesa(json.data.desaList || []);
+                    setStats(json.data);
                 }
             } catch (error) {
                 console.error("Error fetching kecamatan detail:", error);
@@ -30,7 +41,7 @@ export default function Up3KecamatanDetail() {
         fetchKecDetail();
     }, [decodedName]);
 
-    const filteredDesa = listDesa.filter(d => d.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredDesa = listDesa.filter((d: string) => d.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const handleDesaClick = (desaName: string) => {
         navigate(`/dashboard/up3/desa/${encodeURIComponent(desaName)}`);
@@ -76,16 +87,22 @@ export default function Up3KecamatanDetail() {
                 </div>
 
                 {/* Card Warga */}
-                <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-default">
+                <div
+                    onClick={() => {
+                        const link = 'https://data.acehprov.go.id/ru/dataset/jumlah-penduduk-desa-berdasarkan-jenis-kelamin-idm/resource/3f4f7fd0-5c2c-4067-adfe-d9b007c02bd3';
+                        window.open(link, '_blank');
+                    }}
+                    className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-pointer"
+                >
                     <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-pink-600">
                         <GroupIcon className="w-7 h-7" />
                     </div>
                     <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Warga</p>
                     <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">
-                        -
+                        {stats.warga ? stats.warga.toLocaleString() : "-"}
                     </h3>
                     <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
-                        Update: -
+                        {stats.lembaga_warga && stats.lembaga_warga !== '-' ? `Sumber : ${stats.lembaga_warga}, ${stats.tahun}` : "Estimasi Populasi"}
                     </p>
                 </div>
             </div>
@@ -105,7 +122,7 @@ export default function Up3KecamatanDetail() {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                    {filteredDesa.map((desa, idx) => (
+                    {filteredDesa.map((desa: string, idx: number) => (
                         <div
                             key={idx}
                             onClick={() => handleDesaClick(desa)}

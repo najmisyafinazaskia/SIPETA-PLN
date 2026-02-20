@@ -3,7 +3,14 @@ import { MapContainer, TileLayer, GeoJSON, Marker, useMap, ZoomControl } from "r
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
 
 interface KabkotMapProps {
   activeFilters: { stable: boolean; warning: boolean };

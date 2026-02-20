@@ -1,8 +1,18 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeftIcon, BoxCubeIcon, GroupIcon, BoltIcon, PencilIcon } from "../../icons";
+import { ChevronLeftIcon, BoxCubeIcon, BoltIcon, GroupIcon, PencilIcon } from "../../icons";
+import { useAuth } from "../../context/AuthContext";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
+
+
 
 interface UlpStats {
     name: string;
@@ -14,6 +24,8 @@ interface UlpStats {
         lembaga_warga?: string;
         tahun?: string | number;
         update_pelanggan?: string;
+        sumber_pelanggan?: string;
+        tahun_pelanggan?: string;
     };
     kecamatan: {
         name: string;
@@ -24,6 +36,7 @@ interface UlpStats {
 }
 
 export default function UlpUnitDetail() {
+    const { user } = useAuth();
     const { name } = useParams();
     const navigate = useNavigate();
     const decodedName = decodeURIComponent(name || "");
@@ -31,6 +44,8 @@ export default function UlpUnitDetail() {
     const [loading, setLoading] = useState(true);
     const [isInputModalOpen, setIsInputModalOpen] = useState(false);
     const [newPelanggan, setNewPelanggan] = useState("");
+    const [newSumber, setNewSumber] = useState("Data Induk Layanan");
+    const [newTahun, setNewTahun] = useState("PLN 2025");
     const [isUpdating, setIsUpdating] = useState(false);
     const [modal, setModal] = useState<{
         isOpen: boolean;
@@ -54,7 +69,9 @@ export default function UlpUnitDetail() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: decodedName,
-                    pelanggan: newPelanggan
+                    pelanggan: newPelanggan,
+                    sumber: newSumber,
+                    tahun: newTahun
                 })
             });
             const json = await response.json();
@@ -119,13 +136,7 @@ export default function UlpUnitDetail() {
 
     // Helper to determine status
     const getDusunStatus = (status: string) => {
-        const safeStatus = (status || "").toLowerCase();
-        const isProblematic =
-            status === "0" ||
-            status === "REFF!" ||
-            status === "Dusun tidak diketahui" ||
-            safeStatus.includes("belum");
-        return isProblematic ? "warning" : "stable";
+        return status === "Berlistrik PLN" ? "stable" : "warning";
     };
 
     if (loading) {
@@ -219,8 +230,14 @@ export default function UlpUnitDetail() {
                     </div>
 
                     {/* Card 4: Warga (Estimasi) */}
-                    <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-default">
-                        <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center mb-6 text-pink-600 transition-transform group-hover:scale-105">
+                    <div
+                        onClick={() => {
+                            const link = 'https://data.acehprov.go.id/ru/dataset/jumlah-penduduk-desa-berdasarkan-jenis-kelamin-idm/resource/3f4f7fd0-5c2c-4067-adfe-d9b007c02bd3';
+                            window.open(link, '_blank');
+                        }}
+                        className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-pointer"
+                    >
+                        <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center mb-6 text-pink-600 transition-transform group-hover:scale-110">
                             <GroupIcon className="w-7 h-7" />
                         </div>
                         <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Warga ( Desa )</p>
@@ -229,7 +246,7 @@ export default function UlpUnitDetail() {
                         </h3>
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
                             {stats.stats.lembaga_warga && stats.stats.tahun && stats.stats.lembaga_warga !== "-" ? (
-                                `Update: ${stats.stats.lembaga_warga}, ${stats.stats.tahun}`
+                                `Sumber : ${stats.stats.lembaga_warga}, ${stats.stats.tahun}`
                             ) : (
                                 "Jiwa • Agregasi Desa"
                             )}
@@ -240,14 +257,19 @@ export default function UlpUnitDetail() {
                     {/* Card 5: Pelanggan */}
                     <div
                         onClick={() => {
+                            if (user?.role !== "superadmin") return;
                             setNewPelanggan(stats.stats.pelanggan?.toString() || "");
+                            setNewSumber((stats.stats.sumber_pelanggan && stats.stats.sumber_pelanggan !== "-") ? stats.stats.sumber_pelanggan : "Data Induk Layanan");
+                            setNewTahun((stats.stats.tahun_pelanggan && stats.stats.tahun_pelanggan !== "-") ? stats.stats.tahun_pelanggan : "PLN 2025");
                             setIsInputModalOpen(true);
                         }}
-                        className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-pointer relative"
+                        className={`p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group relative ${user?.role === "superadmin" ? "cursor-pointer" : ""}`}
                     >
-                        <div className="absolute top-6 right-6 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white">
-                            <PencilIcon className="w-5 h-5" />
-                        </div>
+                        {user?.role === "superadmin" && (
+                            <div className="absolute top-6 right-6 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white">
+                                <PencilIcon className="w-5 h-5" />
+                            </div>
+                        )}
                         <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center mb-6 text-orange-600 transition-transform group-hover:scale-105">
                             <BoltIcon className="w-7 h-7" />
                         </div>
@@ -256,7 +278,7 @@ export default function UlpUnitDetail() {
                             {stats.stats.pelanggan || stats.stats.pelanggan === 0 ? stats.stats.pelanggan.toLocaleString() : "-"}
                         </h3>
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
-                            Titik Sambungan • PLN
+                            Sumber : {(stats.stats.sumber_pelanggan && stats.stats.sumber_pelanggan !== "-") ? stats.stats.sumber_pelanggan : "Data Induk Layanan"}, {(stats.stats.tahun_pelanggan && stats.stats.tahun_pelanggan !== "-") ? stats.stats.tahun_pelanggan : "PLN 2025"}
                         </p>
                     </div>
 
@@ -340,23 +362,45 @@ export default function UlpUnitDetail() {
                                         return (
                                             <div
                                                 key={idx}
-                                                onClick={() => isClickable && handleListItemClick(itemName)}
+                                                onClick={() => handleListItemClick(itemName)}
                                                 className={`p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3 transition-colors group ${isClickable ? "cursor-pointer hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-900/10" : ""}`}
                                             >
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black transition-colors ${isClickable ? "bg-white dark:bg-gray-800 text-gray-400 group-hover:text-blue-500 group-hover:scale-110" : "bg-gray-200 dark:bg-gray-800 text-gray-400"}`}>
-                                                            {idx + 1}
-                                                        </div>
-                                                        <span className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                                                            {itemName}
-                                                        </span>
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black transition-colors ${isClickable ? "bg-white dark:bg-gray-800 text-gray-400 group-hover:text-blue-500 group-hover:scale-110" : "bg-gray-200 dark:bg-gray-800 text-gray-400"}`}>
+                                                        {idx + 1}
                                                     </div>
-                                                    {item.desa && (
-                                                        <span className="text-[10px] text-gray-400 pl-11 uppercase tracking-wider">
-                                                            Desa {item.desa}
-                                                        </span>
-                                                    )}
+                                                    <div className="flex flex-col">
+                                                        <div className="flex justify-between items-start gap-4">
+                                                            <span className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                                                                {itemName}
+                                                            </span>
+
+                                                        </div>
+                                                        {modal.type === "Dusun" && getDusunStatus(item.status) === "warning" && (() => {
+                                                            const nameUpper = itemName.toUpperCase();
+                                                            const isException = nameUpper.includes("PERPOLIN") || nameUpper.includes("PERABIS") || nameUpper.includes("LHOK SANDENG");
+
+                                                            let displayStatus = item.status;
+                                                            const isDefaultWarn = item.status === "0" || item.status === "REFF!" || item.status === "Dusun tidak diketahui" || !item.status;
+
+                                                            if (isDefaultWarn && !isException) {
+                                                                displayStatus = "Rumah Kebun | Tidak Berlistrik 24 Jam";
+                                                            }
+
+                                                            return (
+                                                                <div className="flex flex-col gap-1 mt-1">
+                                                                    <span className="text-[8px] font-bold text-blue-600 uppercase tracking-widest bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md w-fit">
+                                                                        {displayStatus}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                        {item.desa && (
+                                                            <span className="text-[10px] text-gray-400 pl-0 pt-1 uppercase tracking-wider">
+                                                                Desa {item.desa}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -401,9 +445,34 @@ export default function UlpUnitDetail() {
                                         type="number"
                                         value={newPelanggan}
                                         onChange={(e) => setNewPelanggan(e.target.value)}
-                                        className="w-full px-8 py-5 rounded-[2rem] border-none bg-gray-50 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-xl font-black text-[#1C2434] dark:text-white text-center"
+                                        className="w-full px-8 py-5 rounded-[2rem] border-none bg-gray-100 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-xl font-black text-gray-800 dark:text-white text-center"
                                         autoFocus
                                     />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1 font-outfit opacity-70">
+                                            Sumber Data
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newSumber}
+                                            onChange={(e) => setNewSumber(e.target.value)}
+                                            className="w-full px-6 py-4 rounded-3xl border-none bg-gray-100 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-sm font-bold text-gray-700 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1 font-outfit opacity-70">
+                                            Tahun Data
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newTahun}
+                                            onChange={(e) => setNewTahun(e.target.value)}
+                                            className="w-full px-6 py-4 rounded-3xl border-none bg-gray-100 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-sm font-bold text-gray-700 dark:text-white"
+                                        />
+                                    </div>
                                 </div>
 
 

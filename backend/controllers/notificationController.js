@@ -1,13 +1,8 @@
-const Notification = require('../models/Notification');
+const notificationService = require('../services/notificationService');
 
 exports.getNotifications = async (req, res) => {
     try {
-        // Fetch last 20 notifications that haven't been deleted by this user
-        const notifications = await Notification.find({
-            deletedBy: { $ne: req.userId }
-        })
-            .sort({ createdAt: -1 })
-            .limit(20);
+        const notifications = await notificationService.getNotifications(req.userId);
         res.json(notifications);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -16,15 +11,7 @@ exports.getNotifications = async (req, res) => {
 
 exports.createNotification = async (req, res) => {
     try {
-        const { title, message, type, userName } = req.body;
-        const notification = new Notification({
-            title,
-            message,
-            type,
-            user: req.userId,
-            userName
-        });
-        await notification.save();
+        const notification = await notificationService.createNotification(req.body, req.userId);
         res.status(201).json(notification);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -33,8 +20,7 @@ exports.createNotification = async (req, res) => {
 
 exports.markAsRead = async (req, res) => {
     try {
-        const { id } = req.params;
-        await Notification.findByIdAndUpdate(id, { isRead: true });
+        await notificationService.markAsRead(req.params.id, req.userId);
         res.json({ message: "Notification marked as read" });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -43,10 +29,8 @@ exports.markAsRead = async (req, res) => {
 
 exports.markAllAsRead = async (req, res) => {
     try {
-        const User = require('../models/User');
-        const now = new Date();
-        await User.findByIdAndUpdate(req.userId, { lastReadNotificationsAt: now });
-        res.json({ message: "All notifications marked as read", lastReadAt: now });
+        const lastReadAt = await notificationService.markAllAsRead(req.userId);
+        res.json({ message: "All notifications marked as read", lastReadAt });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -54,10 +38,8 @@ exports.markAllAsRead = async (req, res) => {
 
 exports.updateLastReadAt = async (req, res) => {
     try {
-        const User = require('../models/User');
-        const now = new Date();
-        await User.findByIdAndUpdate(req.userId, { lastReadNotificationsAt: now });
-        res.json({ message: "User's last read timestamp updated", lastReadAt: now });
+        const lastReadAt = await notificationService.updateLastReadAt(req.userId);
+        res.json({ message: "User's last read timestamp updated", lastReadAt });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -65,11 +47,7 @@ exports.updateLastReadAt = async (req, res) => {
 
 exports.clearAll = async (req, res) => {
     try {
-        // Soft delete for the current user only
-        await Notification.updateMany(
-            {},
-            { $addToSet: { deletedBy: req.userId } }
-        );
+        await notificationService.clearAll(req.userId);
         res.json({ message: "All notifications cleared for this user" });
     } catch (error) {
         res.status(500).json({ error: error.message });

@@ -2,7 +2,16 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon, GroupIcon, BoxCubeIcon } from "../../icons";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
+
+
 
 export default function UlpKecamatanDetail() {
     const { name } = useParams();
@@ -32,7 +41,7 @@ export default function UlpKecamatanDetail() {
         fetchKecDetail();
     }, [decodedName]);
 
-    const filteredDesa = listDesa.filter(d => d.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredDesa = listDesa.filter((d: string) => d.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const handleDesaClick = (desaName: string) => {
         navigate(`/dashboard/ulp/desa/${encodeURIComponent(desaName)}`);
@@ -93,7 +102,13 @@ export default function UlpKecamatanDetail() {
                 </div>
 
                 {/* Card 3: Warga */}
-                <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-default">
+                <div
+                    onClick={() => {
+                        const link = 'https://data.acehprov.go.id/ru/dataset/jumlah-penduduk-desa-berdasarkan-jenis-kelamin-idm/resource/3f4f7fd0-5c2c-4067-adfe-d9b007c02bd3';
+                        window.open(link, '_blank');
+                    }}
+                    className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-pointer"
+                >
                     <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-pink-600">
                         <GroupIcon className="w-7 h-7" />
                     </div>
@@ -102,7 +117,7 @@ export default function UlpKecamatanDetail() {
                         {stats.warga ? stats.warga.toLocaleString() : "-"}
                     </h3>
                     <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
-                        {stats.lembaga_warga ? `Diperbaharui = ${stats.lembaga_warga}, ${stats.tahun}` : "Estimasi Populasi"}
+                        {stats.lembaga_warga ? `Sumber : ${stats.lembaga_warga}, ${stats.tahun}` : "Estimasi Populasi"}
                     </p>
                 </div>
 
@@ -124,7 +139,7 @@ export default function UlpKecamatanDetail() {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                    {filteredDesa.map((desa, idx) => (
+                    {filteredDesa.map((desa: string, idx: number) => (
                         <div
                             key={idx}
                             onClick={() => handleDesaClick(desa)}

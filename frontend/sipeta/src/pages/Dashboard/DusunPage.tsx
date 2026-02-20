@@ -5,8 +5,10 @@ import DusunMap from "./DusunMap";
 import MapFilter from "../../components/ui/MapFilter";
 import { useAuth } from "../../context/AuthContext";
 import SearchableSelect from "../../components/ui/SearchableSelect";
+import ModernAlert from "../../components/ui/ModernAlert";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
 
 interface DusunItem {
     id: string; // Composite ID or just index
@@ -48,7 +50,56 @@ export default function DusunPage() {
     }, [searchParams]);
 
     const [selectedDusun, setSelectedDusun] = useState<DusunItem | null>(null);
+    const [customStatus, setCustomStatus] = useState("");
     const [updating, setUpdating] = useState(false);
+
+    const [tempCategory, setTempCategory] = useState<"PLN" | "Belum">("Belum");
+
+    // Sync custom status when modal opens
+    useEffect(() => {
+        if (selectedDusun) {
+            const isPLN = selectedDusun.status === "Berlistrik PLN";
+            setTempCategory(isPLN ? "PLN" : "Belum");
+
+            const isDefault = ["Berlistrik PLN", "Belum Berlistrik"].includes(selectedDusun.status);
+            setCustomStatus(isDefault ? "" : selectedDusun.status);
+        } else {
+            setTempCategory("Belum");
+            setCustomStatus("");
+        }
+    }, [selectedDusun]);
+
+    const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean, title: string, message: string, type: "success" | "error" | "warning" | "info" }>({
+        isOpen: false,
+        title: "",
+        message: "",
+        type: "success"
+    });
+
+    const showAlert = (title: string, message: string, type: "success" | "error" | "warning" | "info" = "success") => {
+        setAlertConfig({ isOpen: true, title, message, type });
+    };
+
+    // Sync Map Filter with Tabs (Filter -> Tab)
+    useEffect(() => {
+        if (showStable && !showWarning) {
+            if (activeTab !== "stable") setActiveTab("stable");
+        } else if (!showStable && showWarning) {
+            if (activeTab !== "warning") setActiveTab("warning");
+        }
+    }, [showStable, showWarning, activeTab]);
+
+    // Sync Tabs with Map Filter (Tab -> Filter)
+    const handleTabChange = (tab: "stable" | "warning") => {
+        setActiveTab(tab);
+        if (tab === "stable") {
+            setShowStable(true);
+            setShowWarning(false);
+        } else {
+            setShowStable(false);
+            setShowWarning(true);
+        }
+    };
 
     // Filter Logic
     const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
@@ -96,23 +147,22 @@ export default function DusunPage() {
                     const dusuns = desa.dusun_detail || [];
                     if (dusuns.length > 0) {
                         dusuns.forEach((d: any, idx: number) => {
-                            // LOGIKA PENENTUAN STATUS DUSUN:
-                            // Status Dusun dihitung secara MANDIRI dan tidak dipengaruhi oleh status Desa (Desa selalu Stable).
-                            // Dusun dianggap bermasalah (warning) jika:
-                            // 1. Status adalah "0", "REFF!", atau mengandung kata "belum"
-                            // 2. Status adalah "Dusun tidak diketahui"
-                            // 3. Lokasi khusus seperti Pulau Bunta/Pulo Bunta (Belum Berlistrik)
+                            // Dusun dianggap STABLE hanya jika statusnya "Berlistrik PLN"
+                            // Selain itu, masuk ke category WARNING (Belum Terjangkau)
+                            const isWarning = d.status !== "Berlistrik PLN";
 
-                            const isProblematic =
-                                d.status === "0" ||
-                                d.status === "REFF!" ||
-                                d.status === "Dusun tidak diketahui" ||
-                                d.status?.toLowerCase().includes("belum");
+                            // Logika Default Status Baru:
+                            // Jika Warning dan bukan Perpolin/Perabis/Lhok Sandeng, jadikan "Rumah Kebun | Tidak Berlistrik 24 Jam"
+                            let finalStatus = d.status;
+                            const dNameUpper = (d.nama || "").toUpperCase();
+                            const isException = dNameUpper.includes("PERPOLIN") || dNameUpper.includes("PERABIS") || dNameUpper.includes("LHOK SANDENG");
 
-                            const isPulauBunta = desa.desa.toLowerCase().includes("pulau bunta") ||
-                                desa.desa.toLowerCase().includes("pulo bunta");
-
-                            const isWarning = isProblematic || isPulauBunta;
+                            if (isWarning && !isException) {
+                                // Hanya ubah jika statusnya masih status default "jelek" (0, REFF, dll)
+                                if (d.status === "0" || d.status === "REFF!" || d.status === "Dusun tidak diketahui" || !d.status) {
+                                    finalStatus = "Rumah Kebun | Tidak Berlistrik 24 Jam";
+                                }
+                            }
 
                             flattenedDusuns.push({
                                 id: desa._id, // Store actual Desa ID here for API
@@ -121,7 +171,7 @@ export default function DusunPage() {
                                 desa: desa.desa,
                                 kec: desa.kecamatan,
                                 kab: desa.kabupaten,
-                                status: d.status
+                                status: finalStatus
                             });
                         });
                     }
@@ -150,8 +200,6 @@ export default function DusunPage() {
         try {
             setUpdating(true);
             const token = localStorage.getItem("token");
-            console.log("Updating dusun status. User:", user); // Debug
-
             const response = await fetch(`${API_URL}/api/locations/dusun/update-status`, {
                 method: "PUT",
                 headers: {
@@ -168,15 +216,15 @@ export default function DusunPage() {
             const json = await response.json();
 
             if (json.success) {
-                // Close modal and refresh data
                 setSelectedDusun(null);
                 await fetchData();
+                showAlert("Berhasil!", "Status dusun telah diperbarui.", "success");
             } else {
-                alert("Gagal mengupdate status: " + json.message);
+                showAlert("Gagal!", json.message || "Gagal mengupdate status", "error");
             }
         } catch (error) {
             console.error("Update error:", error);
-            alert("Terjadi kesalahan koneksi");
+            showAlert("Error!", "Terjadi kesalahan koneksi ke server.", "error");
         } finally {
             setUpdating(false);
         }
@@ -255,7 +303,7 @@ export default function DusunPage() {
                 {/* Tabs Filter */}
                 <div className="flex gap-4 mb-6">
                     <button
-                        onClick={() => setActiveTab("stable")}
+                        onClick={() => handleTabChange("stable")}
                         className={`flex-1 flex justify-between items-center p-4 rounded-2xl border-2 transition-all ${activeTab === "stable" ? "border-green-500 bg-green-50 dark:bg-green-500/10" : "border-transparent bg-gray-50 dark:bg-gray-800"
                             }`}
                     >
@@ -265,7 +313,7 @@ export default function DusunPage() {
                         </span>
                     </button>
                     <button
-                        onClick={() => setActiveTab("warning")}
+                        onClick={() => handleTabChange("warning")}
                         className={`flex-1 flex justify-between items-center p-4 rounded-2xl border-2 transition-all ${activeTab === "warning" ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-500/10" : "border-transparent bg-gray-50 dark:bg-gray-800"
                             }`}
                     >
@@ -283,16 +331,16 @@ export default function DusunPage() {
                             onClick={() => handleCardClick(item)}
                             className="group p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer"
                         >
-                            <div className="flex flex-col">
+                            <div className="flex flex-col items-start gap-1">
                                 <span className="text-sm font-black text-[#1C2434] dark:text-white uppercase leading-tight group-hover:text-[#0052CC]">
                                     {item.name}
                                 </span>
-                                <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                                     DESA {item.desa} • {item.kec}
                                 </span>
-                                {['PERPOLIN', 'PERABIS', 'LHOK PINEUNG'].some(n => item.name.toUpperCase().includes(n)) && (
-                                    <span className="text-[9px] font-bold text-orange-600 mt-1.5 uppercase tracking-widest bg-orange-50 border border-orange-200 px-2 py-1 rounded-md w-fit">
-                                        🏠 RUMAH KEBUN | TIDAK TERALIRI LISTRIK 24 JAM
+                                {item.status !== "Berlistrik PLN" && item.status !== "Belum Berlistrik" && (
+                                    <span className="text-[9px] font-bold mt-1.5 uppercase tracking-widest px-2 py-1 rounded-md w-fit border text-blue-600 bg-blue-50 border-blue-200">
+                                        {item.status}
                                     </span>
                                 )}
                             </div>
@@ -319,41 +367,84 @@ export default function DusunPage() {
                             {selectedDusun.name}, Desa <span className="text-gray-700 dark:text-gray-300 font-bold">{selectedDusun.desa}</span>
                         </p>
 
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={() => handleStatusUpdate("Berlistrik PLN")}
-                                disabled={updating}
-                                className={`w-full py-3 rounded-xl font-bold uppercase text-xs tracking-widest transition-all ${selectedDusun.type === "stable"
-                                    ? "bg-green-100 text-green-700 border-2 border-green-500 cursor-default"
-                                    : "bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-600 border border-gray-200"
-                                    }`}
-                            >
-                                {updating && selectedDusun.type !== "stable" ? "Menyimpan..." : "Berlistrik PLN"}
-                            </button>
+                        <div className="flex flex-col gap-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => {
+                                        setTempCategory("PLN");
+                                        setCustomStatus(""); // Clear custom text if moving to PLN
+                                    }}
+                                    disabled={updating}
+                                    className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${tempCategory === "PLN"
+                                        ? "bg-green-600 text-white shadow-lg shadow-green-500/20"
+                                        : "bg-gray-50 text-gray-400 hover:bg-green-50 hover:text-green-600 border border-gray-100 dark:bg-gray-800 dark:border-gray-700"
+                                        }`}
+                                >
+                                    Berlistrik PLN
+                                </button>
 
-                            <button
-                                onClick={() => handleStatusUpdate("Belum Berlistrik")}
-                                disabled={updating}
-                                className={`w-full py-3 rounded-xl font-bold uppercase text-xs tracking-widest transition-all ${selectedDusun.type === "warning"
-                                    ? "bg-yellow-100 text-yellow-700 border-2 border-yellow-500 cursor-default"
-                                    : "bg-gray-50 text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 border border-gray-200"
-                                    }`}
-                            >
-                                {updating && selectedDusun.type !== "warning" ? "Menyimpan..." : "Belum Berlistrik"}
-                            </button>
+                                <button
+                                    onClick={() => setTempCategory("Belum")}
+                                    disabled={updating}
+                                    className={`py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${tempCategory === "Belum"
+                                        ? "bg-yellow-500 text-white shadow-lg shadow-yellow-500/20"
+                                        : "bg-gray-50 text-gray-400 hover:bg-yellow-50 hover:text-yellow-600 border border-gray-100 dark:bg-gray-800 dark:border-gray-700"
+                                        }`}
+                                >
+                                    Belum Berlistrik
+                                </button>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Keterangan Khusus / Status Lainnya</label>
+                                <textarea
+                                    className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 dark:bg-white/5 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold text-gray-700 dark:text-white"
+                                    placeholder="Contoh: Roadmap 2025, Rumah Kebun, dll..."
+                                    rows={3}
+                                    value={customStatus}
+                                    onChange={(e) => setCustomStatus(e.target.value)}
+                                />
+                                <button
+                                    onClick={() => {
+                                        const finalStatus = tempCategory === "PLN"
+                                            ? "Berlistrik PLN"
+                                            : (customStatus.trim() || "Belum Berlistrik");
+                                        handleStatusUpdate(finalStatus);
+                                    }}
+                                    disabled={updating || (
+                                        tempCategory === (selectedDusun.status === "Berlistrik PLN" ? "PLN" : "Belum") &&
+                                        customStatus.trim() === (["Berlistrik PLN", "Belum Berlistrik"].includes(selectedDusun.status) ? "" : selectedDusun.status)
+                                    )}
+                                    className={`w-full py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${(tempCategory !== (selectedDusun.status === "Berlistrik PLN" ? "PLN" : "Belum") ||
+                                            customStatus.trim() !== (["Berlistrik PLN", "Belum Berlistrik"].includes(selectedDusun.status) ? "" : selectedDusun.status))
+                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700"
+                                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                        }`}
+                                >
+                                    {updating ? "Menyimpan..." : "Simpan Perubahan"}
+                                </button>
+                                <p className="text-[9px] text-gray-400 font-medium italic text-center">Isi keterangan untuk mendetailkan status, atau kosongkan untuk kembali ke status standar.</p>
+                            </div>
                         </div>
 
                         <button
                             onClick={() => setSelectedDusun(null)}
                             disabled={updating}
-                            className="mt-6 w-full py-3 text-gray-500 font-bold uppercase text-xs tracking-widest hover:bg-gray-100 rounded-xl transition-colors"
+                            className="mt-4 w-full py-3 text-gray-500 font-bold uppercase text-xs tracking-widest hover:bg-gray-100 rounded-xl transition-colors"
                         >
                             Batal
                         </button>
                     </div>
                 </div>
             )}
+
+            <ModernAlert
+                isOpen={alertConfig.isOpen}
+                onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+            />
         </div>
     );
-
 }

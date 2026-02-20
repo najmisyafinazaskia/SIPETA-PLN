@@ -18,6 +18,7 @@ import UlpKabupatenDetail from "./pages/Dashboard/UlpKabupatenDetail";
 import UlpUnitDetail from "./pages/Dashboard/UlpUnitDetail";
 import UlpKecamatanDetail from "./pages/Dashboard/UlpKecamatanDetail";
 import UlpDesaDetail from "./pages/Dashboard/UlpDesaDetail";
+import CallCenterPage from "./pages/Dashboard/CallCenterPage";
 import VerifikasiPage from "./pages/VerifikasiPage";
 import SignIn from "./pages/AuthPages/SignIn"; // Import SignIn
 import { ScrollToTop } from "./components/common/ScrollToTop";
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="ulp/kecamatan/:name" element={<UlpKecamatanDetail />} />
           <Route path="ulp/desa/:name" element={<UlpDesaDetail />} />
           <Route path="verifikasi" element={<VerifikasiPage />} />
+          <Route path="call-center" element={<CallCenterPage />} />
         </Route>
 
         {/* FALLBACK */}

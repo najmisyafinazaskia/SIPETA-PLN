@@ -2,7 +2,40 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon, BoxCubeIcon, BoltIcon, GroupIcon } from "../../icons";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
+
+const KECAMATAN_SOURCES: Record<string, string> = {
+    "ACEH BARAT": "https://disdukcapil.acehbaratkab.go.id/halaman/data-agregat-kependudukan-aceh-barat-per-gampong",
+    "ACEH BARAT DAYA": "https://acehbaratdayakab.bps.go.id/statistics-table/2/MzA3IzI=/proyeksi-penduduk-kabupaten-aceh-barat-daya-menurut-kecamatan-.html",
+    "ACEH BESAR": "https://acehbesarkab.bps.go.id/indicator/12/43/1/perkembangan-jumlah-penduduk.html",
+    "ACEH JAYA": "https://acehjayakab.bps.go.id/indicator/12/140/1/jumlah-penduduk-kabupaten-aceh-jaya-menurut-jenis-kelamin.html",
+    "ACEH SELATAN": "https://acehselatankab.bps.go.id/statistics-table/2/MzMjMg==/proyeksi-penduduk-per-kecamatan.html",
+    "ACEH SINGKIL": "https://acehsingkilkab.bps.go.id/indicator/12/45/1/jumlah-penduduk-aceh-singkil-menurut-kecamatan.html",
+    "ACEH TAMIANG": "https://acehtamiangkab.bps.go.id/indicator/12/117/1/jumlah-penduduk-menurut-kecamatan-di-kabupaten-aceh-tamiang.html",
+    "ACEH TENGAH": "https://acehtengahkab.bps.go.id/indicator/12/137/3/jumlah-penduduk-kabupaten-aceh-tengah-berdasarkan-jenis-kelamin-per-kecamatan-.html",
+    "ACEH TENGGARA": "https://acehtenggarakab.bps.go.id/indicator/12/119/2/jumlah-penduduk-menurut-jenis-kelamin-dan-kecamatan.html",
+    "ACEH TIMUR": "https://dispendukcapil.acehtimurkab.go.id/berita/kategori/berita-dinas/jumlah-penduduk-kabupaten-aceh-timur-mencapai-466225-jiwa-pada-semester-i-tahun-2025",
+    "ACEH UTARA": "https://acehutarakab.bps.go.id/id/statistics-table/3/V1ZSbFRUY3lTbFpEYTNsVWNGcDZjek53YkhsNFFUMDkjMw==/penduduk--laju-pertumbuhan-penduduk--distribusi-persentase-penduduk--kepadatan-penduduk--rasio-jenis-kelamin-penduduk-menurut-kecamatan-di-kabupaten-aceh-utara--2021.html?year=2021",
+    "BENER MERIAH": "https://benermeriahkab.bps.go.id/id/statistics-table/3/V1ZSbFRUY3lTbFpEYTNsVWNGcDZjek53YkhsNFFUMDkjMw==/penduduk--laju-pertumbuhan-penduduk--distribusi-persentase-penduduk-kepadatan-penduduk--rasio-jenis-kelamin-penduduk-menurut-kecamatan-di-kabupaten-bener-meriah--2024.html",
+    "BIREUEN": "https://data.bireuenkab.go.id/dataset/jumlah-penduduk/resource/a6b41a04-30a1-4414-bf4b-0eb89d039877",
+    "GAYO LUES": "https://data.go.id/dataset/dataset/jumlah-penduduk-menurut-kecamatan-di-kabupaten-gayo-lues-2023",
+    "NAGAN RAYA": "https://naganrayakab.bps.go.id/indicator/12/29/1/jumlah-penduduk.html",
+    "PIDIE": "https://pidiekab.bps.go.id/indicator/12/90/1/jumlah-penduduk.html",
+    "PIDIE JAYA": "https://pidiejayakab.bps.go.id/indicator/12/42/1/jumlah-penduduk.html",
+    "SIMEULUE": "https://dukcapil.simeuluekab.go.id/media/2023.08/jumlah_penduduk_20221.pdf",
+    "BANDA ACEH": "https://disdukcapil.bandaacehkota.go.id/download/jumlah-penduduk-kota-banda-aceh/",
+    "LANGSA": "https://langsakota.bps.go.id/statistics-table/2/MTQ3IzI=/jumlah-penduduk-berdasarkan-jenis-kelamin.html",
+    "LHOKSEUMAWE": "https://data.lhokseumawekota.go.id/dataset/jumlah-penduduk-menurut-kecamatan/resource/926144dc-92c2-4b56-8daa-ff71a0857e13",
+    "SABANG": "https://sabangkota.bps.go.id/indicator/12/54/1/jumlah-penduduk-menurut-kecamatan.html",
+    "SUBULUSSALAM": "https://subulussalamkota.bps.go.id/id/statistics-table/1/NTQ1IzE=/luas-wilayah-dan-jumlah-penduduk-menurut-kecamatan-di-kota-subulussalam-tahun-2016.html"
+};
 
 interface RegionData {
     name: string;
@@ -149,7 +182,8 @@ export default function RegionDetailPage() {
             status === "0" ||
             status === "REFF!" ||
             status === "Dusun tidak diketahui" ||
-            safeStatus.includes("belum");
+            safeStatus.includes("belum") ||
+            safeStatus.includes("roadmap");
         return isProblematic ? "warning" : "stable";
     };
 
@@ -262,7 +296,32 @@ export default function RegionDetailPage() {
 
 
                     {/* Warga */}
-                    <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all group cursor-default">
+                    <div
+                        onClick={() => {
+                            let link = 'https://aceh.bps.go.id/id/statistics-table/2/NjAyIzI=/-sk-kp-015---proyeksi-sp2020--jumlah-penduduk-hasil-proyeksi-sensus-penduduk-2020-menurut-jenis-kelamin-dan-kabupaten-kota.html';
+                            if (data.category === 'Kecamatan') {
+                                const kabName = ((data as any).kab || "").toUpperCase().replace(/^(KABUPATEN|KAB\.|KOTA)\s+/i, "").trim();
+                                for (const [key, val] of Object.entries(KECAMATAN_SOURCES)) {
+                                    if (key.includes(kabName) || kabName.includes(key)) {
+                                        link = val;
+                                        break;
+                                    }
+                                }
+                            } else if (data.category === 'Desa') {
+                                link = 'https://data.acehprov.go.id/ru/dataset/jumlah-penduduk-desa-berdasarkan-jenis-kelamin-idm/resource/3f4f7fd0-5c2c-4067-adfe-d9b007c02bd3';
+                                const desaName = data.name.toUpperCase();
+                                if (desaName.includes("PULO BUNTA") || desaName.includes("PULAU BUNTA")) {
+                                    link = 'https://web-api.bps.go.id/download.php?f=emrs2PeaH0a6WJZEdd9a61lrbE5kd1BRM1I0ckwydlIzUGVPV0dWbUxJWXJ5cGFIRkxScUtPWjJSejFjVUcxakFIbER5MzgyZmNudkpsVnJXeG12U0xwS1VoZFJGNnUzVFlmUHFoMC9INHRXYy84NC9XT0pVVmRoWmp2dGpvVkI1cWtlNit3UTR1clVFS0xhUTdiWDJKQXY5VHNTcXplYkpvZTNqSWYzY2FuSW9WSmswVUcxUklqWTYrYlVwRnRiVjRRNDJjRGdra1V0TG9NYWxMTFU0bkkwWnZQdXBSVXZ3WXozeW1INmZJUTZqTGsyUi9UVGdWQ0xKb3kxVHNHRFU2K0duVVk3MW9kMk8zKzI';
+                                } else if (desaName.includes("PERKEBUNAN ALUR JAMBU")) {
+                                    link = 'https://web-api.bps.go.id/download.php?f=iLRij3EaVTd32UpTcGwhbzk3elg4RDI4c0h1NnE5QjY3V055MWlsMHZncStGZ0wrVVBUbmJUcEZSRU1KQmJvaDVLS0kyKzh5QTA1TklrSStvNTIwRTh2anhKeVhjNkJRRWZQS2xRRG5FNXBzU1VkL3VWOCtuRkNBK2hLamltcVloZHU5aU5wMk5TZ01tYTBlTkVhUFBUa043ZHpseUxIUFlDcWpqTnR6YlV4MElyTUtYS3IzZmN0aFNLMHZOTHNna2pEek10M0ZlRjE1ZElnV2pxWk9zNUhaVmFkR2dKZnRoZFZRbjZXV3RHdlFvUkIzdWdRL1MwNk9wM0dKMTIwcEw2WlZuekp1c1M2MVRlVjE%3D&utm_source=chatgpt.com';
+                                } else if (desaName.includes("BATU JAYA")) {
+                                    link = 'https://disdukcapil.acehbaratkab.go.id/media/2020.08/DATA_AGREGAT_KEPENDUDUKAN_SEMESTER_I_TAHUN_2020.pdf';
+                                }
+                            }
+                            window.open(link, '_blank');
+                        }}
+                        className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-pointer"
+                    >
                         <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center mb-6 text-pink-600 transition-transform group-hover:scale-105">
                             <GroupIcon className="w-7 h-7" />
                         </div>
@@ -272,9 +331,9 @@ export default function RegionDetailPage() {
                         </h3>
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
                             {data.lembaga_warga && data.tahun && data.lembaga_warga !== "-" ? (
-                                `Update: ${data.lembaga_warga}, ${data.tahun}`
+                                `Sumber : ${data.lembaga_warga}, ${data.tahun}`
                             ) : (
-                                "Jiwa • Berdasarkan Database Terbaru"
+                                "Jiwa • Berdasarkan Database Terverifikasi"
                             )}
                         </p>
                     </div>
@@ -362,9 +421,33 @@ export default function RegionDetailPage() {
                                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black transition-colors ${isClickable ? "bg-white dark:bg-gray-800 text-gray-400 group-hover:text-blue-500 group-hover:scale-110" : "bg-gray-200 dark:bg-gray-800 text-gray-400"}`}>
                                                         {idx + 1}
                                                     </div>
-                                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                                                        {itemName}
-                                                    </span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                                                            {itemName}
+                                                        </span>
+                                                        {modal.type === "Dusun" && item.status && getDusunStatus(item.status) === "warning" && (() => {
+                                                            const nameUpper = itemName.toUpperCase();
+                                                            if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS')) {
+                                                                return (
+                                                                    <span className="text-[8px] font-bold text-blue-600 mt-1 uppercase tracking-widest bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md w-fit">
+                                                                        🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            if (nameUpper.includes('LHOK PINEUNG')) {
+                                                                return (
+                                                                    <span className="text-[8px] font-bold text-purple-600 mt-1 uppercase tracking-widest bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md w-fit">
+                                                                        📅 SUDAH MASUK PADA ROADMAP 2026
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <span className="text-[8px] font-bold text-orange-600 mt-1 uppercase tracking-widest bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md w-fit">
+                                                                    🏠 RUMAH KEBUN | TIDAK BERLISTRIK 24 JAM
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );

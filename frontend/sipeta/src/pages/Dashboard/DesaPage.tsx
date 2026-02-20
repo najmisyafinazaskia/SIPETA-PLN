@@ -4,7 +4,14 @@ import DesaMap from "./DesaMap";
 import MapFilter from "../../components/ui/MapFilter";
 import SearchableSelect from "../../components/ui/SearchableSelect";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
 
 interface DesaItem {
   id: string; // _id dari mongo
@@ -102,13 +109,21 @@ export default function DesaPage() {
         if (isMounted) setLoading(false);
       }
     };
-
     fetchData();
 
     return () => {
       isMounted = false;
     };
   }, []);
+
+  // Sync Map Filter with Tabs
+  useEffect(() => {
+    if (showStable && !showWarning) {
+      setActiveTab("stable");
+    } else if (!showStable && showWarning) {
+      setActiveTab("warning");
+    }
+  }, [showStable, showWarning]);
 
   const daftarKecamatan = useMemo(() => {
     const kecs = allDesa.map((item) => item.kec);

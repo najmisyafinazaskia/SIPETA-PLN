@@ -7,9 +7,16 @@ import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import { useAuth } from "../../context/AuthContext";
 
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
 // --- KONFIGURASI ---
 const USE_DUMMY_MODE = false;
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 interface SignInFormProps {
   onLogin?: () => void;
@@ -46,7 +53,10 @@ export default function SignInForm({ onLogin }: SignInFormProps) {
     }
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      // Membersihkan trailing slash agar tidak terjadi double slash //
+      const baseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+
+      const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })

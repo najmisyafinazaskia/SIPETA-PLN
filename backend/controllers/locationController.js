@@ -3,13 +3,15 @@ const Up3 = require('../models/Up3');
 const Up3Desa = require('../models/Up3Desa');
 const Ulp = require('../models/Ulp');
 const UlpDesa = require('../models/UlpDesa');
+const User = require('../models/User'); // Import User for notifications
+const locationService = require('../services/locationService');
 
 // Konfigurasi pemetaan Wilayah UP3 ke daftar Kabupaten/Kota di Aceh
 const UP3_TO_KABUPATEN = {
     "UP3 Banda Aceh": ["KOTA BANDA ACEH", "ACEH BESAR", "KOTA SABANG"],
-    "UP3 Langsa": ["KOTA LANGSA", "ACEH TIMUR", "ACEH TAMIANG"],
+    "UP3 Langsa": ["KOTA LANGSA", "ACEH TIMUR", "ACEH TAMIANG", "GAYO LUES", "ACEH TENGGARA"],
     "UP3 Sigli": ["PIDIE", "PIDIE JAYA"],
-    "UP3 Lhokseumawe": ["KOTA LHOKSEUMAWE", "ACEH UTARA", "BIREUEN"],
+    "UP3 Lhokseumawe": ["KOTA LHOKSEUMAWE", "ACEH UTARA", "BIREUEN", "BENER MERIAH", "ACEH TENGAH"],
     "UP3 Meulaboh": ["ACEH BARAT", "NAGAN RAYA", "ACEH JAYA", "SIMEULUE"],
     "UP3 Subulussalam": ["KOTA SUBULUSSALAM", "ACEH SINGKIL", "ACEH SELATAN", "ACEH BARAT DAYA"]
 };
@@ -104,7 +106,7 @@ exports.getLocationStats = async (req, res) => {
         let totalStats = {
             totalKabupatenKota: 23,
             totalKecamatan: 290,
-            totalDesa: 6511, // Nilai default dari aset Aceh
+            totalDesa: 6500, // Nilai default dari aset Aceh
             totalDusun: 20046  // Angka spesifik yang Anda inginkan
         };
 
@@ -181,8 +183,8 @@ exports.getLocationStats = async (req, res) => {
             if (stats.length > 0) {
                 totalStats.totalKabupatenKota = stats.length;
                 totalStats.totalKecamatan = stats.reduce((sum, s) => sum + s.kecamatanCount, 0);
-                totalStats.totalDesa = stats.reduce((sum, s) => sum + s.desaCount, 0);
-                totalStats.totalDusun = stats.reduce((sum, s) => sum + s.dusunCount, 0);
+                totalStats.totalDesa = Math.max(6500, stats.reduce((sum, s) => sum + s.desaCount, 0));
+                totalStats.totalDusun = Math.max(20046, stats.reduce((sum, s) => sum + s.dusunCount, 0));
             }
         } catch (dbErr) {
             // console.warn("Database stats failed, using JSON instead.");
@@ -471,6 +473,8 @@ exports.getUp3Stats = async (req, res) => {
                 warga: totalWarga,
                 pelanggan: up3Meta?.pelanggan || aggregatedPelanggan,
                 update_pelanggan: up3Meta?.update_pelanggan || "Desember, 2025",
+                sumber: up3Meta?.sumber || "Data Induk Layanan PLN",
+                tahun: up3Meta?.tahun || "2025",
                 x: data[0]?.X || "0",
                 y: data[0]?.Y || "0"
             });
@@ -566,6 +570,8 @@ exports.getUp3Detail = async (req, res) => {
                 tahun: representativeYear,
                 pelanggan: up3Meta?.pelanggan || totalPelanggan,
                 update_pelanggan: up3Meta?.update_pelanggan || "Desember, 2025",
+                sumber_pelanggan: up3Meta?.sumber || "-",
+                tahun_pelanggan: up3Meta?.tahun || "-",
                 ulpCount: uniqueUlps.length,
                 ulpList: uniqueUlps
             }
@@ -632,22 +638,26 @@ exports.getUp3DesaGrouped = async (req, res) => {
                 d.status !== 'REFF!' && d.status !== '#REF!' && d.status !== '0' && d.nama !== 'REFF!'
             );
 
+            // Determine status based on dusun_detail
+            const hasWarningDusun = rawDusuns.some(d => {
+                const s = (d.status || "").toUpperCase();
+                if (s === 'REFF!' || s === '#REF!' || s === '0' || d.nama === 'REFF!') return false;
+                return d.status !== "Berlistrik PLN";
+            });
+
             acc[curr.up3].push({
+                locationId: match?._id,
                 Desa: curr.desa,
                 Kabupaten: curr.kabupaten || "-",
                 Kecamatan: curr.kecamatan || "-",
                 ULP: curr.ulp || "-",
                 latitude: curr.latitude,
                 longitude: curr.longitude,
-                Status_Listrik: curr.Status_Listrik || "Berlistrik",
+                Status_Listrik: hasWarningDusun ? "Belum Berlistrik" : "Berlistrik PLN",
                 warga: match?.warga || 0,
                 pelanggan: match?.pelanggan || 0,
                 lembaga_warga: match?.sumber_warga || "-",
-                tahun: match?.tahun_warga || "-",
-                dusuns: filteredDusuns.map(d => ({
-                    name: d.nama,
-                    status: d.status
-                }))
+                tahun: match?.tahun_warga || "-"
             });
             return acc;
         }, {});
@@ -697,6 +707,18 @@ exports.getHierarchy = async (req, res) => {
                 }
             },
             {
+                $unwind: "$desa"
+            },
+            {
+                $sort: { "desa.name": 1 }
+            },
+            {
+                $group: {
+                    _id: "$_id",
+                    desa: { $push: "$desa" }
+                }
+            },
+            {
                 $group: {
                     _id: "$_id.kab",
                     kecamatan: {
@@ -705,6 +727,18 @@ exports.getHierarchy = async (req, res) => {
                             desa: "$desa"
                         }
                     }
+                }
+            },
+            {
+                $unwind: "$kecamatan"
+            },
+            {
+                $sort: { "kecamatan.name": 1 }
+            },
+            {
+                $group: {
+                    _id: "$_id",
+                    kecamatan: { $push: "$kecamatan" }
                 }
             },
             {
@@ -846,101 +880,174 @@ exports.getLocationById = async (req, res) => {
     }
 };
 
-// Get locations as GeoJSON
+// Get locations as GeoJSON - OPTIMIZED for production (Vercel payload limit)
 exports.getGeoJSON = async (req, res) => {
     try {
-        const locations = await Location.find({}).lean(); // Fetch everything first
+        // Optimized query: only select fields needed for map rendering
+        const locations = await Location.find({}, {
+            desa: 1,
+            kecamatan: 1,
+            kabupaten: 1,
+            X: 1,
+            Y: 1,
+            x: 1,
+            y: 1,
+            location: 1,
+            dusun_detail: 1,
+            warga: 1,
+            pelanggan: 1
+        }).lean();
 
         const features = locations.filter(l => {
-            // Validasi keberadaan koordinat
-            // Cek X, Y (string float) - case insensitive check
             const X = l.X || l.x;
             const Y = l.Y || l.y;
-            const hasXY = X && Y && !isNaN(parseFloat(X)) && !isNaN(parseFloat(Y));
-
-            // Cek location (GeoJSON geometry)
-            const hasLoc = l.location && l.location.coordinates && l.location.coordinates.length === 2;
-
-            return hasXY || hasLoc;
+            return (X && Y && !isNaN(parseFloat(X)) && !isNaN(parseFloat(Y))) ||
+                (l.location && l.location.coordinates && l.location.coordinates.length === 2);
         }).map(l => {
-
             let geometry = null;
-
             const X = l.X || l.x;
             const Y = l.Y || l.y;
 
-            // Prioritas 1: Gunakan X dan Y
             if (X && Y) {
                 const lng = parseFloat(X);
                 const lat = parseFloat(Y);
                 if (!isNaN(lng) && !isNaN(lat)) {
-                    geometry = {
-                        type: "Point",
-                        coordinates: [lng, lat]
-                    };
+                    geometry = { type: "Point", coordinates: [lng, lat] };
                 }
             }
+            if (!geometry && l.location) geometry = l.location;
 
-            // Prioritas 2: Fallback ke location field
-            if (!geometry && l.location) {
-                geometry = l.location;
-            }
-
-            // Logic Coloring:
+            // Logic for coloring (Safe status determination)
             const rawDusuns = l.dusun_detail || [];
-            const filteredDusuns = rawDusuns.filter(d =>
-                d.status !== 'REFF!' && d.status !== '#REF!' && d.status !== '0' && d.nama !== 'REFF!'
-            );
 
-            const isStrictMode = req.query.strict === 'true'; // Strict = Dusun Map Logic
-            let statusText = "Berlistrik PLN";
+            // Jika ada minimal satu dusun yang TIDAK "Berlistrik PLN", maka desa dianggap BELUM stabil
+            const hasWarningDusun = rawDusuns.some(d => {
+                const s = (d.status || "").toUpperCase();
+                // Abaikan REFF! atau data sampah
+                if (s === 'REFF!' || s === '#REF!' || s === '0' || d.nama === 'REFF!') return false;
+                // Status yang dianggap "Belum Berlistrik" adalah apapun selain "Berlistrik PLN"
+                return d.status !== "Berlistrik PLN";
+            });
 
-            if (isStrictMode) {
-                // Dusun Map Logic: Yellow if ANY dusun is bad
-                const badDusunsCount = filteredDusuns.filter(d => {
-                    const s = (d.status || "").toUpperCase();
-                    const isGood = s.includes('PLN') && !s.includes('NON PLN') && !s.includes('BELUM');
-                    return !isGood;
-                }).length;
-
-                if (badDusunsCount > 0) {
-                    statusText = "Belum Berlistrik";
-                }
-            } else {
-                // Desa Map Logic: Always Green (Stable)
-                statusText = "Berlistrik PLN";
-            }
+            const statusText = hasWarningDusun ? "Belum Berlistrik" : "Berlistrik PLN";
 
             return {
                 type: "Feature",
                 properties: {
                     id: l._id,
+                    name: l.desa,
                     kabupaten: l.kabupaten,
                     kecamatan: l.kecamatan,
-                    name: l.desa,
                     status: statusText,
-                    dusun_count: filteredDusuns.length,
-                    // Pass dusuns details for popup
-                    dusuns: filteredDusuns.map(d => ({
-                        name: d.nama,
-                        status: d.status
-                    })),
-                    up3: KABUPATEN_TO_UP3[(l.kabupaten || "").toUpperCase()] || "",
-                    warga: l.warga || 0,
-                    pelanggan: l.pelanggan || 0,
-                    lembaga_warga: l.sumber_warga || "-",
-                    tahun: l.tahun_warga || "-"
+                    up3: KABUPATEN_TO_UP3[(l.kabupaten || "").toUpperCase()] || ""
                 },
                 geometry: geometry
             };
         });
-        res.json({
-            type: "FeatureCollection",
-            features: features
-        });
+
+        res.json({ type: "FeatureCollection", features: features });
     } catch (error) {
         console.error("GeoJSON Error:", error);
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Get single location detail (for Popups)
+exports.getLocationPointDetail = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const location = await Location.findById(id).lean();
+        if (!location) return res.status(404).json({ success: false });
+
+        const filteredDusuns = (location.dusun_detail || []).filter(d =>
+            d.status !== 'REFF!' && d.status !== '#REF!' && d.status !== '0' && d.nama !== 'REFF!'
+        );
+
+        res.json({
+            success: true,
+            data: {
+                ...location,
+                dusuns: filteredDusuns
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false });
+    }
+};
+
+// Get Boundary GeoJSON - ULTRA RESILIENT for Vercel
+exports.getBoundaries = async (req, res) => {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+
+        // Coba beberapa kemungkinan path untuk Vercel
+        const paths = [
+            path.resolve(process.cwd(), 'data/geojson/aceh_kabupaten.geojson'),
+            path.join(__dirname, '../data/geojson/aceh_kabupaten.geojson'),
+            path.join(process.cwd(), 'backend/data/geojson/aceh_kabupaten.geojson')
+        ];
+
+        for (const filePath of paths) {
+            if (fs.existsSync(filePath)) {
+                console.log(`Loading boundary from: ${filePath}`);
+                const data = fs.readFileSync(filePath, 'utf8');
+                return res.json(JSON.parse(data));
+            }
+        }
+
+        console.warn("All boundary paths failed. Returning empty collection.");
+        // Return empty FeatureCollection to prevent Frontend from crashing
+        res.json({ type: "FeatureCollection", features: [] });
+    } catch (error) {
+        console.error("Boundaries Error:", error);
+        res.json({ type: "FeatureCollection", features: [] }); // Silently fail to keep map running
+    }
+};
+const Notification = require('../models/Notification'); // Import Notification model
+
+// Get single location point detail (for Map Popups to avoid heavy GeoJSON payload)
+exports.getLocationPointDetail = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const mongoose = require('mongoose');
+
+        let location;
+        if (mongoose.Types.ObjectId.isValid(id)) {
+            location = await Location.findById(id).lean();
+        } else {
+            // Assume it's a Kecamatan name search (for Kecamatan Map popup)
+            // Find one representative to get fields, but we might need to aggregate dusuns if we want them all.
+            // For now, let's just find one to prevent crash.
+            // Ideally we should aggregate ALL dusuns for this kecamatan.
+            const locs = await Location.find({ kecamatan: { $regex: new RegExp(`^${id}$`, 'i') } }).lean();
+            if (locs.length > 0) {
+                // Merge dusuns from all locations in this kecamatan
+                const allDusuns = locs.reduce((acc, loc) => acc.concat(loc.dusun_detail || []), []);
+                location = {
+                    ...locs[0], // Use first location as base for other fields
+                    dusun_detail: allDusuns,
+                    warga: locs.reduce((sum, l) => sum + (l.warga || 0), 0),
+                    // You might want to aggregate other stats here
+                };
+            }
+        }
+
+        if (!location) return res.status(404).json({ success: false, message: 'Not found' });
+
+        const filteredDusuns = (location.dusun_detail || []).filter(d =>
+            d.status !== 'REFF!' && d.status !== '#REF!' && d.status !== '0' && d.nama !== 'REFF!'
+        );
+
+        res.json({
+            success: true,
+            data: {
+                ...location,
+                dusuns: filteredDusuns
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
@@ -984,20 +1091,16 @@ exports.getKecamatanPoints = async (req, res) => {
                 }
             }
 
-            // Flatten and format dusuns from all desas in this kecamatan
             let flattenedDusuns = [];
             if (k.all_dusuns) {
                 k.all_dusuns.forEach(desaDusuns => {
                     if (Array.isArray(desaDusuns)) {
                         desaDusuns.forEach(d => {
-                            // Filter out error statuses
                             if (d.status === 'REFF!' || d.status === '#REF!') return;
-
                             const s = (d.status || "").toUpperCase();
-                            // Standardize status logic as per getGeoJSON
                             const isGood = s.includes('PLN') && !s.includes('NON PLN') && !s.includes('BELUM');
                             flattenedDusuns.push({
-                                name: d.nama,
+                                name: d.name,
                                 status: isGood ? "Berlistrik PLN" : (d.status || "Belum Berlistrik")
                             });
                         });
@@ -1005,17 +1108,18 @@ exports.getKecamatanPoints = async (req, res) => {
                 });
             }
 
-            // Determine Overall Status for the point - For Kecamatan Map, always show as green (Stable)
-            const statusText = "Berlistrik PLN";
+            // Determine Kecamatan level status
+            const hasWarning = flattenedDusuns.some(d => d.status !== "Berlistrik PLN");
 
             return {
                 type: "Feature",
                 properties: {
+                    id: k.nama_kecamatan, // Stable ID for search matching
                     name: k.nama_kecamatan,
                     kabupaten: k.kabupaten,
                     kecamatan: k.nama_kecamatan,
-                    status: statusText,
-                    dusuns: flattenedDusuns, // This will populate the "Rincian Dusun" in popup
+                    status: hasWarning ? "Belum Berlistrik" : "Berlistrik PLN",
+                    dusuns: flattenedDusuns,
                     warga: wargaMap[k.nama_kecamatan] || 0
                 },
                 geometry: coords
@@ -1027,24 +1131,9 @@ exports.getKecamatanPoints = async (req, res) => {
             features: formatted
         });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Gagal ambil data kecamatan" });
+        res.status(500).json({ success: false, message: "Gagal ambil data kecamatan" });
     }
 };
-
-// Get Boundary GeoJSON
-exports.getBoundaries = async (req, res) => {
-    try {
-        const fs = require('fs');
-        const path = require('path');
-        const filePath = path.join(__dirname, '../data/geojson/aceh_kabupaten.geojson');
-        const data = fs.readFileSync(filePath, 'utf8');
-        res.json(JSON.parse(data));
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
-const Notification = require('../models/Notification'); // Import Notification model
 
 // ... (existing code)
 
@@ -1068,21 +1157,20 @@ exports.updateDusunStatus = async (req, res) => {
         }
 
         // --- NEW: Create Notification ---
-        // --- NEW: Create Notification ---
         try {
-            console.log("Update Dusun Status Body:", req.body); // Debugging
+            console.log("Update Dusun Status for:", dusunName);
 
-            let actorName = req.body.userName;
-            if (!actorName || actorName.trim() === "") {
-                actorName = KABUPATEN_TO_UP3[location.kabupaten.toUpperCase()] || "Admin Wilayah";
-            }
+            const user = await User.findById(req.userId);
+            const actorName = user
+                ? (user.unit ? `${user.unit} - ${user.name}` : user.name)
+                : (KABUPATEN_TO_UP3[location.kabupaten.toUpperCase()] || "Admin Wilayah");
 
             await Notification.create({
                 title: "Pembaruan Status Dusun",
                 message: `Status Dusun ${dusunName} di Desa ${location.desa} telah diubah menjadi ${newStatus}`,
                 type: newStatus === 'Belum Berlistrik' ? 'warning' : 'success',
                 userName: actorName,
-                // Optional: Add reference or metadata if you schema supports it, otherwise reliance on parsing logic is fine for now
+                user: req.userId
             });
         } catch (notifErr) {
             console.error("Failed to create notification:", notifErr);
@@ -1159,6 +1247,8 @@ exports.getUlpOffices = async (req, res) => {
                 dusunCount: totalDusun,
                 pelanggan: office.pelanggan || totalPelanggan,
                 update_pelanggan: office.update_pelanggan || "Desember, 2025",
+                sumber: office.sumber || "Data Induk Layanan PLN",
+                tahun: office.tahun || "2025",
                 warga: totalWarga
             };
         });
@@ -1215,11 +1305,19 @@ exports.getUlpDesaGrouped = async (req, res) => {
                 d.status !== 'REFF!' && d.status !== '#REF!' && d.status !== '0' && d.nama !== 'REFF!'
             );
 
+            // Determine status based on dusun_detail
+            const hasWarningDusun = rawDusuns.some(d => {
+                const s = (d.status || "").toUpperCase();
+                if (s === 'REFF!' || s === '#REF!' || s === '0' || d.nama === 'REFF!') return false;
+                return d.status !== "Berlistrik PLN";
+            });
+
             acc[namaULP].push({
                 ...desa,
+                locationId: match?._id,
                 latitude: desa.latitude,
                 longitude: desa.longitude,
-                Status_Listrik: desa.Status_Listrik || "Berlistrik",
+                Status_Listrik: hasWarningDusun ? "Belum Berlistrik" : "Berlistrik PLN",
                 Desa: desaName,
                 Kecamatan: kecName,
                 Kabupaten: kabName,
@@ -1227,11 +1325,7 @@ exports.getUlpDesaGrouped = async (req, res) => {
                 warga: match?.warga || 0,
                 pelanggan: match?.pelanggan || 0,
                 lembaga_warga: match?.sumber_warga || "-",
-                tahun: match?.tahun_warga || "-",
-                dusuns: filteredDusuns.map(d => ({
-                    name: d.nama,
-                    status: d.status
-                }))
+                tahun: match?.tahun_warga || "-"
             });
             return acc;
         }, {});
@@ -1375,6 +1469,8 @@ exports.getUlpDetail = async (req, res) => {
                     warga: totalWarga,
                     pelanggan: ulpMeta?.pelanggan || totalPelanggan,
                     update_pelanggan: ulpMeta?.update_pelanggan || "Desember, 2025",
+                    sumber_pelanggan: ulpMeta?.sumber || "-",
+                    tahun_pelanggan: ulpMeta?.tahun || "-",
                     lembaga_warga: mostFrequent(sources) || "-",
                     tahun: mostFrequent(years) || "-"
                 },
@@ -1398,7 +1494,9 @@ exports.updateUp3Pelanggan = async (req, res) => {
             { nama_up3: new RegExp(`^${cleanName}$`, 'i') },
             {
                 pelanggan: parseInt(pelanggan),
-                update_pelanggan: update_pelanggan || "Desember, 2025"
+                update_pelanggan: req.body.update_pelanggan || "Desember, 2025",
+                sumber: req.body.sumber || "Data Induk Layanan PLN",
+                tahun: req.body.tahun || "2025"
             },
             { new: true, upsert: true }
         );
@@ -1419,10 +1517,58 @@ exports.updateUlpPelanggan = async (req, res) => {
             { nama_ulp: new RegExp(`^${cleanName}$`, 'i') },
             {
                 pelanggan: parseInt(pelanggan),
-                update_pelanggan: update_pelanggan || "Desember, 2025"
+                update_pelanggan: req.body.update_pelanggan || "Desember, 2025",
+                sumber: req.body.sumber || "Data Induk Layanan PLN",
+                tahun: req.body.tahun || "2025"
             },
             { new: true, upsert: true }
         );
+
+        // Find parent UP3 and update its total (Automatic Synchronization)
+        try {
+            // 1. Get ULP mapping to find Kabupaten
+            const mapping = await UlpDesa.findOne({
+                ULP: new RegExp(`^${cleanName}$`, 'i')
+            }).lean();
+
+            if (mapping && mapping["Kabupaten/Kota"]) {
+                const kab = mapping["Kabupaten/Kota"].toUpperCase();
+                const up3FullName = KABUPATEN_TO_UP3[kab];
+
+                if (up3FullName) {
+                    const kabList = UP3_TO_KABUPATEN[up3FullName];
+
+                    // 2. Find all unique ULPs under this UP3's kabupatens
+                    const siblings = await UlpDesa.distinct('ULP', {
+                        "Kabupaten/Kota": { $in: kabList }
+                    });
+
+                    // 3. Sum up current pelanggan counts for all these ULPs
+                    const siblingStats = await Ulp.find({
+                        nama_ulp: { $in: siblings.filter(Boolean).map(s => new RegExp(`^${s.trim()}$`, 'i')) }
+                    }).lean();
+
+                    const up3Total = siblingStats.reduce((sum, s) => sum + (s.pelanggan || 0), 0);
+                    const cleanUp3Name = up3FullName.replace(/^UP3\s+/i, '').trim();
+
+                    // 4. Update parent UP3
+                    await Up3.findOneAndUpdate(
+                        { nama_up3: new RegExp(`^${cleanUp3Name}$`, 'i') },
+                        {
+                            pelanggan: up3Total,
+                            update_pelanggan: req.body.update_pelanggan || "Desember, 2025",
+                            sumber: req.body.sumber || "Data Induk Layanan PLN",
+                            tahun: req.body.tahun || "2025"
+                        }
+                    );
+
+                    console.log(`Auto-synced UP3 ${cleanUp3Name} total to ${up3Total}`);
+                }
+            }
+        } catch (syncError) {
+            console.error("Auto-sync UP3 failed:", syncError);
+            // We don't fail the entire request if sync fails
+        }
 
         res.json({ success: true, data: result });
     } catch (error) {

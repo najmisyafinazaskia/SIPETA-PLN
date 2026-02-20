@@ -2,7 +2,14 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon } from "../../icons";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
 
 interface Dusun {
     nama: string;
@@ -48,11 +55,15 @@ export default function DusunDetailPage() {
 
     // Filter berdasarkan status
     const filteredList = listDusun.filter((dusun) => {
-        const isStable = dusun.status.toLowerCase() === "berlistrik pln";
+        const status = dusun.status.toLowerCase();
+        const isStable = status === "berlistrik pln" || status === "berlistrik";
         return activeTab === "stable" ? isStable : !isStable;
     });
 
-    const countStable = listDusun.filter(d => d.status.toLowerCase() === "berlistrik pln").length;
+    const countStable = listDusun.filter(d => {
+        const s = d.status.toLowerCase();
+        return s === "berlistrik pln" || s === "berlistrik";
+    }).length;
     const countWarning = listDusun.length - countStable;
 
     if (loading) {
@@ -111,7 +122,7 @@ export default function DusunDetailPage() {
                         className={`p-8 rounded-3xl border transition-all text-left group overflow-hidden relative ${activeTab === "warning" ? "border-yellow-500 bg-yellow-50/30 dark:bg-yellow-500/10 shadow-lg" : "border-gray-100 bg-white dark:bg-gray-800 hover:shadow-xl"
                             }`}
                     >
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 ${activeTab === "warning" ? "bg-yellow-500 text-white" : "bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20"}`}>
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110 ${activeTab === "warning" ? "bg-yellow-500 text-white" : "bg-yellow-50 text-yellow-600 dark:bg-green-900/20"}`}>
                             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                         </div>
                         <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Belum Terjangkau Listrik</p>
@@ -125,25 +136,52 @@ export default function DusunDetailPage() {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                    {filteredList.map((dusun, idx) => (
-                        <div
-                            key={idx}
-                            className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all flex justify-between items-center group"
-                        >
-                            <div>
-                                <h3 className="text-xl font-bold text-[#1C2434] dark:text-white uppercase font-outfit mb-1">
-                                    {dusun.nama}
-                                </h3>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest font-outfit transition-colors group-hover:text-[#0052CC]">
-                                    {dusun.status}
-                                </p>
-                            </div>
+                    {filteredList.map((dusun, idx) => {
+                        const s = dusun.status.toLowerCase();
+                        const isStable = s === "berlistrik pln" || s === "berlistrik";
 
-                            <div className="flex items-center gap-4">
-                                <span className={`w-3 h-3 rounded-full shadow-[0_0_8px] ${dusun.status.toLowerCase() === "berlistrik pln" ? "bg-[#22AD5C] shadow-[#22AD5C]" : "bg-[#F2C94C] shadow-[#F2C94C]"}`}></span>
+                        return (
+                            <div
+                                key={idx}
+                                className="p-6 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all flex justify-between items-center group"
+                            >
+                                <div className="flex flex-col">
+                                    <h3 className="text-xl font-bold text-[#1C2434] dark:text-white uppercase font-outfit mb-1">
+                                        {dusun.nama}
+                                    </h3>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest font-outfit transition-colors group-hover:text-[#0052CC]">
+                                        {dusun.status}
+                                    </p>
+                                    {!isStable && (() => {
+                                        const nameUpper = dusun.nama.toUpperCase();
+                                        if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS')) {
+                                            return (
+                                                <span className="text-[9px] font-bold text-blue-600 mt-2 uppercase tracking-widest bg-blue-50 border border-blue-200 px-2 py-1 rounded-md w-fit">
+                                                    🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025
+                                                </span>
+                                            );
+                                        }
+                                        if (nameUpper.includes('LHOK PINEUNG')) {
+                                            return (
+                                                <span className="text-[9px] font-bold text-purple-600 mt-2 uppercase tracking-widest bg-purple-50 border border-purple-200 px-2 py-1 rounded-md w-fit">
+                                                    📅 SUDAH MASUK PADA ROADMAP 2026
+                                                </span>
+                                            );
+                                        }
+                                        return (
+                                            <span className="text-[9px] font-bold text-orange-600 mt-2 uppercase tracking-widest bg-orange-50 border border-orange-200 px-2 py-1 rounded-md w-fit">
+                                                🏠 RUMAH KEBUN | TIDAK BERLISTRIK 24 JAM
+                                            </span>
+                                        );
+                                    })()}
+                                </div>
+
+                                <div className="flex items-center gap-4">
+                                    <span className={`w-3 h-3 rounded-full shadow-[0_0_8px] ${isStable ? "bg-[#22AD5C] shadow-[#22AD5C]" : "bg-[#F2C94C] shadow-[#F2C94C]"}`}></span>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
 
                     {filteredList.length === 0 && (
                         <div className="py-20 text-center flex flex-col items-center gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border-2 border-dashed border-gray-100">

@@ -2,7 +2,14 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeftIcon, BoxCubeIcon, GroupIcon } from "../../icons";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
 
 interface Dusun {
     nama: string;
@@ -14,6 +21,7 @@ export default function UlpDesaDetail() {
     const navigate = useNavigate();
     const decodedName = decodeURIComponent(name || "");
     const [dusuns, setDusuns] = useState<Dusun[]>([]);
+    const [stats, setStats] = useState<any>({});
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<"stable" | "warning">("stable");
 
@@ -25,6 +33,7 @@ export default function UlpDesaDetail() {
                 const json = await response.json();
                 if (json.success) {
                     setDusuns(json.data.dusuns || []);
+                    setStats(json.data);
                 }
             } catch (error) {
                 console.error("Error fetching desa detail:", error);
@@ -86,16 +95,30 @@ export default function UlpDesaDetail() {
                     </div>
 
                     {/* Card 2: Warga */}
-                    <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-default">
+                    <div
+                        onClick={() => {
+                            let link = 'https://data.acehprov.go.id/ru/dataset/jumlah-penduduk-desa-berdasarkan-jenis-kelamin-idm/resource/3f4f7fd0-5c2c-4067-adfe-d9b007c02bd3';
+                            const desaName = decodedName.toUpperCase();
+                            if (desaName.includes("PULO BUNTA") || desaName.includes("PULAU BUNTA")) {
+                                link = 'https://web-api.bps.go.id/download.php?f=emrs2PeaH0a6WJZEdd9a61lrbE5kd1BRM1I0ckwydlIzUGVPV0dWbUxJWXJ5cGFIRkxScUtPWjJSejFjVUcxakFIbER5MzgyZmNudkpsVnJXeG12U0xwS1VoZFJGNnUzVFlmUHFoMC9INHRXYy84NC9XT0pVVmRoWmp2dGpvVkI1cWtlNit3UTR1clVFS0xhUTdiWDJKQXY5VHNTcXplYkpvZTNqSWYzY2FuSW9WSmswVUcxUklqWTYrYlVwRnRiVjRRNDJjRGdra1V0TG9NYWxMTFU0bkkwWnZQdXBSVXZ3WXozeW1INmZJUTZqTGsyUi9UVGdWQ0xKb3kxVHNHRFU2K0duVVk3MW9kMk8zKzI';
+                            } else if (desaName.includes("PERKEBUNAN ALUR JAMBU")) {
+                                link = 'https://web-api.bps.go.id/download.php?f=iLRij3EaVTd32UpTcGwhbzk3elg4RDI4c0h1NnE5QjY3V055MWlsMHZncStGZ0wrVVBUbmJUcEZSRU1KQmJvaDVLS0kyKzh5QTA1TklrSStvNTIwRTh2anhKeVhjNkJRRWZQS2xRRG5FNXBzU1VkL3VWOCtuRkNBK2hLamltcVloZHU5aU5wMk5TZ01tYTBlTkVhUFBUa043ZHpseUxIUFlDcWpqTnR6YlV4MElyTUtYS3IzZmN0aFNLMHZOTHNna2pEek10M0ZlRjE1ZElnV2pxWk9zNUhaVmFkR2dKZnRoZFZRbjZXV3RHdlFvUkIzdWdRL1MwNk9wM0dKMTIwcEw2WlZuekp1c1M2MVRlVjE%3D&utm_source=chatgpt.com';
+                            } else if (desaName.includes("BATU JAYA")) {
+                                link = 'https://disdukcapil.acehbaratkab.go.id/media/2020.08/DATA_AGREGAT_KEPENDUDUKAN_SEMESTER_I_TAHUN_2020.pdf';
+                            }
+                            window.open(link, '_blank');
+                        }}
+                        className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-pointer"
+                    >
                         <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-pink-600">
                             <GroupIcon className="w-7 h-7" />
                         </div>
                         <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Warga</p>
                         <h3 className="text-4xl font-black text-[#1C2434] dark:text-white leading-none mb-6 font-outfit">
-                            -
+                            {stats.warga ? stats.warga.toLocaleString() : "-"}
                         </h3>
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
-                            Estimasi Populasi
+                            {stats.lembaga_warga && stats.lembaga_warga !== '-' ? `Sumber : ${stats.lembaga_warga}, ${stats.tahun}` : "Estimasi Populasi"}
                         </p>
                     </div>
 

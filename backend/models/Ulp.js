@@ -5,7 +5,9 @@ const ulpSchema = new mongoose.Schema({
     longitude: Number,
     latitude: Number,
     pelanggan: Number,
-    update_pelanggan: String
+    update_pelanggan: String,
+    sumber: String,
+    tahun: String
 }, { collection: 'ulp_db' });
 
 module.exports = mongoose.model('Ulp', ulpSchema);

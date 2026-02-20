@@ -4,7 +4,14 @@ import KabkotMap from "./KabkotMap";
 import MapFilter from "../../components/ui/MapFilter";
 import SearchableSelect from "../../components/ui/SearchableSelect";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
 
 interface LocationItem {
   name: string;
@@ -91,6 +98,15 @@ export default function KabKotPage() {
 
     fetchData();
   }, []);
+
+  // Sync Map Filter with Tabs
+  useEffect(() => {
+    if (showStable && !showWarning) {
+      setActiveTab("stable");
+    } else if (!showStable && showWarning) {
+      setActiveTab("warning");
+    }
+  }, [showStable, showWarning]);
 
   useEffect(() => {
     const timer = setTimeout(async () => {

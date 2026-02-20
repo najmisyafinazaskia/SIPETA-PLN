@@ -6,7 +6,9 @@ const up3Schema = new mongoose.Schema({
     latitude: Number,
     total_desa: Number,
     pelanggan: Number,
-    update_pelanggan: String
+    update_pelanggan: String,
+    sumber: String,
+    tahun: String
 }, { collection: 'up3_db' });
 
 module.exports = mongoose.model('Up3', up3Schema);

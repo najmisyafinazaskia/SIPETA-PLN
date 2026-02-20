@@ -1,6 +1,6 @@
-# fly.toml app configuration file generated for sipeda-frontend on 2024-02-11
+# fly.toml app configuration file generated for sipeta-frontend on 2024-02-11
 
-app = "sipeda-frontend-aceh"
+app = "sipeta-frontend-aceh"
 primary_region = "sin"
 
 [http_service]

@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeftIcon, BoxCubeIcon, GroupIcon, BoltIcon, PencilIcon } from "../../icons";
+import { ChevronLeftIcon, BoxCubeIcon, BoltIcon, GroupIcon, PencilIcon } from "../../icons";
+import { useAuth } from "../../context/AuthContext";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
+
+
+
+
+
+
 
 interface Up3Stats {
     name: string;
@@ -19,9 +27,12 @@ interface Up3Stats {
     ulpCount?: number;
     ulpList?: string[];
     update_pelanggan?: string;
+    sumber_pelanggan?: string;
+    tahun_pelanggan?: string;
 }
 
 export default function Up3Detail() {
+    const { user } = useAuth();
     const { name } = useParams();
     const navigate = useNavigate();
     const decodedName = decodeURIComponent(name || "");
@@ -29,6 +40,8 @@ export default function Up3Detail() {
     const [loading, setLoading] = useState(true);
     const [isInputModalOpen, setIsInputModalOpen] = useState(false);
     const [newPelanggan, setNewPelanggan] = useState("");
+    const [newSumber, setNewSumber] = useState("Data Induk Layanan");
+    const [newTahun, setNewTahun] = useState("PLN 2025");
     const [isUpdating, setIsUpdating] = useState(false);
     const [modal, setModal] = useState<{
         isOpen: boolean;
@@ -52,7 +65,9 @@ export default function Up3Detail() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: decodedName,
-                    pelanggan: newPelanggan
+                    pelanggan: newPelanggan,
+                    sumber: newSumber,
+                    tahun: newTahun
                 })
             });
             const json = await response.json();
@@ -124,7 +139,8 @@ export default function Up3Detail() {
             status === "0" ||
             status === "REFF!" ||
             status === "Dusun tidak diketahui" ||
-            safeStatus.includes("belum");
+            safeStatus.includes("belum") ||
+            safeStatus.includes("roadmap");
         return isProblematic ? "warning" : "stable";
     };
 
@@ -243,14 +259,19 @@ export default function Up3Detail() {
                     {/* Card 5: Pelanggan */}
                     <div
                         onClick={() => {
+                            if (user?.role !== "superadmin") return;
                             setNewPelanggan(stats.pelanggan?.toString() || "");
+                            setNewSumber((stats.sumber_pelanggan && stats.sumber_pelanggan !== "-") ? stats.sumber_pelanggan : "Data Induk Layanan");
+                            setNewTahun((stats.tahun_pelanggan && stats.tahun_pelanggan !== "-") ? stats.tahun_pelanggan : "PLN 2025");
                             setIsInputModalOpen(true);
                         }}
-                        className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-pointer relative"
+                        className={`p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group relative ${user?.role === "superadmin" ? "cursor-pointer" : ""}`}
                     >
-                        <div className="absolute top-6 right-6 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white">
-                            <PencilIcon className="w-5 h-5" />
-                        </div>
+                        {user?.role === "superadmin" && (
+                            <div className="absolute top-6 right-6 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white">
+                                <PencilIcon className="w-5 h-5" />
+                            </div>
+                        )}
                         <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center mb-6 text-orange-600 transition-transform group-hover:scale-105">
                             <BoltIcon className="w-7 h-7" />
                         </div>
@@ -259,13 +280,19 @@ export default function Up3Detail() {
                             {stats.pelanggan || stats.pelanggan === 0 ? stats.pelanggan.toLocaleString() : "-"}
                         </h3>
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
-                            Titik Sambungan • PLN
+                            Sumber : {(stats.sumber_pelanggan && stats.sumber_pelanggan !== "-") ? stats.sumber_pelanggan : "Data Induk Layanan"}, {(stats.tahun_pelanggan && stats.tahun_pelanggan !== "-") ? stats.tahun_pelanggan : "PLN 2025"}
                         </p>
                     </div>
 
                     {/* Card 6: Warga */}
-                    <div className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-default">
-                        <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center mb-6 text-pink-600 transition-transform group-hover:scale-105">
+                    <div
+                        onClick={() => {
+                            const link = 'https://data.acehprov.go.id/ru/dataset/jumlah-penduduk-desa-berdasarkan-jenis-kelamin-idm/resource/3f4f7fd0-5c2c-4067-adfe-d9b007c02bd3';
+                            window.open(link, '_blank');
+                        }}
+                        className="p-8 rounded-3xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-all group cursor-pointer"
+                    >
+                        <div className="w-14 h-14 rounded-2xl bg-pink-50 dark:bg-pink-900/20 flex items-center justify-center mb-6 text-pink-600 transition-transform group-hover:scale-110">
                             <GroupIcon className="w-7 h-7" />
                         </div>
                         <p className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-outfit">Total Warga ( Desa )</p>
@@ -274,7 +301,7 @@ export default function Up3Detail() {
                         </h3>
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] transition-colors group-hover:text-[#0052CC] font-outfit">
                             {stats.lembaga_warga && stats.tahun && stats.lembaga_warga !== "-" ? (
-                                `Update: ${stats.lembaga_warga}, ${stats.tahun}`
+                                `Sumber : ${stats.lembaga_warga}, ${stats.tahun}`
                             ) : (
                                 "Jiwa • Agregasi Kecamatan"
                             )}
@@ -365,9 +392,33 @@ export default function Up3Detail() {
                                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black transition-colors ${isClickable ? "bg-white dark:bg-gray-800 text-gray-400 group-hover:text-blue-500 group-hover:scale-110" : "bg-gray-200 dark:bg-gray-800 text-gray-400"}`}>
                                                         {idx + 1}
                                                     </div>
-                                                    <span className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                                                        {itemName}
-                                                    </span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                                                            {itemName}
+                                                        </span>
+                                                        {modal.type === "Dusun" && getDusunStatus(item.status) === "warning" && (() => {
+                                                            const nameUpper = itemName.toUpperCase();
+                                                            if (nameUpper.includes('PERPOLIN') || nameUpper.includes('PERABIS')) {
+                                                                return (
+                                                                    <span className="text-[8px] font-bold text-blue-600 mt-1 uppercase tracking-widest bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md w-fit">
+                                                                        🏗️ SUDAH DIKERJAKAN PADA ROADMAP 2025
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            if (nameUpper.includes('LHOK PINEUNG')) {
+                                                                return (
+                                                                    <span className="text-[8px] font-bold text-purple-600 mt-1 uppercase tracking-widest bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md w-fit">
+                                                                        📅 SUDAH MASUK PADA ROADMAP 2026
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <span className="text-[8px] font-bold text-orange-600 mt-1 uppercase tracking-widest bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-md w-fit">
+                                                                    🏠 RUMAH KEBUN | TIDAK BERLISTRIK 24 JAM
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -412,9 +463,34 @@ export default function Up3Detail() {
                                         type="number"
                                         value={newPelanggan}
                                         onChange={(e) => setNewPelanggan(e.target.value)}
-                                        className="w-full px-8 py-5 rounded-[2rem] border-none bg-gray-50 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-xl font-black text-[#1C2434] dark:text-white text-center"
+                                        className="w-full px-8 py-5 rounded-[2rem] border-none bg-gray-100 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-xl font-black text-gray-800 dark:text-white text-center"
                                         autoFocus
                                     />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1 font-outfit opacity-70">
+                                            Sumber Data
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newSumber}
+                                            onChange={(e) => setNewSumber(e.target.value)}
+                                            className="w-full px-6 py-4 rounded-3xl border-none bg-gray-100 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-sm font-bold text-gray-700 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1 font-outfit opacity-70">
+                                            Tahun Data
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newTahun}
+                                            onChange={(e) => setNewTahun(e.target.value)}
+                                            className="w-full px-6 py-4 rounded-3xl border-none bg-gray-100 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-sm font-bold text-gray-700 dark:text-white"
+                                        />
+                                    </div>
                                 </div>
 
 

@@ -3,43 +3,16 @@ import { Link, useLocation } from "react-router-dom"; // Gunakan react-router-do
 import {
   GridIcon,
   CalenderIcon,
-  ListIcon,
-  TableIcon,
   ChevronDownIcon
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-
-const navItems = [
-  {
-    name: "Dashboard",
-    icon: <GridIcon />,
-    subItems: [
-      { name: "Region", path: "/dashboard/region" },
-      { name: "Kota/Kabupaten", path: "/dashboard" },
-      { name: "Kecamatan", path: "/dashboard/kecamatan" },
-      { name: "Desa", path: "/dashboard/desa" },
-      { name: "Dusun", path: "/dashboard/dusun" },
-    ],
-  },
-  {
-    name: "UP3",
-    icon: <ListIcon />,
-    subItems: [{ name: "UP3 Aceh", path: "/dashboard/up3" }],
-  },
-  {
-    name: "ULP",
-    icon: <TableIcon />,
-    subItems: [{ name: "ULP Aceh", path: "/dashboard/ulp" }],
-  },
-  {
-    name: "Verifikasi",
-    icon: <CalenderIcon />,
-    path: "/dashboard/verifikasi", // ✅ Perbaiki path agar sesuai App.tsx
-  }
-];
+import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { user } = useAuth();
+  const { theme } = useTheme();
   const location = useLocation();
   const [openSubmenu, setOpenSubmenu] = useState<number | null>(0);
 
@@ -47,6 +20,69 @@ const AppSidebar: React.FC = () => {
     (path: string) => location.pathname === path,
     [location.pathname]
   );
+
+  const role = user?.role;
+  const isSuperAdmin = role === "superadmin" || user?.unit === "UP2K";
+  const isAdmin = role === "admin" || (user?.unit && user.unit !== "UP2K");
+
+  const navItems = [
+    {
+      name: "Dashboard",
+      icon: <GridIcon />,
+      subItems: [
+        { name: "Region", path: "/dashboard/region" },
+        { name: "Kota/Kabupaten", path: "/dashboard" },
+        { name: "Kecamatan", path: "/dashboard/kecamatan" },
+        { name: "Desa", path: "/dashboard/desa" },
+        { name: "Dusun", path: "/dashboard/dusun" },
+      ],
+    },
+    {
+      name: "UP3",
+      icon: (
+        <img
+          src={theme === "dark" ? "/images/icons/up3-dark.png" : "/images/icons/up3-light.png"}
+          alt="UP3"
+          className={`size-6 object-contain transition-all duration-200 ${isActive("/dashboard/up3") ? "brightness-0 invert" : ""}`}
+        />
+      ),
+      subItems: [{ name: "UP3 Aceh", path: "/dashboard/up3" }],
+    },
+    {
+      name: "ULP",
+      icon: (
+        <img
+          src={theme === "dark" ? "/images/icons/ulp-dark.png" : "/images/icons/ulp-light.png"}
+          alt="ULP"
+          className={`size-6 object-contain transition-all duration-200 ${isActive("/dashboard/ulp") ? "brightness-0 invert" : ""}`}
+        />
+      ),
+      subItems: [{ name: "ULP Aceh", path: "/dashboard/ulp" }],
+    },
+    ...(isSuperAdmin
+      ? [
+        {
+          name: "Berita Acara",
+          icon: <CalenderIcon />,
+          subItems: [{ name: "Verifikasi", path: "/dashboard/verifikasi" }],
+        },
+      ]
+      : isAdmin
+        ? [
+          {
+            name: "Berita Acara",
+            icon: <CalenderIcon />,
+            subItems: [{ name: "Upload", path: "/dashboard/verifikasi" }],
+          },
+        ]
+        : [
+          {
+            name: "Berita Acara",
+            icon: <CalenderIcon />,
+            path: "/dashboard/verifikasi",
+          },
+        ]),
+  ];
 
   const isParentActive = (subItems?: { path: string }[]) => {
     if (!subItems) return false;
@@ -121,6 +157,12 @@ const AppSidebar: React.FC = () => {
                               <li key={sub.name}>
                                 <Link
                                   to={sub.path}
+                                  onClick={(e) => {
+                                    if (sub.path === "/dashboard/verifikasi") {
+                                      e.preventDefault();
+                                      window.location.href = sub.path;
+                                    }
+                                  }}
                                   className={`flex items-center w-full py-2 px-4 transition-all rounded-lg text-sm font-bold
                                     ${isActive(sub.path)
                                       ? "text-blue-600 bg-blue-50 dark:bg-blue-600/10 dark:text-blue-400"
@@ -153,6 +195,32 @@ const AppSidebar: React.FC = () => {
               })}
             </ul>
           </div>
+
+          {/* Footer Call Center */}
+          {(isExpanded || isHovered) && (
+            <div className="mt-auto px-12 pb-6">
+              <Link
+                to="/dashboard/call-center"
+                className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-300 group
+                  ${isActive("/dashboard/call-center")
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                    : "bg-slate-50 text-[#1C2434]/70 hover:bg-blue-50 hover:text-blue-600 dark:bg-white/[0.03] dark:text-slate-400 dark:hover:bg-blue-600/10 dark:hover:text-blue-400"}`}
+              >
+                <div className={`p-1.5 rounded-xl mb-1.5 transition-colors duration-300
+                  ${isActive("/dashboard/call-center")
+                    ? "bg-white/20"
+                    : "bg-white dark:bg-gray-800 shadow-sm group-hover:bg-blue-600"}`}>
+                  <img
+                    src={theme === "dark" ? "/images/icons/callcenter-dark.png" : "/images/icons/call-center.png"}
+                    alt="Call Center"
+                    className={`size-7 object-contain transition-all duration-300 ${isActive("/dashboard/call-center") && theme !== "dark" ? "brightness-0 invert" : ""}`}
+                  />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider">Call Center</span>
+              </Link>
+            </div>
+          )}
+
         </div>
       </aside>
     </>

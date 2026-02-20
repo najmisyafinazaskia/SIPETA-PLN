@@ -7,7 +7,13 @@ import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+
+
+
+
+
+
 
 interface RegionMapProps {
   activeFilters: { stable: boolean; warning: boolean };
@@ -23,9 +29,16 @@ interface RegionMapProps {
 // Icon Gedung UP3 Custom
 const up3Icon = L.icon({
   iconUrl: '/assets/icons/up3_office.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32]
+  iconSize: [28, 40],
+  iconAnchor: [14, 40],
+  popupAnchor: [0, -40]
+});
+
+const ulpIcon = L.icon({
+  iconUrl: '/assets/icons/ulp_temp.png',
+  iconSize: [20, 30],
+  iconAnchor: [10, 30],
+  popupAnchor: [0, -30]
 });
 
 // Bright neon colors palette for map borders
@@ -73,18 +86,24 @@ const UP3_MAPPING: Record<string, string[]> = {
 
 const KABUPATEN_TO_UP3: Record<string, string> = {};
 Object.entries(UP3_MAPPING).forEach(([up3, kabs]) => {
-  kabs.forEach(kab => { KABUPATEN_TO_UP3[kab] = up3; });
+  kabs.forEach(kab => {
+    KABUPATEN_TO_UP3[kab.toUpperCase().trim()] = up3;
+  });
 });
 
-const getUp3Color = (nama: string) => up3Colors[nama] || "#3498db";
+const getUp3Color = (nama: string) => {
+  if (!nama) return "#95a5a6";
+  const cleanNama = nama.replace(/^UP3\s+/i, '').trim();
+  return up3Colors[cleanNama] || up3Colors[nama] || "#3498db";
+};
 
 const getPointPopupHtml = (props: any, isBerlistrik: boolean, hideStatus: boolean = false, type: string = "desa") => {
   const displayPrefix = type === "kecamatan" ? "Kec." : "Desa";
-  let rawName = props.name || props.Desa || "N/A";
+  let rawName = props.name || props.Desa || props.desa || "N/A";
   let cleanName = rawName.replace(/^Desa\s+/i, "");
 
   return `
-    <div style="font-family: 'Outfit', sans-serif; min-width: 200px; padding: 2px; animation: fadeIn 0.3s ease-out;">
+    <div style="font-family: 'Outfit', sans-serif; min-width: 220px; padding: 2px; animation: fadeIn 0.3s ease-out;">
       <style>
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         ::-webkit-scrollbar { width: 3px; }
@@ -154,25 +173,42 @@ const getPointPopupHtml = (props: any, isBerlistrik: boolean, hideStatus: boolea
 
       <div>
         <div class="popup-dusun-header">RINCIAN DUSUN:</div>
-        <div style="display: flex; flex-direction: column; gap: 4px; max-height: 150px; overflow-y: auto; padding-right: 4px;">
+        <div style="display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; padding-right: 4px;">
           ${(props.dusuns && props.dusuns.length > 0) ? props.dusuns.map((d: any) => {
-    const s = (d.status || "").toUpperCase();
-    const isBad = s.includes('BELUM') || s.includes('NON PLN') || s === '0' || s === 'REFF!' || s === '#REF!';
-    const color = (!isBad && s.includes('PLN')) ? '#22c55e' : '#eab308';
-    const nameUpper = (d.name || "").toUpperCase();
-    const hasSpecialLabel = ['PERPOLIN', 'PERABIS', 'LHOK PINEUNG'].some(n => nameUpper.includes(n));
+    const statusText = (d.status || "").toUpperCase();
+
+    const dNameRaw = d.nama || d.name || "N/A";
+    const dNameUpper = dNameRaw.toUpperCase();
+
+    // Determine categorization (Strict)
+    const isActuallyPLN = (d.status === "Berlistrik PLN");
+
+    // Fallback for missing or zero status
+    let baseStatusLabel = isActuallyPLN ? "Berlistrik PLN" : "Belum Berlistrik";
+    let detailStatus = d.status;
+
+    const isProblematic = statusText === "0" || statusText === "REFF!" || statusText === "#REF!" || statusText === "DUSUN TIDAK DIKETAHUI" || !d.status;
+    const isException = dNameUpper.includes("PERPOLIN") || dNameUpper.includes("PERABIS") || dNameUpper.includes("LHOK SANDENG");
+
+    if (isProblematic && !isException) {
+      detailStatus = "Rumah Kebun | Tidak Berlistrik 24 Jam";
+    }
+
+    const displayColor = isActuallyPLN ? '#22c55e' : '#eab308';
 
     return `
               <div class="popup-dusun-item">
-                <div style="display: flex; align-items: start; gap: 8px;">
-                  <span class="popup-dusun-name">${d.name}</span>
-                  <span style="font-weight: 800; white-space: nowrap; color: ${color}; font-size: 10px;">${d.status}</span>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
+                    <span class="popup-dusun-name">${dNameRaw}</span>
+                    <span style="font-weight: 800; white-space: nowrap; color: ${displayColor}; font-size: 9px; text-align: right; text-transform: uppercase;">${baseStatusLabel}</span>
+                  </div>
+                  ${detailStatus && detailStatus !== "Berlistrik PLN" && detailStatus !== "Belum Berlistrik" ? `
+                    <div style="font-size: 9px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 2px 6px; border-radius: 4px; width: fit-content;">
+                      ${detailStatus}
+                    </div>
+                  ` : ''}
                 </div>
-                ${hasSpecialLabel ? `
-                <div style="margin-top: 4px; font-size: 10px; font-style: italic; color: #94a3b8; line-height: 1.3;">
-                  * Rumah kebun | Tidak teraliri listrik 24 jam
-                </div>
-                ` : ''}
               </div>
             `;
   }).join('') : '<span style="color: #94a3b8; font-style: italic; font-size: 10px;">Tidak ada data dusun</span>'}
@@ -205,6 +241,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
 
@@ -238,7 +275,14 @@ const RegionMap: React.FC<RegionMapProps> = ({
       searchSource = Object.entries(data.points.up3DesaGroup).flatMap(([up3Name, desaList]: any) =>
         desaList.map((desa: any) => ({
           type: "Feature",
-          properties: { name: desa.Desa, up3: up3Name, kabupaten: desa.Kabupaten, ulp: desa.ULP, kecamatan: desa.Kecamatan },
+          properties: {
+            name: desa.Desa,
+            up3: up3Name,
+            kabupaten: desa.Kabupaten,
+            ulp: desa.ULP,
+            kecamatan: desa.Kecamatan,
+            id: desa.locationId // Include ID for selection
+          },
           geometry: { type: "Point", coordinates: [desa.longitude, desa.latitude] }
         }))
       );
@@ -248,7 +292,14 @@ const RegionMap: React.FC<RegionMapProps> = ({
       searchSource = Object.entries(data.points.ulpDesaGroup).flatMap(([ulpName, desaList]: any) =>
         desaList.map((desa: any) => ({
           type: "Feature",
-          properties: { name: desa.Desa, ulp: ulpName, kabupaten: desa.Kabupaten, up3: desa.UP3, kecamatan: desa.Kecamatan },
+          properties: {
+            name: desa.Desa,
+            ulp: ulpName,
+            kabupaten: desa.Kabupaten,
+            up3: desa.UP3,
+            kecamatan: desa.Kecamatan,
+            id: desa.locationId // Include ID for selection
+          },
           geometry: { type: "Point", coordinates: [desa.longitude, desa.latitude] }
         }))
       );
@@ -282,6 +333,15 @@ const RegionMap: React.FC<RegionMapProps> = ({
       }
     }
 
+    if (markerLevel === 'kecamatan' && data.points.features) {
+      searchSource = data.points.features.map((f: any) => ({
+        ...f,
+        properties: {
+          ...f.properties,
+          id: f.properties.id || f.properties.locationId // Normalize ID for search
+        }
+      }));
+    }
     // Filter berdasarkan nama yang cocok dengan kata kunci
     const matches = searchSource.filter((f: any) => {
       const name = (f.properties?.name || "").toLowerCase();
@@ -317,6 +377,7 @@ const RegionMap: React.FC<RegionMapProps> = ({
   // Pengaturan awal peta Leaflet dan pengambilan data dari server
   useEffect(() => {
     if (!mapRef.current || leafletMap.current) return;
+    console.log("RegionMap initialized - v2.1.2 - Robust Search & Boundary Fix");
 
     // Konfigurasi ikon default Leaflet agar kompatibel dengan sistem bundling Vite
     const DefaultIcon = L.Icon.Default as any;
@@ -372,8 +433,6 @@ const RegionMap: React.FC<RegionMapProps> = ({
         if (markerLevel === 'ulp') {
           promises.push(fetch(`${API_URL}/api/locations/ulp/office`));
           promises.push(fetch(`${API_URL}/api/locations/ulp/desa-grouped`));
-          // Also fetch UP3 offices to show as background labels
-          promises.push(fetch(`${API_URL}/api/locations/up3/office`));
         }
 
         const responses = await Promise.all(promises);
@@ -394,15 +453,9 @@ const RegionMap: React.FC<RegionMapProps> = ({
           } else if (markerLevel === 'ulp' && officeRes?.ok && desaGroupRes?.ok) {
             const offices = await officeRes.json();
             const desaGroup = await desaGroupRes.json();
-            // Check if UP3 response exists (it's the last one in promises array for ULP)
-            // But promise array length is dynamic.
-            // Let's rely on checking the result index.
-            // In ULP block: [bound, point, stat, ulpOff, ulpDesa, up3Off]
-            const up3Offices = responses[5]?.ok ? await responses[5].json() : null;
-
             setData({
               boundaries,
-              points: { ...points, ulpOffices: offices, ulpDesaGroup: desaGroup, up3Offices: up3Offices }
+              points: { ...points, ulpOffices: offices, ulpDesaGroup: desaGroup }
             });
           } else {
             setData({ boundaries, points });
@@ -460,8 +513,9 @@ const RegionMap: React.FC<RegionMapProps> = ({
         }
       } catch (err) {
         console.error("Leaflet fetch error:", err);
-      } finally {
         setLoading(false);
+      } finally {
+        setTimeout(() => setLoading(false), 500);
       }
     };
 
@@ -475,408 +529,306 @@ const RegionMap: React.FC<RegionMapProps> = ({
     };
   }, []);
 
-  // 2. Handle Layers (Boundaries & Points)
+  // 2. Handle Layers (Boundaries & Points) - DECOUPLED
   useEffect(() => {
-    if (!leafletMap.current || !data.boundaries || !data.points) return;
+    if (!leafletMap.current) return;
+    console.log("Rendering Map Layers...", { hasBoundaries: !!data.boundaries, hasPoints: !!data.points });
 
     // Clear old layers
     if (boundaryLayer.current) leafletMap.current.removeLayer(boundaryLayer.current);
     if (pointsLayer.current) leafletMap.current.removeLayer(pointsLayer.current);
 
-    // Filter Logic for GeoJSON Boundaries
-    const filteredBoundaries = {
-      ...data.boundaries,
-      features: data.boundaries.features.filter((f: any) => {
-        const name = (f.properties?.Kab_Kota || f.properties?.KAB_KOTA || "Wilayah").toUpperCase();
-        if (filterLocations && filterLocations.length > 0) {
-          if (markerLevel === 'up3') {
-            // In UP3 mode, filterBoundaries must check if key belongs to selected UP3
-            const myUp3 = KABUPATEN_TO_UP3[name];
-            if (!myUp3) return false;
-            return filterLocations.some(loc => loc.toUpperCase().includes(myUp3.toUpperCase()));
-          }
-          // In ULP mode, we show ALL boundaries to maintain the colored background map regardless of filter
-          // because we don't have a direct ULP->Kabupaten map for filtering boundaries.
-          if (markerLevel === 'ulp') {
-            return true;
-          }
-          return filterLocations.some(loc => loc.toUpperCase() === name);
-        }
-        return true;
-      })
-    };
+    // 2.1 Render Boundaries (Independent)
+    if (data.boundaries && data.boundaries.features) {
+      const filteredBoundaries = {
+        ...data.boundaries,
+        features: data.boundaries.features.filter((f: any) => {
+          // FORCE SHOW: Always show all boundaries (overlays) for ULP and UP3 maps
+          // regardless of what locations are selected (User Requirement)
+          if (markerLevel === 'ulp' || markerLevel === 'up3') return true;
 
-    // Create Boundary Layer
-    boundaryLayer.current = L.geoJSON(filteredBoundaries, {
-      style: (feature) => {
-        const kabName = (feature?.properties?.Kab_Kota || feature?.properties?.KAB_KOTA || "Wilayah").toUpperCase();
-        const isUp3Mode = markerLevel === 'up3' || markerLevel === 'ulp';
-
-        return {
-          fillColor: isUp3Mode ? getUp3Color(KABUPATEN_TO_UP3[kabName] || "Lainnya") : "transparent",
-          weight: 2,
-          opacity: 0.9,
-          color: isUp3Mode ? "white" : getBrightColor(kabName),
-          dashArray: isUp3Mode ? '' : '4, 4',
-          fillOpacity: isUp3Mode ? 0.3 : 0 // Reduced opacity for transparency
-        };
-      },
-      onEachFeature: (feature, layer) => {
-        const kabName = feature.properties?.Kab_Kota || feature.properties?.KAB_KOTA || "Wilayah";
-        layer.bindTooltip(`<div style="font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: #000; text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff; text-transform: uppercase; letter-spacing: 0.5px;">${kabName}</div>`, {
-          sticky: true,
-          direction: "top",
-          className: "!bg-transparent !border-0 !shadow-none !p-0"
-        });
-      }
-    }).addTo(leafletMap.current);
-
-    // Handle Specialized UP3 Mode
-    if (markerLevel === 'up3' && data.points.up3Offices) {
-      const up3LayerGroup = L.layerGroup();
-
-      // 1. Render UP3 Office Markers
-      if (showUp3Markers) {
-        data.points.up3Offices.forEach((office: any) => {
-          // Filter logic: Show if its name is in filterLocations or if filter is empty/full
-          // Filter logic: Show if its name is in filterLocations or if filter is empty/full
-          const up3Name = office.nama_up3.replace(/UP3\s+/i, '').trim().toUpperCase();
-          let showOffice = true;
+          const props = f.properties || {};
+          const rawName = props.Kab_Kota || props.KAB_KOTA || props.kabupaten || props.KABUPATEN || "Wilayah";
+          const name = String(rawName).toUpperCase().trim();
 
           if (filterLocations) {
-            // "Hide All" (empty array) usually means hide everything.
-            // BUT, per request, "Hide All" should ONLY apply to Desa points, NOT UP3 Office points.
-            // So if filterLocations is empty, we force showOffice = true (or simply don't set it to false).
+            // Keep boundaries visible if no locations selected (Show all background)
+            if (filterLocations.length === 0) return true;
 
-            if (filterLocations.length > 0) {
-              const matchesUp3 = filterLocations.some(loc => loc.replace(/UP3\s+/i, '').trim().toUpperCase() === up3Name);
-
-              // Also check related kabupaten
-              if (!matchesUp3) {
-                // Fallback: check if ANY selected filter is a kabupaten of this UP3
-                const rawName = office.nama_up3.replace(/UP3\s+/i, '').trim(); // "Banda Aceh"
-                const relatedKabs = UP3_MAPPING[rawName] || [];
-                const matchesKab = relatedKabs.some(kab => filterLocations.includes(kab));
-                if (!matchesKab) showOffice = false;
-              }
-            }
+            return filterLocations.some(loc => loc.toUpperCase().trim() === name);
           }
+          return true;
+        })
+      };
 
-          if (showOffice) {
-            L.marker([office.latitude, office.longitude], {
-              icon: up3Icon,
-              title: office.nama_up3,
-              zIndexOffset: 3000 // Always on top
-            })
-              .bindTooltip(`<div style="font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: #000; text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff; text-transform: uppercase; letter-spacing: 0.5px;">UP3 ${office.nama_up3}</div>`, {
-                permanent: true,
-                direction: 'top',
-                offset: [0, -28],
-                className: "!bg-transparent !border-0 !shadow-none !p-0"
-              })
-              .bindPopup(`<b>Kantor UP3 ${office.nama_up3}</b>`)
-              .addTo(up3LayerGroup);
-          }
-        });
-      }
+      boundaryLayer.current = L.geoJSON(filteredBoundaries, {
+        style: (feature) => {
+          const props = feature?.properties || {};
+          const rawName = props.Kab_Kota || props.KAB_KOTA || props.kabupaten || props.KABUPATEN || "Wilayah";
+          const kabName = String(rawName).toUpperCase().trim();
+          const isUp3Mode = markerLevel === 'up3' || markerLevel === 'ulp';
 
-      // 2. Render Grouped Desa Points from migration data
-      if (data.points.up3DesaGroup) {
-        Object.keys(data.points.up3DesaGroup).forEach(up3Name => {
-          data.points.up3DesaGroup[up3Name].forEach((desa: any) => {
-            const status = desa.Status_Listrik;
-            const isBerlistrik = status === '√' || status === 'Berlistrik';
+          const up3Name = KABUPATEN_TO_UP3[kabName] || "Lainnya";
+          const fillColor = isUp3Mode ? getUp3Color(up3Name) : "transparent";
 
-            // Check filters
-            let showDot = true;
+          return {
+            fillColor: fillColor,
+            weight: 2,
+            opacity: 0.9,
+            color: isUp3Mode ? "white" : getBrightColor(kabName),
+            dashArray: isUp3Mode ? '' : '4, 4',
+            fillOpacity: isUp3Mode ? 0.45 : 0
+          };
+        },
+        onEachFeature: (feature, layer) => {
+          const kabName = feature.properties?.Kab_Kota || feature.properties?.KAB_KOTA || "Wilayah";
+          layer.bindTooltip(`<div style="font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: #000; text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff; text-transform: uppercase; letter-spacing: 0.5px;">${kabName}</div>`, {
+            sticky: true,
+            direction: "top",
+            className: "!bg-transparent !border-0 !shadow-none !p-0"
+          });
+        }
+      }).addTo(leafletMap.current);
+    }
 
-            // Filter search
-            if (searchQuery.trim().length >= 3) {
-              const term = searchQuery.toLowerCase().trim();
-              const name = (desa.Desa || "").toLowerCase();
-              if (!name.includes(term)) showDot = false;
-            }
+    // 2.2 Render Points (Independent)
+    if (data.points) {
+      if (markerLevel === 'up3' && data.points.up3Offices) {
+        const up3LayerGroup = L.layerGroup();
 
-            // Filter status
-            if (showDot && isBerlistrik && !activeFilters.stable) showDot = false;
-            if (showDot && !isBerlistrik && !activeFilters.warning) showDot = false;
-
-            // Filter location (Kabupaten/UP3 match)
-            // Filter location (Kabupaten/UP3 match)
-            if (showDot && filterLocations) {
+        // Office Markers
+        if (showUp3Markers) {
+          data.points.up3Offices.forEach((office: any) => {
+            const up3Name = office.nama_up3.replace(/UP3\s+/i, '').trim().toUpperCase();
+            let showOffice = true;
+            if (filterLocations) {
               if (filterLocations.length === 0) {
-                showDot = false;
+                showOffice = false;
               } else {
-                // STRICT MATCH: Only show points that belong to the UP3 group matching the filter.
-                // We normalize both sides (remove "UP3", trim, uppercase) to ensure matches works.
-                const currentUp3Clean = up3Name.replace(/UP3\s+/i, '').trim().toUpperCase();
-
-                const matchesUp3 = filterLocations.some(loc =>
-                  loc.replace(/UP3\s+/i, '').trim().toUpperCase() === currentUp3Clean
-                );
-
-                if (!matchesUp3) showDot = false;
+                const matchesUp3 = filterLocations.some(loc => loc.replace(/UP3\s+/i, '').trim().toUpperCase() === up3Name);
+                if (!matchesUp3) {
+                  const rawName = office.nama_up3.replace(/UP3\s+/i, '').trim();
+                  const relatedKabs = UP3_MAPPING[rawName] || [];
+                  const matchesKab = relatedKabs.some(kab => filterLocations.includes(kab));
+                  if (!matchesKab) showOffice = false;
+                }
               }
             }
-
-            if (showDot) {
-              L.circleMarker([desa.latitude, desa.longitude], {
-                radius: 6,
-                color: 'white',
-                weight: 1,
-                fillColor: isBerlistrik ? '#2ecc71' : '#f39c12',
-                fillOpacity: 0.9,
-              }).bindPopup(getPointPopupHtml({ ...desa, up3: up3Name }, isBerlistrik, hideStatus, "up3"))
+            if (showOffice) {
+              L.marker([office.latitude, office.longitude], { icon: up3Icon, title: office.nama_up3, zIndexOffset: 3000 })
+                .bindTooltip(`<div style="font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: #000; text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff; text-transform: uppercase; letter-spacing: 0.5px;">UP3 ${office.nama_up3}</div>`, { permanent: true, direction: 'top', offset: [0, -28], className: "!bg-transparent !border-0 !shadow-none !p-0" })
+                .bindPopup(`<b>Kantor UP3 ${office.nama_up3}</b>`)
                 .addTo(up3LayerGroup);
             }
           });
-        });
-      }
+        }
 
-      pointsLayer.current = up3LayerGroup as any;
-      pointsLayer.current?.addTo(leafletMap.current);
-      return; // Skip default point rendering
-    }
+        // Village Points
+        if (data.points.up3DesaGroup) {
+          Object.keys(data.points.up3DesaGroup).forEach(up3Name => {
+            data.points.up3DesaGroup[up3Name].forEach((desa: any) => {
+              const isBerlistrikRaw = desa.Status_Listrik === 'Berlistrik PLN' || desa.status === 'Berlistrik PLN';
+              const isBerlistrik = !hideStatus ? true : isBerlistrikRaw;
+              const isMatch = searchQuery.trim().length >= 3 && (desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
+              const isSelected = selectedPointId === desa.locationId;
+              let showDot = true;
 
-    // Handle Specialized ULP Mode
-    if (markerLevel === 'ulp' && data.points.ulpOffices) {
-      const ulpLayerGroup = L.layerGroup();
-
-      // 1. Render ULP Office Markers
-      if (showUlpMarkers) {
-        data.points.ulpOffices.forEach((office: any) => {
-          const ulpName = (office.nama_ulp || office.ULP || "").trim().toUpperCase();
-          // Clean up name: Remove " KOTA" suffix if present for cleaner display
-          const displayName = ulpName.replace(/\s+KOTA$/i, '');
-
-          let showOffice = true;
-
-          if (filterLocations && filterLocations.length > 0) {
-            // STRICT MATCHING for Office Markers
-            const matches = filterLocations.some(loc => {
-              const filterName = loc.replace(/^ULP\s+/i, '').trim().toUpperCase();
-              const currentName = ulpName.replace(/^ULP\s+/i, '').trim().toUpperCase();
-              return filterName === currentName;
-            });
-            if (!matches) showOffice = false;
-          }
-
-          const markerHtml = `
-            <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%); width: 140px;">
-              <div style="
-                font-family: 'Outfit', sans-serif; 
-                font-size: 9px; 
-                font-weight: 600; 
-                color: #000; 
-                text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; 
-                text-transform: uppercase; 
-                letter-spacing: 0.5px;
-                text-align: center;
-                margin-bottom: 0px;
-                white-space: normal;
-                line-height: 1.1;
-                pointer-events: none;
-              ">
-                ULP ${displayName}
-              </div>
-              <img 
-                src="/assets/icons/ulp_temp.png" 
-                alt="ULP Icon" 
-                style="
-                  width: 48px; 
-                  height: 48px; 
-                  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
-                  margin-top: -2px;
-                "
-              />
-            </div>
-          `;
-
-          if (showOffice) {
-            L.marker([office.latitude, office.longitude], {
-              icon: L.divIcon({
-                className: "custom-ulp-icon",
-                html: markerHtml,
-                iconSize: [20, 20],
-                iconAnchor: [0, 0] // Handled by CSS transform in html
-              }),
-              zIndexOffset: 3000
-            })
-              .bindPopup(`<b>Kantor ULP ${office.nama_ulp}</b>`)
-              .addTo(ulpLayerGroup);
-          }
-        });
-      }
-
-      // 1.5 Render UP3 Office Markers (Background Labels) if available
-      if (showUp3Markers && data.points.up3Offices) {
-        data.points.up3Offices.forEach((office: any) => {
-          const up3Html = `
-            <div style="display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%);">
-              <div style="
-                background: white; 
-                color: black; 
-                font-family: 'Outfit', sans-serif; 
-                font-weight: 600; 
-                font-size: 10px; 
-                padding: 4px 8px; 
-                border-radius: 4px; 
-                box-shadow: 0 2px 4px rgba(0,0,0,0.3); 
-                margin-bottom: 4px; 
-                white-space: nowrap;
-                border: 1px solid #e2e8f0;
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                text-transform: uppercase;
-              ">
-                UP3 ${office.nama_up3}
-              </div>
-              <div style="position: relative; width: 40px; height: 50px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));">
-                <svg viewBox="0 0 384 512" style="width: 100%; height: 100%; fill: #1a1a1a;">
-                  <path d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
-                </svg>
-                <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); color: white; width: 18px; height: 18px;">
-                  <svg viewBox="0 0 24 24" fill="currentColor" style="width: 100%; height: 100%;">
-                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-          `;
-
-          L.marker([office.latitude, office.longitude], {
-            icon: L.divIcon({
-              className: "custom-up3-icon",
-              html: up3Html,
-              iconSize: [40, 60],
-              iconAnchor: [0, 0]
-            }),
-            zIndexOffset: 4000
-          })
-            .bindPopup(`<b>Kantor UP3 ${office.nama_up3}</b>`)
-            .addTo(ulpLayerGroup);
-        });
-      }
-
-      // 2. Render Grouped Desa Points
-      if (data.points.ulpDesaGroup) {
-        Object.keys(data.points.ulpDesaGroup).forEach(ulpName => {
-          data.points.ulpDesaGroup[ulpName].forEach((desa: any) => {
-            const status = desa.Status_Listrik;
-            const isBerlistrik = status === '√' || status === 'Berlistrik';
-            let showDot = true;
-
-            if (searchQuery.trim().length >= 3) {
-              const term = searchQuery.toLowerCase().trim();
-              const name = (desa.Desa || "").toLowerCase();
-              if (!name.includes(term)) showDot = false;
-            }
-
-            if (showDot && isBerlistrik && !activeFilters.stable) showDot = false;
-            if (showDot && !isBerlistrik && !activeFilters.warning) showDot = false;
-
-            if (showDot && filterLocations) {
-              if (filterLocations.length === 0) {
-                showDot = false;
+              if (isSelected || isMatch) {
+                showDot = true; // Always show if selected or search match
               } else {
-                // STRICT MATCHING: Normalize strings for precise comparison
-                // "Blang Pidie" should NOT match "Idi" just because "Pidie" contains "idi" (if logic was fuzzy)
-                // But specifically: filterLocations usually has "ULP NAME" format now.
-                const matches = filterLocations.some(loc => {
-                  const filterName = loc.replace(/^ULP\s+/i, '').trim().toUpperCase();
-                  const currentName = ulpName.replace(/^ULP\s+/i, '').trim().toUpperCase();
-                  return filterName === currentName;
-                });
-                if (!matches) showDot = false;
+                if (isBerlistrik && !activeFilters.stable) showDot = false;
+                if (!isBerlistrik && !activeFilters.warning) showDot = false;
+                if (showDot && filterLocations) {
+                  if (filterLocations.length === 0) {
+                    showDot = false;
+                  } else {
+                    const cleanUp3 = up3Name.replace(/UP3\s+/i, '').trim().toUpperCase();
+                    if (!filterLocations.some(loc => loc.replace(/UP3\s+/i, '').trim().toUpperCase() === cleanUp3)) showDot = false;
+                  }
+                }
+              }
+
+              if (showDot) {
+                const marker = L.circleMarker([desa.latitude, desa.longitude], {
+                  radius: 6,
+                  color: 'white',
+                  weight: 1,
+                  fillColor: !hideStatus ? '#2ecc71' : (isBerlistrik ? '#2ecc71' : '#f39c12'),
+                  fillOpacity: 0.9,
+                  locationId: desa.locationId // Attach ID to options
+                } as any);
+
+                // Add identity for search lookup
+                (marker as any).options.title = desa.Desa;
+                (marker as any).options.desaName = desa.Desa;
+
+                marker.on('click', async (e) => {
+                  const pop = L.popup().setLatLng(e.latlng).setContent('<div class="p-2 text-xs">Loading...</div>').openOn(leafletMap.current!);
+                  const res = await fetch(`${API_URL}/api/locations/map/point-detail/${desa.locationId}`);
+                  const json = await res.json();
+                  if (json.success) {
+                    const actualStatus = json.data.status || "";
+                    const isActuallyBerlistrikRaw = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                    const isActuallyBerlistrik = !hideStatus ? true : isActuallyBerlistrikRaw;
+                    pop.setContent(getPointPopupHtml(json.data, isActuallyBerlistrik, hideStatus, "up3"));
+                  }
+                })
+                  .addTo(up3LayerGroup);
+              }
+            });
+          });
+        }
+        pointsLayer.current = up3LayerGroup as any;
+        pointsLayer.current?.addTo(leafletMap.current);
+
+      } else if (markerLevel === 'ulp' && data.points.ulpOffices) {
+        const ulpLayerGroup = L.layerGroup();
+
+
+        // 2. Render ULP Offices
+        if (showUlpMarkers) {
+          data.points.ulpOffices.forEach((office: any) => {
+            const ulpName = office.nama_ulp.replace(/ULP\s+/i, '').trim().toUpperCase();
+            let showOffice = true;
+            if (filterLocations) {
+              if (filterLocations.length === 0) {
+                showOffice = true;
+              } else {
+                showOffice = filterLocations.some(loc => loc.replace(/ULP\s+/i, '').trim().toUpperCase() === ulpName);
               }
             }
-
-            if (showDot) {
-              L.circleMarker([desa.latitude, desa.longitude], {
-                radius: 6, // Matched to UP3 map style
-                color: 'white',
-                weight: 1,
-                fillColor: isBerlistrik ? '#2ecc71' : '#f39c12',
-                fillOpacity: 0.9,
-              }).bindPopup(getPointPopupHtml({ ...desa, ULP: ulpName }, isBerlistrik, hideStatus, "ulp"))
+            if (showOffice) {
+              L.marker([office.latitude, office.longitude], { icon: ulpIcon, title: office.nama_ulp, zIndexOffset: 3000 })
+                .bindTooltip(`<div style="font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 600; color: #000; text-shadow: -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff; text-transform: uppercase; letter-spacing: 0.5px;">ULP ${office.nama_ulp}</div>`, { permanent: true, direction: 'top', offset: [0, -28], className: "!bg-transparent !border-0 !shadow-none !p-0" })
+                .bindPopup(`<b>Unit Layanan Pelanggan ${office.nama_ulp}</b>`)
                 .addTo(ulpLayerGroup);
             }
           });
-        });
-      }
-
-      pointsLayer.current = ulpLayerGroup as any;
-      pointsLayer.current?.addTo(leafletMap.current);
-      return;
-    }
-
-    // UNIFIED POINT STYLE (Green Dot for all maps) - PERFORMANCE OPTIMIZED
-    // Switched to L.circleMarker with preferCanvas: true for massive performance gain
-    const allFeatures = data.points.features || [];
-
-    pointsLayer.current = L.geoJSON({ type: "FeatureCollection", features: allFeatures } as any, {
-      pointToLayer: (feature, latlng) => {
-        const props = feature.properties || {};
-        const isStable = props.status === "Berlistrik PLN" || props.status === "stable";
-        const color = isStable ? "#2ecc71" : "#f1c40f";
-
-        // LOGIKA PENENTUAN VISIBILITAS TITIK (DOT):
-        let showDot = true;
-
-        // FILTER 1: Pencarian (Search) - Fokus pada nama Desa
-        if (searchQuery.trim().length >= 3) {
-          const term = searchQuery.toLowerCase().trim();
-          const name = (props.name || "").toLowerCase();
-          if (!name.includes(term)) {
-            showDot = false;
-          }
         }
 
-        // FILTER 2: Lokasi (Kabupaten/Kecamatan/UP3)
-        if (showDot && filterLocations) {
-          if (filterLocations.length === 0) {
-            showDot = false; // "Sembunyikan Semua"
-          } else {
-            const match = filterLocations.some(loc => {
-              const search = loc.toUpperCase();
-              return (
-                search === (props.up3 || "").toUpperCase() ||
-                search === (props.kabupaten || "").toUpperCase() ||
-                search === (props.kecamatan || "").toUpperCase() ||
-                search === (props.name || "").toUpperCase()
-              );
+        // 3. Render Desa Points for ULP
+        if (data.points.ulpDesaGroup) {
+          Object.keys(data.points.ulpDesaGroup).forEach(ulpName => {
+            const cleanUlp = ulpName.replace(/ULP\s+/i, '').trim().toUpperCase();
+            let showGroup = true;
+            if (filterLocations) {
+              if (filterLocations.length === 0) {
+                showGroup = false;
+              } else {
+                if (!filterLocations.some(loc => loc.replace(/ULP\s+/i, '').trim().toUpperCase() === cleanUlp)) showGroup = false;
+              }
+            }
+
+            if (showGroup) {
+              data.points.ulpDesaGroup[ulpName].forEach((desa: any) => {
+                const isBerlistrikRaw = desa.Status_Listrik === 'Berlistrik PLN' || desa.status === 'Berlistrik PLN';
+                const isBerlistrik = !hideStatus ? true : isBerlistrikRaw;
+                const isMatch = searchQuery.trim().length >= 3 && (desa.Desa || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
+                const isSelected = selectedPointId === desa.locationId;
+                let showDot = true;
+
+                if (isSelected || isMatch) {
+                  showDot = true; // Always show if selected or search match
+                } else {
+                  if (isBerlistrik && !activeFilters.stable) showDot = false;
+                  if (!isBerlistrik && !activeFilters.warning) showDot = false;
+                }
+                if (showDot) {
+                  const marker = L.circleMarker([desa.latitude, desa.longitude], {
+                    radius: 6,
+                    color: 'white',
+                    weight: 1,
+                    fillColor: !hideStatus ? '#2ecc71' : (isBerlistrik ? '#2ecc71' : '#f39c12'),
+                    fillOpacity: 0.9,
+                    locationId: desa.locationId // Attach ID to options
+                  } as any);
+
+                  // Add identity for search lookup
+                  (marker as any).options.title = desa.Desa;
+                  (marker as any).options.desaName = desa.Desa;
+
+                  marker.on('click', async (e) => {
+                    const pop = L.popup().setLatLng(e.latlng).setContent('<div class="p-2 text-xs">Loading...</div>').openOn(leafletMap.current!);
+                    const res = await fetch(`${API_URL}/api/locations/map/point-detail/${desa.locationId}`);
+                    const json = await res.json();
+                    if (json.success) {
+                      const actualStatus = json.data.status || "";
+                      const isActuallyBerlistrikRaw = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                      const isActuallyBerlistrik = !hideStatus ? true : isActuallyBerlistrikRaw;
+                      pop.setContent(getPointPopupHtml(json.data, isActuallyBerlistrik, hideStatus, "ulp"));
+                    }
+                  })
+                    .addTo(ulpLayerGroup);
+                }
+              });
+            }
+          });
+        }
+
+        pointsLayer.current = ulpLayerGroup as any;
+        pointsLayer.current?.addTo(leafletMap.current);
+
+      } else {
+        // General Point Style
+        const allFeatures = data.points.features || [];
+        pointsLayer.current = L.geoJSON({ type: "FeatureCollection", features: allFeatures } as any, {
+          pointToLayer: (feature, latlng) => {
+            const props = feature.properties || {};
+            const isStableRaw = props.status === "Berlistrik PLN";
+            const isStable = !hideStatus ? true : isStableRaw;
+            const isMatch = searchQuery.trim().length >= 3 && (props.name || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
+            const isSelected = selectedPointId === props.id;
+            let showDot = true;
+
+            if (isSelected || isMatch) {
+              showDot = true; // Always show if selected or search match
+            } else {
+              if (filterLocations) {
+                if (filterLocations.length === 0) {
+                  showDot = false;
+                } else {
+                  const match = filterLocations.some(loc => {
+                    const s = loc.toUpperCase();
+                    return s === (props.up3 || "").toUpperCase() || s === (props.kabupaten || "").toUpperCase() || s === (props.kecamatan || "").toUpperCase() || s === (props.name || "").toUpperCase();
+                  });
+                  if (!match) showDot = false;
+                }
+              }
+              if (showDot && !disableWarning) {
+                if (isStable && !activeFilters.stable) showDot = false;
+                if (!isStable && !activeFilters.warning) showDot = false;
+              }
+            }
+            if (!showDot) return (L as any).layerGroup();
+            return L.circleMarker(latlng, {
+              radius: 6,
+              fillColor: !hideStatus ? "#2ecc71" : (isStable ? "#2ecc71" : "#f1c40f"),
+              color: "white",
+              weight: 2,
+              opacity: 1,
+              fillOpacity: 1,
+              pane: 'markerPane',
+              locationId: props.id || props.locationId // Attach for robust search popup
+            } as any);
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties;
+            layer.on('click', async (e) => {
+              const pop = L.popup().setLatLng(e.latlng).setContent('<div class="p-2 text-xs">Loading...</div>').openOn(leafletMap.current!);
+              const res = await fetch(`${API_URL}/api/locations/map/point-detail/${props.id}`);
+              const json = await res.json();
+              if (json.success) {
+                const actualStatus = json.data.status || "";
+                const isActuallyBerlistrikRaw = actualStatus.toUpperCase().includes("PLN") && !actualStatus.toUpperCase().includes("BELUM");
+                const isActuallyBerlistrik = !hideStatus ? true : isActuallyBerlistrikRaw;
+                pop.setContent(getPointPopupHtml(json.data, isActuallyBerlistrik, hideStatus, markerLevel as any));
+              }
             });
-            if (!match) showDot = false;
           }
-        }
-
-        // FILTER 3: Status (Stable vs Warning)
-        if (!disableWarning && showDot) {
-          if (isStable && !activeFilters.stable) showDot = false;
-          if (!isStable && !activeFilters.warning) showDot = false;
-        }
-
-        // Use CircleMarker instead of heavy DOM DivIcon
-        return L.circleMarker(latlng, {
-          radius: 6,
-          fillColor: color,
-          color: "white",
-          weight: 2,
-          opacity: showDot ? 1 : 0,
-          fillOpacity: showDot ? 1 : 0,
-          interactive: showDot // Disable detailed interaction if hidden
-        });
-      },
-      onEachFeature: (feature, layer) => {
-        const props = feature.properties || {};
-        const isStable = props.status === 'Berlistrik PLN' || props.status === 'stable';
-
-        layer.bindPopup(getPointPopupHtml(props, isStable, hideStatus, markerLevel as any));
+        }).addTo(leafletMap.current);
       }
-    }).addTo(leafletMap.current);
-
-  }, [data, activeFilters, disableWarning, markerLevel, searchQuery]);
+    }
+  }, [data, activeFilters, disableWarning, markerLevel, searchQuery, filterLocations, hideStatus, selectedPointId]);
 
   // 3. Handle Kabkot Markers (Restored Name Labels with Green Point)
   useEffect(() => {
@@ -890,8 +842,12 @@ const RegionMap: React.FC<RegionMapProps> = ({
 
     kabData.forEach(kab => {
       let showLabel = true;
-      if (filterLocations && filterLocations.length > 0) {
-        showLabel = filterLocations.includes(kab.name);
+      if (filterLocations) {
+        if (filterLocations.length === 0) {
+          showLabel = true; // Always show labels if no filters are active
+        } else {
+          showLabel = filterLocations.includes(kab.name);
+        }
       }
 
       if (showLabel) {
@@ -949,35 +905,91 @@ const RegionMap: React.FC<RegionMapProps> = ({
     });
   }, [kabData, zoomLevel, markerLevel, filterLocations]);
 
+  // 4. Handle auto-opening popup for selected point (Hyper-Robust Version)
+  useEffect(() => {
+    if (!selectedPointId || !leafletMap.current || loading) return;
+
+    console.log("Auto-popup effector triggered for ID:", selectedPointId);
+
+    const tryOpenPopupRecursive = (retryCount = 0) => {
+      if (!leafletMap.current) return;
+      let found = false;
+
+      const searchInLayer = (layer: any) => {
+        if (found) return;
+
+        const props = layer.feature?.properties || {};
+        const options = layer.options || {};
+
+        // Match against multiple possible ID locations
+        const lId = (props.id || props.locationId || options.locationId || options.id || layer.locationId || "").toString();
+        const targetId = selectedPointId.toString();
+
+        if (targetId && lId && (targetId === lId)) {
+          console.log(`[MAP] Match found at retry ${retryCount} for ID: ${lId}`);
+
+          if (layer.fire) {
+            // Get coordinates: from layer itself, or as fallback from search metadata
+            const latlng = layer.getLatLng ? layer.getLatLng() : leafletMap.current?.getCenter();
+
+            // Highlight marker temporarily for visual feedback
+            if (layer.setStyle) {
+              const originalRadius = layer.options.radius || 6;
+              layer.setStyle({ radius: 12, weight: 4, color: '#fff' });
+              setTimeout(() => layer.setStyle({ radius: originalRadius, weight: 1, color: 'white' }), 1000);
+            }
+
+            layer.fire('click', { latlng: latlng });
+            found = true;
+          }
+        }
+
+        // Deep search into groups/GeoJSON
+        if (!found && layer.eachLayer) {
+          layer.eachLayer((child: any) => searchInLayer(child));
+        }
+      };
+
+      searchInLayer(leafletMap.current);
+
+      if (!found && retryCount < 8) {
+        // Exponential-ish backoff or just steady retries
+        const nextDelay = 300 + (retryCount * 200);
+        setTimeout(() => tryOpenPopupRecursive(retryCount + 1), nextDelay);
+      } else if (found) {
+        // Reset selected ID after successful open to prevent loops, 
+        // BUT we might want to keep it so the marker stays visible even if filters hide it.
+        // For now, let's keep it until next search.
+      }
+    };
+
+    // Wait for the flyTo animation (1.5s) to finish before the first attempt
+    const timeout = setTimeout(() => tryOpenPopupRecursive(0), 1600);
+    return () => clearTimeout(timeout);
+  }, [selectedPointId, data, loading]);
+
   // View manipulation when search item is clicked
   const handleSelectResult = (feature: any) => {
     if (!leafletMap.current) return;
 
     const coords = feature.geometry.coordinates;
-    const name = feature.properties.name;
+    const id = feature.properties.id || feature.properties.locationId;
 
-    // Center map and zoom
-    leafletMap.current.setView([coords[1], coords[0]], 15);
+    setSelectedPointId(id);
 
-    // After animation, find and open the popup
-    setTimeout(() => {
-      if (pointsLayer.current) {
-        pointsLayer.current.eachLayer((layer: any) => {
-          const p = layer.feature?.properties || layer.options?.title || "";
-          if (p === name || p.name === name || p.Desa === name) {
-            layer.openPopup();
-          }
-        });
-      }
-    }, 500);
+    // Smooth fly to location
+    leafletMap.current.flyTo([coords[1], coords[0]], 15, { duration: 1.5 });
 
     setSearchQuery("");
     setShowSuggestions(false);
   };
 
   return (
-    <div className="relative w-full h-full bg-[#0a0a0a] overflow-hidden rounded-xl shadow-2xl border border-white/5">
-      {/* Loading Overlay */}
+    <div className="relative w-full h-full bg-[#0f172a] overflow-hidden rounded-xl shadow-2xl border border-white/10 group/map">
+      {/* Version Indicator for Debugging */}
+      <div className="absolute bottom-2 left-2 z-[1001] pointer-events-none opacity-40 group-hover/map:opacity-100 transition-opacity">
+        <span className="text-[8px] font-black text-white/50 uppercase tracking-widest bg-black/40 px-2 py-1 rounded-md backdrop-blur-sm border border-white/10">MAP v2.1.3-RL</span>
+      </div>
       {loading && (
         <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4">

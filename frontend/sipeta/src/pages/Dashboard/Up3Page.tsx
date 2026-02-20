@@ -1,11 +1,19 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { PencilIcon, BoltIcon } from "../../icons";
+import { useAuth } from "../../context/AuthContext";
 import Up3Map from "./Up3Map";
 import MapFilter from "../../components/ui/MapFilter";
 
+const _rawUrl = import.meta.env.VITE_API_URL || '';
+const API_URL = _rawUrl.replace(/\/+$/, '');
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+
+
+
+
+
 
 interface Up3Data {
     name: string;
@@ -16,9 +24,12 @@ interface Up3Data {
     warga?: number;
     pelanggan?: number;
     update_pelanggan?: string;
+    sumber?: string;
+    tahun?: string;
 }
 
 export default function Up3Page() {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [up3List, setUp3List] = useState<Up3Data[]>([]);
     const [loading, setLoading] = useState(true);
@@ -39,6 +50,8 @@ export default function Up3Page() {
     const [isInputModalOpen, setIsInputModalOpen] = useState(false);
     const [editingUp3, setEditingUp3] = useState<Up3Data | null>(null);
     const [newPelanggan, setNewPelanggan] = useState("");
+    const [newSumber, setNewSumber] = useState("Data Induk Layanan");
+    const [newTahun, setNewTahun] = useState("PLN 2025");
     const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
@@ -89,7 +102,9 @@ export default function Up3Page() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: editingUp3.name,
-                    pelanggan: newPelanggan
+                    pelanggan: newPelanggan,
+                    sumber: newSumber,
+                    tahun: newTahun
                 })
             });
             const json = await response.json();
@@ -242,17 +257,21 @@ export default function Up3Page() {
                                 </span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingUp3(item);
-                                        setNewPelanggan(item.pelanggan?.toString() || "");
-                                        setIsInputModalOpen(true);
-                                    }}
-                                    className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
-                                >
-                                    <PencilIcon className="w-5 h-5" />
-                                </button>
+                                {user?.role === "superadmin" && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingUp3(item);
+                                            setNewPelanggan(item.pelanggan?.toString() || "");
+                                            setNewSumber((item.sumber && item.sumber !== "-") ? item.sumber : "Data Induk Layanan");
+                                            setNewTahun((item.tahun && item.tahun !== "-") ? item.tahun : "PLN 2025");
+                                            setIsInputModalOpen(true);
+                                        }}
+                                        className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
+                                    >
+                                        <PencilIcon className="w-5 h-5" />
+                                    </button>
+                                )}
                                 <div className="w-2.5 h-2.5 rounded-full bg-[#22AD5C]"></div>
                             </div>
                         </div>
@@ -292,9 +311,34 @@ export default function Up3Page() {
                                         type="number"
                                         value={newPelanggan}
                                         onChange={(e) => setNewPelanggan(e.target.value)}
-                                        className="w-full px-8 py-5 rounded-[2rem] border-none bg-gray-50 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-xl font-black text-[#1C2434] dark:text-white text-center"
+                                        className="w-full px-8 py-5 rounded-[2rem] border-none bg-gray-100 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-xl font-black text-gray-800 dark:text-white text-center"
                                         autoFocus
                                     />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1 font-outfit opacity-70">
+                                            Sumber Data
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newSumber}
+                                            onChange={(e) => setNewSumber(e.target.value)}
+                                            className="w-full px-6 py-4 rounded-3xl border-none bg-gray-100 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-sm font-bold text-gray-700 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-1 font-outfit opacity-70">
+                                            Tahun Data
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={newTahun}
+                                            onChange={(e) => setNewTahun(e.target.value)}
+                                            className="w-full px-6 py-4 rounded-3xl border-none bg-gray-100 dark:bg-white/5 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-outfit text-sm font-bold text-gray-700 dark:text-white"
+                                        />
+                                    </div>
                                 </div>
 
 

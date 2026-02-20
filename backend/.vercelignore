@@ -1,7 +1,9 @@
 uploads/
 scripts/
-data/
-*.json
+# data/ 
+# *.json
+!*.json
+!data/**
 !package.json
 !vercel.json
 node_modules/
