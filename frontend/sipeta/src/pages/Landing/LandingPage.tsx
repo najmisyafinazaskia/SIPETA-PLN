@@ -57,7 +57,7 @@ export default function LandingPage() {
           <img src="/images/logo/logoDI.png" alt="Danantara Indonesia" className="h-6 md:h-8 w-auto object-contain" />
         </div>
         <div className="flex items-center">
-          <img src="/images/logo/logo-light.png" alt="SIPETA Logo Header" className="h-12 md:h-16 w-auto object-contain" />
+          <img src="/images/logo/logo-light.png" alt="SIPEDA Logo Header" className="h-12 md:h-16 w-auto object-contain" />
         </div>
       </nav>
 
@@ -73,7 +73,7 @@ export default function LandingPage() {
 
           {/* Spasi: leading-[1.2] dan mb-10 untuk memberi ruang napas antar baris judul */}
           <h2 className="font-sora text-7xl md:text-7xl font-black text-[#1C2434] mb-12 leading-[1.2]  uppercase tracking-tighter">
-            SIPETA <br />
+            SIPEDA <br />
             {/* ( Sistem Informasi Pemetaan  <br />
             Tingkat Elektrifikasi ) <br /> */}
             <span className="text-[#0052CC] not-italic">Provinsi Aceh</span>
@@ -190,7 +190,7 @@ export default function LandingPage() {
 
               <img
                 src="/images/logo/logo-light.png"
-                alt="SIPETA Main Logo Large"
+                alt="SIPEDA Main Logo Large"
                 className="w-full h-auto object-contain transition-transform duration-700 group-hover:scale-105"
               />
             </div>
@@ -307,11 +307,15 @@ export default function LandingPage() {
             </div>
           </div>
           <p className="hidden lg:block text-blue-50 text-xs font-bold tracking-tight text-center">
-            © 2026 SIPETA PLN UID Provinsi Aceh, Indonesia. All rights reserved.
+            © 2026 SIPEDA PLN UID Provinsi Aceh, Indonesia. All rights reserved.
           </p>
-          <div className="flex gap-8 text-[11px] font-black uppercase tracking-[0.2em]">
-            <a href="#" className="hover:text-blue-200 transition-colors">Bantuan</a>
-            <a href="#" className="hover:text-blue-200 transition-colors">Kontak</a>
+          <div className="flex flex-col md:flex-row gap-4 md:gap-10 text-[10px] items-center font-black uppercase tracking-[0.2em]">
+            <span className="text-blue-200/50">Bantuan:</span>
+            <div className="flex gap-6">
+              <a href="https://wa.me/6285270511503" target="_blank" className="hover:text-blue-200 transition-colors">Rizka Fadilla</a>
+              <a href="https://wa.me/6281360946583" target="_blank" className="hover:text-blue-200 transition-colors">Najmi</a>
+              <a href="https://wa.me/6285175434221" target="_blank" className="hover:text-blue-200 transition-colors">Rahil</a>
+            </div>
           </div>
         </div>
       </footer>

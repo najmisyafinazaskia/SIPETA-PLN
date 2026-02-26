@@ -6,27 +6,25 @@ interface AdminContact {
     nama: string;
     jabatan: string;
     noHp: string;
-    unit: string;
 }
 
 const adminContacts: AdminContact[] = [
     {
-        nama: "Bang Riko",
-        jabatan: "Admin UP2K Aceh",
-        noHp: "6285270511503",
-        unit: "UID ACEH"
+        nama: "Rizka Fadilla",
+        jabatan: "Asisten Manager UP2K Aceh",
+        noHp: "6285270511503"
     },
     {
         nama: "Najmi Syafina Zaskia",
         jabatan: "IT Support & Developer",
-        noHp: "6281360946583",
-        unit: "UP3 BANDA ACEH"
+        noHp: "6281360946583"
+
     },
     {
         nama: "Rahil Thahirah",
         jabatan: "IT Support & Developer",
-        noHp: "6285175434221",
-        unit: "PLN ACEH"
+        noHp: "6285175434221"
+
     }
 ];
 
@@ -48,7 +46,7 @@ const CallCenterPage: React.FC = () => {
                             </h1>
                         </div>
                         <p className="text-slate-500 dark:text-slate-400 text-lg font-medium max-w-2xl leading-relaxed">
-                            Informasi kontak administrator SIPETA untuk bantuan teknis, koordinasi data, dan dukungan operasional wilayah Aceh.
+                            Informasi kontak administrator SIPEDA untuk bantuan teknis, koordinasi data, dan dukungan operasional wilayah Aceh.
                         </p>
                     </div>
 
