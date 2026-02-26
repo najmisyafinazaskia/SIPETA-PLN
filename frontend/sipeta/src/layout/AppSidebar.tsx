@@ -108,12 +108,12 @@ const AppSidebar: React.FC = () => {
             <div className="h-20 w-48 flex items-center justify-start overflow-hidden">
               <img
                 src="/images/logo/logo-light.png"
-                alt="Logo SIPETA"
+                alt="Logo SIPEDA"
                 className="block dark:hidden w-full h-full object-contain object-left"
               />
               <img
                 src="/images/logo/logo-dark.png"
-                alt="Logo SIPETA"
+                alt="Logo SIPEDA"
                 className="hidden dark:block w-full h-full object-contain object-left"
               />
             </div>
