@@ -309,13 +309,8 @@ export default function LandingPage() {
           <p className="hidden lg:block text-blue-50 text-xs font-bold tracking-tight text-center">
             © 2026 SIPEDA PLN UID Provinsi Aceh, Indonesia. All rights reserved.
           </p>
-          <div className="flex flex-col md:flex-row gap-4 md:gap-10 text-[10px] items-center font-black uppercase tracking-[0.2em]">
-            <span className="text-blue-200/50">Bantuan:</span>
-            <div className="flex gap-6">
-              <a href="https://wa.me/6285270511503" target="_blank" className="hover:text-blue-200 transition-colors">Rizka Fadilla</a>
-              <a href="https://wa.me/6281360946583" target="_blank" className="hover:text-blue-200 transition-colors">Najmi</a>
-              <a href="https://wa.me/6285175434221" target="_blank" className="hover:text-blue-200 transition-colors">Rahil</a>
-            </div>
+          <div className="flex gap-8 text-[11px] font-black uppercase tracking-[0.2em]">
+            <Link to="/help" className="hover:text-blue-200 transition-colors">Bantuan</Link>
           </div>
         </div>
       </footer>

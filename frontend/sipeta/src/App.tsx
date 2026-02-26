@@ -21,6 +21,8 @@ import UlpDesaDetail from "./pages/Dashboard/UlpDesaDetail";
 import CallCenterPage from "./pages/Dashboard/CallCenterPage";
 import VerifikasiPage from "./pages/VerifikasiPage";
 import SignIn from "./pages/AuthPages/SignIn"; // Import SignIn
+import HelpPage from "./pages/Landing/HelpPage"; // Import HelpPage
+
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import { useAuth } from "./context/AuthContext";
 
@@ -38,6 +40,8 @@ export default function App() {
         {/* PUBLIC */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/signin" element={<SignIn />} />
+        <Route path="/help" element={<HelpPage />} />
+
 
         {/* DASHBOARD */}
         <Route
