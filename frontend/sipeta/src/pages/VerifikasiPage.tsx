@@ -236,9 +236,9 @@ const EditNoteModal = ({
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                {user?.unit === 'UP2K' || user?.role === 'superadmin'
-                  ? (isAddMode ? 'Tambah Catatan Verifikator' : 'Edit Catatan Verifikator')
-                  : (isAddMode ? 'Tambah Catatan' : 'Edit Catatan')}
+                {user?.unit !== 'UP2K' && user?.role !== 'superadmin'
+                  ? (isAddMode ? 'Tambah Catatan Ke Verifikator' : 'Edit Catatan Ke Verifikator')
+                  : (isAddMode ? 'Tambah Catatan Verifikator' : 'Edit Catatan Verifikator')}
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">Desa {desaName}</p>
             </div>
@@ -248,7 +248,7 @@ const EditNoteModal = ({
             <label className="text-lg font-bold text-gray-700 dark:text-gray-300">Catatan:</label>
             <textarea
               className="w-full p-6 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-lg font-bold min-h-[220px] dark:text-white"
-              placeholder={user?.unit === 'UP2K' || user?.role === 'superadmin' ? "Masukkan catatan perbaikan..." : "Masukkan catatan untuk verifikator..."}
+              placeholder={user?.unit !== 'UP2K' && user?.role !== 'superadmin' ? "Masukkan catatan untuk verifikator..." : "Masukkan catatan perbaikan..."}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
@@ -768,7 +768,7 @@ const DesaVerificationPanel = ({ desaId, desaName, setVerifiedDesaMap }: {
   };
 
   const handleStatusUpdate = async (newStatus: string, message?: string) => {
-    if (!isUP2K) return;
+    if (!isUP2K && !isUP3) return;
     setIsLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/verification/status/${desaId}`, {
@@ -978,16 +978,18 @@ const DesaVerificationPanel = ({ desaId, desaName, setVerifiedDesaMap }: {
             )}
           </div>
 
-          {message && (status === 'Tidak Sesuai' || status === 'Sesuai (Perlu Perbaikan)') && (
+          {message && status !== 'Terverifikasi' && (
             <div className={`mt-2 mb-4 p-4 rounded-xl border-l-4 ${status === 'Tidak Sesuai'
               ? 'bg-red-50 border-red-500 text-red-800 dark:bg-red-900/10 dark:text-red-200'
-              : 'bg-orange-50 border-orange-500 text-orange-800 dark:bg-orange-900/10 dark:text-orange-200'
+              : status === 'Sesuai (Perlu Perbaikan)'
+                ? 'bg-orange-50 border-orange-500 text-orange-800 dark:bg-orange-900/10 dark:text-orange-200'
+                : 'bg-blue-50 border-blue-500 text-blue-800 dark:bg-blue-900/10 dark:text-blue-200'
               }`}>
               <div className="flex items-center justify-between mb-2">
                 <h5 className="font-bold uppercase text-xs tracking-wider flex items-center gap-2 opacity-80">
-                  <AlertCircleIcon size={16} /> {isUP2K ? 'CATATAN VERIFIKATOR:' : 'CATATAN:'}
+                  <AlertCircleIcon size={16} /> {isUP3 ? 'CATATAN KE VERIFIKATOR:' : 'CATATAN DARI UP3/UPL:'}
                 </h5>
-                {isUP2K && (
+                {isUP3 && (
                   <button
                     onClick={() => setShowEditNoteModal(true)}
                     className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-black uppercase rounded-lg transition-all border border-gray-200 dark:border-gray-700 shadow-sm active:scale-95 group"
@@ -1000,7 +1002,7 @@ const DesaVerificationPanel = ({ desaId, desaName, setVerifiedDesaMap }: {
             </div>
           )}
 
-          {isUP2K && file && !message && status !== 'Terverifikasi' && (
+          {isUP3 && file && !message && status !== 'Terverifikasi' && (
             <div className="mb-4 animate-in fade-in slide-in-from-left-4 duration-500">
               <button
                 onClick={() => setShowEditNoteModal(true)}
@@ -1009,7 +1011,7 @@ const DesaVerificationPanel = ({ desaId, desaName, setVerifiedDesaMap }: {
                 <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 shadow-sm group-hover:scale-110 transition-transform border border-gray-200 dark:border-gray-600">
                   <EditIcon size={14} />
                 </div>
-                {isUP2K ? 'Tambah Catatan Verifikator' : 'Tambah Catatan'}
+                Tambah Catatan Ke Verifikator
               </button>
             </div>
           )}
