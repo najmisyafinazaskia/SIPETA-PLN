@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { ChevronRightIcon, SearchIcon, UploadCloudIcon, FileTextIcon, ClockIcon, EditIcon, MapPinIcon, Loader2, ArrowLeftIcon, TrashIcon, CheckCircle2Icon, XCircleIcon, AlertCircleIcon, ImageIcon, DownloadIcon, XIcon } from "lucide-react";
-import { useSearchParams, useLocation, Link } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ModernAlert from "../components/ui/ModernAlert";
 
@@ -75,16 +75,6 @@ const getStatusConfig = (status: string) => {
         icon: <UploadCloudIcon size={14} />
       };
   }
-};
-
-const getStatusLabel = (status: string) => {
-  const config = getStatusConfig(status);
-  return (
-    <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-md border flex items-center gap-1 ${config.color}`}>
-      {config.icon}
-      {config.label}
-    </span>
-  );
 };
 
 const DeleteConfirmationModal = ({
@@ -629,10 +619,9 @@ const ReplaceConfirmationModal = ({
 };
 
 
-const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap }: {
+const DesaVerificationPanel = ({ desaId, desaName, setVerifiedDesaMap }: {
   desaId: string,
   desaName: string,
-  onUpdate: () => void,
   setVerifiedDesaMap: React.Dispatch<React.SetStateAction<Record<string, string>>>
 }) => {
   const { user } = useAuth();
@@ -663,7 +652,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const isUP2K = user?.role === "superadmin" || user?.unit === "UP2K";
-  const isUP3 = user?.role === "admin" || (user?.unit && user.unit !== "UP2K");
+  const isUP3 = (user?.role === "admin" && user?.unit !== "UP2K") || (user?.unit && user.unit !== "UP2K");
 
   const [message, setMessage] = useState<string | null>(null);
 
@@ -779,7 +768,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
   };
 
   const handleStatusUpdate = async (newStatus: string, message?: string) => {
-    if (!isUP2K && user?.role !== 'admin') return;
+    if (!isUP2K) return;
     setIsLoading(true);
     try {
       const res = await fetch(`${API_URL}/api/verification/status/${desaId}`, {
@@ -996,9 +985,9 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
               }`}>
               <div className="flex items-center justify-between mb-2">
                 <h5 className="font-bold uppercase text-xs tracking-wider flex items-center gap-2 opacity-80">
-                  <AlertCircleIcon size={16} /> {user?.role === 'admin' ? 'CATATAN:' : 'CATATAN VERIFIKATOR:'}
+                  <AlertCircleIcon size={16} /> {isUP2K ? 'CATATAN VERIFIKATOR:' : 'CATATAN:'}
                 </h5>
-                {(user?.role === 'admin' || isUP2K) && (
+                {(isUP2K || user?.role === 'admin') && (
                   <button
                     onClick={() => setShowEditNoteModal(true)}
                     className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-black uppercase rounded-lg transition-all border border-gray-200 dark:border-gray-700 shadow-sm active:scale-95 group"
@@ -1011,7 +1000,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
             </div>
           )}
 
-          {(user?.role === 'admin' || isUP2K) && file && !message && status !== 'Terverifikasi' && (
+          {(isUP2K || user?.role === 'admin') && file && !message && status !== 'Terverifikasi' && (
             <div className="mb-4 animate-in fade-in slide-in-from-left-4 duration-500">
               <button
                 onClick={() => setShowEditNoteModal(true)}
@@ -1020,7 +1009,7 @@ const DesaVerificationPanel = ({ desaId, desaName, onUpdate, setVerifiedDesaMap 
                 <div className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 shadow-sm group-hover:scale-110 transition-transform border border-gray-200 dark:border-gray-600">
                   <EditIcon size={14} />
                 </div>
-                {user?.role === 'admin' ? 'Tambah Catatan' : 'Tambah Catatan Verifikator'}
+                {isUP2K ? 'Tambah Catatan Verifikator' : 'Tambah Catatan'}
               </button>
             </div>
           )}
@@ -2033,7 +2022,7 @@ export default function VerifikasiPage() {
                         {kab.kecamatan.map((kec) => {
                           const isKecSelected = selectedDesa && (selectedDesa as any).kec === kec.name;
                           const hasUnuploadedDesa = kec.desa.some(d => !verifiedDesaMap[d.id]);
-                          const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+                          const canManageBulk = (user?.role === 'admin' || user?.role === 'superadmin') && user?.unit !== 'UP2K';
 
                           return (
                             <Accordion
@@ -2041,12 +2030,12 @@ export default function VerifikasiPage() {
                               title={`Kec. ${kec.name}`}
                               level={1}
                               defaultOpen={!!searchTerm || !!isKecSelected}
-                              onActionClick={isAdmin && hasUnuploadedDesa ? () => {
+                              onActionClick={canManageBulk && hasUnuploadedDesa ? () => {
                                 setActiveKecamatan({ name: kec.name, kab: kab.name });
                                 setShowBulkModal(true);
                               } : undefined}
                               actionIcon={<UploadCloudIcon size={14} strokeWidth={3} />}
-                              onSecondaryActionClick={isAdmin && !hasUnuploadedDesa ? () => {
+                              onSecondaryActionClick={canManageBulk && !hasUnuploadedDesa ? () => {
                                 setActiveKecamatan({ name: kec.name, kab: kab.name });
                                 setShowBulkDeleteModal(true);
                               } : undefined}
@@ -2081,7 +2070,6 @@ export default function VerifikasiPage() {
               <DesaVerificationPanel
                 desaId={selectedDesa.desa.id}
                 desaName={selectedDesa.desa.name}
-                onUpdate={() => { }} // Disable full re-fetch to prevent race conditions
                 setVerifiedDesaMap={setVerifiedDesaMap}
               />
             </div>

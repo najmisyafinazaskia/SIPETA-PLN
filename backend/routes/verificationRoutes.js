@@ -4,7 +4,7 @@ const verificationController = require('../controllers/verificationController');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, authorizeUploader, authorizeVerifier } = require('../middleware/auth');
 
 
 const storage = multer.memoryStorage();
@@ -28,7 +28,7 @@ router.get('/:dusunId', verificationController.getVerification);
 router.get('/download/:dusunId', verificationController.downloadFile);
 
 // Rute Upload Tradisional (Mendukung file hingga batasan Vercel)
-router.post('/upload/:dusunId', verifyToken, (req, res, next) => {
+router.post('/upload/:dusunId', verifyToken, authorizeUploader, (req, res, next) => {
     upload.single('document')(req, res, (err) => {
         if (err) {
             console.error('❌ Multer Error:', err);
@@ -38,7 +38,7 @@ router.post('/upload/:dusunId', verifyToken, (req, res, next) => {
     });
 }, verificationController.uploadFile);
 
-router.post('/upload-kecamatan', verifyToken, (req, res, next) => {
+router.post('/upload-kecamatan', verifyToken, authorizeUploader, (req, res, next) => {
     upload.single('document')(req, res, (err) => {
         if (err) {
             console.error('❌ Multer Error:', err);
@@ -48,8 +48,8 @@ router.post('/upload-kecamatan', verifyToken, (req, res, next) => {
     });
 }, verificationController.uploadKecamatan);
 
-router.put('/status/:dusunId', verifyToken, verificationController.updateStatus);
-router.delete('/:dusunId', verifyToken, verificationController.deleteVerification);
-router.post('/delete-kecamatan', verifyToken, verificationController.deleteKecamatan);
+router.put('/status/:dusunId', verifyToken, authorizeVerifier, verificationController.updateStatus);
+router.delete('/:dusunId', verifyToken, authorizeUploader, verificationController.deleteVerification);
+router.post('/delete-kecamatan', verifyToken, authorizeUploader, verificationController.deleteKecamatan);
 
 module.exports = router;
