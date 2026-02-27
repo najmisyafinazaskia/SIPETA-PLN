@@ -236,9 +236,9 @@ const EditNoteModal = ({
             </div>
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                {user?.role === 'admin'
-                  ? (isAddMode ? 'Tambah Catatan' : 'Edit Catatan')
-                  : (isAddMode ? 'Tambah Catatan Verifikator' : 'Edit Catatan Verifikator')}
+                {user?.unit === 'UP2K' || user?.role === 'superadmin'
+                  ? (isAddMode ? 'Tambah Catatan Verifikator' : 'Edit Catatan Verifikator')
+                  : (isAddMode ? 'Tambah Catatan' : 'Edit Catatan')}
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">Desa {desaName}</p>
             </div>
@@ -248,7 +248,7 @@ const EditNoteModal = ({
             <label className="text-lg font-bold text-gray-700 dark:text-gray-300">Catatan:</label>
             <textarea
               className="w-full p-6 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 focus:border-blue-500/30 outline-none transition-all text-lg font-bold min-h-[220px] dark:text-white"
-              placeholder={user?.role === 'admin' ? "Masukkan catatan untuk verifikator..." : "Masukkan catatan perbaikan..."}
+              placeholder={user?.unit === 'UP2K' || user?.role === 'superadmin' ? "Masukkan catatan perbaikan..." : "Masukkan catatan untuk verifikator..."}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
@@ -987,7 +987,7 @@ const DesaVerificationPanel = ({ desaId, desaName, setVerifiedDesaMap }: {
                 <h5 className="font-bold uppercase text-xs tracking-wider flex items-center gap-2 opacity-80">
                   <AlertCircleIcon size={16} /> {isUP2K ? 'CATATAN VERIFIKATOR:' : 'CATATAN:'}
                 </h5>
-                {(isUP2K || user?.role === 'admin') && (
+                {isUP2K && (
                   <button
                     onClick={() => setShowEditNoteModal(true)}
                     className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-[10px] font-black uppercase rounded-lg transition-all border border-gray-200 dark:border-gray-700 shadow-sm active:scale-95 group"
@@ -1000,7 +1000,7 @@ const DesaVerificationPanel = ({ desaId, desaName, setVerifiedDesaMap }: {
             </div>
           )}
 
-          {(isUP2K || user?.role === 'admin') && file && !message && status !== 'Terverifikasi' && (
+          {isUP2K && file && !message && status !== 'Terverifikasi' && (
             <div className="mb-4 animate-in fade-in slide-in-from-left-4 duration-500">
               <button
                 onClick={() => setShowEditNoteModal(true)}
