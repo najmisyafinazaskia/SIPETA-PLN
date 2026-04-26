@@ -67,9 +67,7 @@ export default function LandingPage() {
         {/* SISI KIRI: Informasi Teks dengan Spasi yang Dijauhkan */}
         <div className="w-full md:w-3/5 px-6 md:px-20 flex flex-col items-start text-left">
           {/* Spasi: mb-10 dijauhkan dari teks utama */}
-          <div className="bg-blue-100 text-[#0052CC] px-6 py-2.5 rounded-full text-2XL font-black mb-10 border border-blue-200 flex items-center gap-2 shadow-sm uppercase tracking-[0.2em]">
-            <span className="animate-pulse">⚡</span> Monitoring Elektrifikasi Desa & Dusun Aceh
-          </div>
+
 
           {/* Spasi: leading-[1.2] dan mb-10 untuk memberi ruang napas antar baris judul */}
           <h2 className="font-sora text-7xl md:text-7xl font-black text-[#1C2434] mb-12 leading-[1.2]  uppercase tracking-tighter">
