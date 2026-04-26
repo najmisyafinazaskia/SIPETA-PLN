@@ -46,7 +46,7 @@ const CallCenterPage: React.FC = () => {
                             </h1>
                         </div>
                         <p className="text-slate-500 dark:text-slate-400 text-lg font-medium max-w-2xl leading-relaxed">
-                            Informasi kontak administrator SIPEDA untuk bantuan teknis, koordinasi data, dan dukungan operasional wilayah Aceh.
+                            Informasi kontak administrator SIPETA untuk bantuan teknis, koordinasi data, dan dukungan operasional wilayah Aceh.
                         </p>
                     </div>
 

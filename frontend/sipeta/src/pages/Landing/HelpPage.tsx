@@ -40,7 +40,7 @@ const HelpPage: React.FC = () => {
                     <img src="/images/logo/logoDI.png" alt="Danantara Indonesia" className="h-6 md:h-8 w-auto object-contain" />
                 </Link>
                 <div className="flex items-center">
-                    <img src="/images/logo/logo-light.png" alt="SIPEDA Logo Header" className="h-12 md:h-16 w-auto object-contain" />
+                    <img src="/images/logo/logo-light.png" alt="SIPETA Logo Header" className="h-12 md:h-16 w-auto object-contain" />
                 </div>
             </nav>
 
@@ -57,7 +57,7 @@ const HelpPage: React.FC = () => {
                                 </h1>
                             </div>
                             <p className="text-slate-500 dark:text-slate-400 text-lg font-medium max-w-2xl leading-relaxed">
-                                Informasi kontak administrator SIPEDA untuk bantuan teknis, koordinasi data, dan dukungan operasional wilayah Aceh.
+                                Informasi kontak administrator SIPETA untuk bantuan teknis, koordinasi data, dan dukungan operasional wilayah Aceh.
                             </p>
                         </div>
 
@@ -126,7 +126,7 @@ const HelpPage: React.FC = () => {
                         </div>
                     </div>
                     <p className="hidden lg:block text-blue-50 text-xs font-bold tracking-tight text-center">
-                        © 2026 SIPEDA PLN UID Provinsi Aceh, Indonesia. All rights reserved.
+                        © 2026 SIPETA PLN UID Provinsi Aceh, Indonesia. All rights reserved.
                     </p>
                     <div className="flex gap-8 text-[11px] font-black uppercase tracking-[0.2em]">
                         <Link to="/help" className="hover:text-blue-200 transition-colors">Bantuan</Link>
